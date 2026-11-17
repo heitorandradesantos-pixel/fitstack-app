@@ -350,6 +350,72 @@ async function diagnostico(cfg: Cfg) {
 }
 
 
+// ---------- Financeiro (DRE): recebido e pago no mês, pelo EVO ----------
+const nomeObj = (x: any) => (x && typeof x === "object" ? (x.name ?? x.description ?? "") : (x ?? "")) as string;
+const recebido = (x: any) => /receiv|receb|pago|paid/i.test(nomeObj(x?.status)) || Number(x?.status?.id) === 2;
+async function financeiroMes(cfg: Cfg, mes: string, avisos: string[]) {
+  const ini = mes + "-01";
+  const fimD = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0));
+  const fim = ymd(fimD) > ymd(agoraBR()) ? ymd(agoraBR()) : ymd(fimD);
+  const dentro = (d: any) => { const x = soData(d); return !!x && x >= ini && x <= fim; };
+  // Recebido no mês
+  const rc = await todas(cfg, "/api/v1/receivables", { receivingDateStart: ini, receivingDateEnd: fim, accountStatus: "2" }, 40);
+  if (rc.truncado) avisos.push(`Receita de ${mes}: muitas parcelas, a soma pode estar incompleta.`);
+  let total = 0, taxas = 0, qtd = 0; const formas: Record<string, number> = {};
+  for (const r of rc.itens) {
+    if (r.cancellationDate || !dentro(r.receivingDate) || !recebido(r)) continue;
+    const v = Number(r.ammountPaid ?? r.ammount) || 0; if (v <= 0) continue;
+    total += v; qtd++;
+    const f = nomeObj(r.paymentType) || "Outros";
+    formas[f] = (formas[f] || 0) + v;
+    const fe = typeof r.fees === "number" ? r.fees : Number(r.fees?.value ?? r.fees?.amount ?? 0);
+    if (fe > 0) taxas += fe;
+  }
+  // Pago no mês (contas a pagar lançadas no EVO)
+  const iniV = ymd(new Date(Date.parse(ini) - 120 * DIA)), fimV = ymd(new Date(fimD.getTime() + 45 * DIA));
+  const pg = await todas(cfg, "/api/v1/payables", { dueDateStart: iniV, dueDateEnd: fimV }, 20);
+  if (pg.truncado) avisos.push(`Despesas de ${mes}: muitas contas no EVO, a soma pode estar incompleta.`);
+  const centros: Record<string, { v: number; n: number }> = {}; const itens: any[] = []; let pago = 0;
+  for (const x of pg.itens) {
+    if (x.cancellationDate || !dentro(x.paymentDate)) continue;
+    const v = Number(x.ammountPaid ?? x.ammount) || 0; if (v <= 0) continue;
+    const c = nomeObj(x.costCenter) || "Sem centro de custo";
+    pago += v; (centros[c] = centros[c] || { v: 0, n: 0 }).v += v; centros[c].n++;
+    if (itens.length < 400) itens.push({ d: soData(x.paymentDate), desc: String(x.description || "").trim().slice(0, 80), centro: c, v: Math.round(v * 100) / 100,
+      forn: String(nomeObj(x.recipient) || nomeObj(x.beneficiary) || "").slice(0, 60) });
+  }
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return {
+    receita: { total: r2(total), taxas: r2(taxas), qtd, formas: Object.entries(formas).map(([k, v]) => [k, r2(v)]).sort((a: any, b: any) => b[1] - a[1]) },
+    despesas: { total: r2(pago), centros: Object.entries(centros).map(([k, o]) => [k, r2(o.v), o.n]).sort((a: any, b: any) => b[1] - a[1]), itens },
+    ate: fim,
+  };
+}
+async function sincronizarFinanceiro(cfg: Cfg) {
+  const a = cfg.academia_id, avisos: string[] = [];
+  const { data: ant } = await db.from("evo_dados").select("dados").eq("academia_id", a).eq("chave", "financeiro").maybeSingle();
+  const meses: Record<string, any> = { ...((ant?.dados as any)?.meses || {}) };
+  const hoje = ymd(agoraBR()), atual = hoje.slice(0, 7);
+  const anterior = ymd(new Date(Date.parse(atual + "-01") - DIA)).slice(0, 7);
+  const fazer = [atual];
+  if (Number(hoje.slice(8, 10)) <= 10 || !meses[anterior]) fazer.push(anterior);
+  // Primeira vez: busca também os 4 meses antes, para ter comparação
+  if (!ant) for (let i = 2; i <= 3; i++) fazer.push(ymd(new Date(Date.UTC(Number(atual.slice(0, 4)), Number(atual.slice(5, 7)) - 1 - i, 1))).slice(0, 7));
+  for (const m of fazer) {
+    try { meses[m] = await financeiroMes(cfg, m, avisos); }
+    catch (e) { avisos.push(`Financeiro de ${m}: ${(e as Error).message}`); }
+  }
+  let centros: string[] = [];
+  try {
+    const cc = await todas(cfg, "/api/v1/costcenter", {}, 6);
+    centros = cc.itens.filter((x: any) => x.active !== false).map((x: any) => String(x.description || "").trim()).filter(Boolean);
+  } catch (_e) { /* sem lista de centros */ }
+  const chaves = Object.keys(meses).sort().slice(-13);
+  const dados = { meses: Object.fromEntries(chaves.map((k) => [k, meses[k]])), centros, avisos, atualizado: new Date().toISOString() };
+  await db.from("evo_dados").upsert({ academia_id: a, chave: "financeiro", dados, atualizado_em: new Date().toISOString() });
+  return { meses: fazer, avisos };
+}
+
 // Sondagem: quais endpoints financeiros o token consegue ler (só nomes de campos, contagens e somas).
 async function sondar(cfg: Cfg, extra?: any) {
   const hoje = ymd(agoraBR()), ini = hoje.slice(0, 8) + "01";
@@ -421,13 +487,14 @@ Deno.serve(async (req) => {
     for (const a of alvos) {
       const { data: c } = await db.from("integracoes_evo").select("dns, token, ultima_sync").eq("academia_id", a).maybeSingle();
       if (!c) { saida.push({ academia_id: a, erro: "Chave do EVO não cadastrada." }); continue; }
-      if (!cron && !String(body.modo || "").startsWith("diag") && c.ultima_sync && Date.now() - Date.parse(c.ultima_sync) < 10 * 60000) {
+      if (!cron && !String(body.modo || "").startsWith("diag") && body.modo !== "fin" && c.ultima_sync && Date.now() - Date.parse(c.ultima_sync) < 10 * 60000) {
         saida.push({ academia_id: a, erro: "Os dados foram atualizados há menos de 10 minutos. Espere um pouco." }); continue;
       }
       const cfg: Cfg = { academia_id: a, dns: c.dns, token: c.token, calls: 0 };
       try {
         if (body.modo === "diag") { saida.push({ academia_id: a, diag: await diagnostico(cfg) }); continue; }
         if (body.modo === "diag-fin") { saida.push({ academia_id: a, diag: await sondar(cfg, body.sonda) }); continue; }
+        if (body.modo === "fin") { const f = await sincronizarFinanceiro(cfg); saida.push({ academia_id: a, ok: true, financeiro: f, consultas: cfg.calls }); continue; }
         const r = await sincronizar(cfg);
         await gravar(cfg, r);
         saida.push({ academia_id: a, ok: true, resumo: r.resumo, avisos: r.avisos, consultas: cfg.calls });
