@@ -363,3 +363,38 @@ create policy convites_tudo on public.convites for all
          or (public.pode(academia_id,'equipe') and papel = 'colaborador'))
   with check ((public.meu_papel(academia_id) = 'admin' and (papel <> 'socio' or public.papel_real(academia_id) = 'admin'))
          or (public.pode(academia_id,'equipe') and papel = 'colaborador' and permissoes <@ array['placar','comissao']::text[]));
+-- FitStack · primeiro acesso com código (sem confirmação por e-mail)
+create or replace function public.gerar_codigo() returns text
+language sql volatile as $$
+  select string_agg(substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 1 + floor(random()*31)::int, 1), '')
+  from generate_series(1,6)
+$$;
+alter table public.convites add column if not exists codigo text not null default public.gerar_codigo();
+
+-- Confere e-mail + código antes de criar a senha (usado na tela, sem login)
+create or replace function public.convite_valido(p_email text, p_codigo text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from convites
+                 where lower(email) = lower(trim(p_email)) and upper(trim(codigo)) = upper(trim(p_codigo)))
+$$;
+grant execute on function public.convite_valido(text,text) to anon, authenticated;
+drop function if exists public.email_convidado(text);
+
+-- Só entra na academia quem tem o código certo
+drop function if exists public.aceitar_convites();
+create or replace function public.aceitar_convites(p_codigo text default null) returns int
+language plpgsql security definer set search_path = public as $$
+declare n int; e text := lower(auth.jwt()->>'email');
+begin
+  if auth.uid() is null or e is null or p_codigo is null then return 0; end if;
+  insert into membros(academia_id, user_id, papel, email, nome, permissoes)
+    select c.academia_id, auth.uid(), c.papel, e,
+           coalesce(nullif(c.nome,''), auth.jwt()->'user_metadata'->>'nome'), c.permissoes
+    from convites c where lower(c.email) = e and upper(c.codigo) = upper(trim(p_codigo))
+    on conflict do nothing;
+  get diagnostics n = row_count;
+  delete from convites where lower(email) = e and upper(codigo) = upper(trim(p_codigo));
+  return n;
+end $$;
+revoke execute on function public.aceitar_convites(text) from anon, public;
+grant execute on function public.aceitar_convites(text) to authenticated;

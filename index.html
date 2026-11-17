@@ -151,13 +151,26 @@ function cargos(){return isDono()?['colaborador','gerente','socio']:['colaborado
 function pode(p){return S.atual&&(isAdmin()||(S.atual.permissoes||[]).indexOf(p)>=0);}
 function dataBR(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('pt-BR');}
 function gid(){var c='abcdefghjkmnpqrstuvwxyz23456789',s='';for(var i=0;i<7;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
-function erroMsg(e){var m=(e&&(e.message||e.error_description))||String(e);
-  if(/Invalid login/i.test(m))return 'E-mail ou senha incorretos.';
-  if(/Email not confirmed/i.test(m))return 'Confirme seu e-mail primeiro: abra o link que chegou na sua caixa de entrada.';
-  if(/already registered/i.test(m))return 'Esse e-mail já tem conta. Use "Entrar" ou "Esqueci a senha".';
-  if(/Password should be/i.test(m))return 'A senha precisa ter pelo menos 6 caracteres.';
-  if(/rate limit/i.test(m))return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.';
-  return m;}
+function erroMsg(e){var m=String((e&&(e.message||e.error_description||e.msg))||e||'');
+  var T=[
+    [/Invalid login/i,'E-mail ou senha incorretos.'],
+    [/Email not confirmed/i,'Este acesso ainda não foi liberado. Fale com o admin da academia.'],
+    [/already registered|already been registered|User already exists/i,'Esse e-mail já tem acesso. Toque em "Entrar" ou em "Esqueci minha senha".'],
+    [/Password should be|password.*(at least|characters)/i,'A senha precisa ter pelo menos 6 caracteres.'],
+    [/weak.?password|Password is known/i,'Essa senha é muito fácil. Use uma senha mais forte.'],
+    [/rate limit|too many|security purposes/i,'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.'],
+    [/sending.*(email|e-mail)|confirmation email|recovery email|SMTP/i,'Não conseguimos enviar o e-mail agora. Tente de novo em alguns minutos ou fale com o admin.'],
+    [/invalid format|Unable to validate email|invalid email|email address.*invalid/i,'Esse e-mail não parece válido. Confira se digitou certo.'],
+    [/Signups not allowed|signup.*disabled/i,'Cadastros estão fechados no momento. Fale com o admin.'],
+    [/expired|invalid.*(token|link)|otp/i,'Esse link expirou. Peça um novo em "Esqueci minha senha".'],
+    [/should be different|same.*password/i,'A senha nova precisa ser diferente da antiga.'],
+    [/Failed to fetch|NetworkError|network|Load failed|timeout/i,'Sem conexão com a internet. Confira e tente de novo.'],
+    [/duplicate|unique/i,'Esse cadastro já existe.'],
+    [/row-level security|permission denied|not allowed|42501/i,'Seu acesso não permite fazer isso. Fale com o admin da academia.'],
+    [/JWT|session|not authenticated|Auth session missing/i,'Sua sessão expirou. Saia e entre de novo.']
+  ];
+  for(var k=0;k<T.length;k++)if(T[k][0].test(m))return T[k][1];
+  return 'Algo deu errado. Tente de novo em instantes. Se continuar, fale com o admin da academia.';}
 function copiar(txt){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast('Link copiado.');},function(){prompt('Copie o link:',txt);});}
 function wa(txt){window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');}
 
@@ -189,11 +202,12 @@ function telaAuth(){
   }else{
     var dono=m==='academia';
     h+='<h1 class="h2">'+(dono?'Cadastrar minha academia':'Primeiro acesso')+'</h1><p class="lead small">'+
-      (dono?'Para quem vai cadastrar a academia. Depois você cria os acessos do gerente e da equipe.'
-           :'Use o mesmo e-mail que o admin da academia cadastrou para você. Aqui você cria a sua senha.')+'</p>'+
+      (dono?'Para quem vai cadastrar a academia. Depois você cria os acessos dos sócios, do gerente e da equipe.'
+           :'Use o e-mail e o código que o admin da academia te mandou. Aqui você cria a sua senha.')+'</p>'+
       '<form class="form" data-form="cadastrar" data-dono="'+(dono?1:0)+'" style="margin-top:14px">'+
       '<label class="f"><span>Seu nome</span><input name="nome" autocomplete="name" required></label>'+
       '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
+      (dono?'':'<label class="f"><span>Código de acesso (6 letras e números)</span><input name="codigo" maxlength="6" autocomplete="off" autocapitalize="characters" required style="text-transform:uppercase;letter-spacing:.2em;font-weight:700" placeholder="Ex.: K7M2QX"></label>')+
       '<label class="f"><span>Crie uma senha (mínimo 6 caracteres)</span><input type="password" name="senha" minlength="6" autocomplete="new-password" required></label>'+
       msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Criar acesso</button></form>';
   }
@@ -211,18 +225,41 @@ var FORMS={
   esqueci:function(d){busy(sb.auth.resetPasswordForEmail(d.email,{redirectTo:APP_URL}),function(){S.authMsg='Pronto. Se esse e-mail tiver conta, o link chega em alguns minutos (olhe também o spam).';});},
   novaSenha:function(d){busy(sb.auth.updateUser({password:d.senha}),function(){S.authModo='entrar';toast('Senha nova salva.');carregar();});},
   cadastrar:function(d,f){
-    var dono=f.dataset.dono==='1';
-    var go=function(){busy(sb.auth.signUp({email:d.email,password:d.senha,options:{data:{nome:d.nome},emailRedirectTo:APP_URL}}),function(r){
-      if(r.data&&r.data.session){carregar();}
-      else S.authMsg='Conta criada. Abra o e-mail de confirmação que enviamos para '+d.email+' e clique no link (olhe também o spam). Depois é só entrar.';
-    });};
-    if(dono){go();return;}
+    var dono=f.dataset.dono==='1',email=d.email.toLowerCase(),cod=String(d.codigo||'').toUpperCase().replace(/\s/g,'');
+    S.ocupado=true;S.authErro='';S.authMsg='';render();
+    var falhou=function(e){S.ocupado=false;S.authErro=erroMsg(e);render();};
+    var entrarComCodigo=function(){
+      if(dono){S.ocupado=false;carregar();return;}
+      sb.rpc('aceitar_convites',{p_codigo:cod}).then(function(){S.ocupado=false;carregar();},falhou);
+    };
+    var criar=function(){
+      sb.auth.signUp({email:email,password:d.senha,options:{data:{nome:d.nome,dono:dono}}}).then(function(r){
+        if(r.error){
+          if(/already registered|already been registered|User already exists/i.test(r.error.message)){
+            sb.auth.signInWithPassword({email:email,password:d.senha}).then(function(x){
+              if(x.error){S.ocupado=false;S.authErro='Esse e-mail já tem acesso. Toque em "Entrar" ou em "Esqueci minha senha".';render();return;}
+              entrarComCodigo();
+            },falhou);return;}
+          return falhou(r.error);
+        }
+        if(r.data&&r.data.session)entrarComCodigo();
+        else{S.ocupado=false;S.authMsg='Acesso criado. Agora toque em "Entrar" com seu e-mail e senha.';S.authModo='entrar';render();}
+      },falhou);
+    };
+    if(dono){criar();return;}
+    if(cod.length!==6){S.ocupado=false;S.authErro='Digite o código de 6 letras e números que o admin te mandou.';render();return;}
+    sb.rpc('convite_valido',{p_email:email,p_codigo:cod}).then(function(r){
+      if(r.error)return falhou(r.error);
+      if(!r.data){S.ocupado=false;S.authErro='E-mail ou código não conferem. Confira com o admin da academia como ele cadastrou você.';render();return;}
+      criar();
+    },falhou);
+  },
+  usarCodigo:function(d){
     S.ocupado=true;S.authErro='';render();
-    sb.rpc('email_convidado',{p_email:d.email}).then(function(r){
-      S.ocupado=false;
-      if(r.error||!r.data){S.authErro='Esse e-mail não foi cadastrado por nenhuma academia. Peça ao admin para cadastrar você, ou confira se digitou igual.';render();return;}
-      go();
-    });
+    sb.rpc('aceitar_convites',{p_codigo:String(d.codigo||'').toUpperCase().trim()}).then(function(r){S.ocupado=false;
+      if(r.error){S.authErro=erroMsg(r.error);render();return;}
+      if(!r.data){S.authErro='Esse código não confere com o seu e-mail. Confira com o admin da academia.';render();return;}
+      carregar();},function(e){S.ocupado=false;S.authErro=erroMsg(e);render();});
   },
   criarAcademia:function(d){
     S.ocupado=true;render();
@@ -235,9 +272,9 @@ var FORMS={
     if(d.papel==='socio')perms=PRESET.socio.slice();
     var row={academia_id:S.atual.academia_id,email:d.email.toLowerCase(),nome:d.nome,papel:d.papel||'colaborador',permissoes:perms};
     S.ocupado=true;render();
-    sb.from('convites').insert(row).then(function(r){S.ocupado=false;
+    sb.from('convites').insert(row).select('codigo').single().then(function(r){S.ocupado=false;
       if(r.error){toast(/duplicate/.test(r.error.message)?'Esse e-mail já está cadastrado.':erroMsg(r.error));render();return;}
-      S.ultimoAcesso=row;S.novoAcesso=null;carregarEquipe();});
+      row.codigo=r.data&&r.data.codigo;S.ultimoAcesso=row;S.novoAcesso=null;carregarEquipe();});
   }
 };
 function busy(p,ok){
@@ -251,7 +288,7 @@ function carregar(){
   sb.auth.getSession().then(function(r){
     S.sess=r.data.session;
     if(!S.sess){render();return;}
-    sb.rpc('aceitar_convites').then(function(){
+    Promise.resolve().then(function(){
       sb.from('membros').select('academia_id,papel,permissoes,ativo,nome,academias(nome,cidade)').eq('user_id',S.sess.user.id).then(function(m){
         S.membros=(m.data||[]).filter(function(x){return x.ativo;});
         var salvo=null;try{salvo=localStorage.getItem('fs-acad');}catch(e){}
@@ -288,13 +325,18 @@ function render(){
   view.innerHTML=fn();
 }
 function telaSemAcademia(){
-  return '<div class="auth"><div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span></div>'+
-    '<section class="panel"><h1 class="h2">Cadastre sua academia</h1><p class="lead small">Você vai ser o admin. Depois você cria os acessos do gerente e da equipe.</p>'+
+  var meta=(S.sess.user.user_metadata)||{},dono=NOVA||meta.dono===true;
+  var topo='<div class="auth"><div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span></div>';
+  if(!dono)return topo+'<section class="panel"><h1 class="h2">Falta o código de acesso</h1><p class="lead small">Sua conta foi criada, mas ainda não está ligada a nenhuma academia. Digite o código de 6 letras e números que o admin te mandou.</p>'+
+    '<form class="form" data-form="usarCodigo" style="margin-top:14px"><label class="f"><span>Código de acesso</span><input name="codigo" maxlength="6" autocomplete="off" required style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"></label>'+
+    msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Entrar na academia</button></form>'+
+    '<p class="small muted" style="margin:14px 0 0">Entrou com o e-mail errado? <button class="link" data-act="sair">Sair</button></p></section></div>';
+  return topo+'<section class="panel"><h1 class="h2">Cadastre sua academia</h1><p class="lead small">Você vai ser o dono. Depois você cria os acessos dos sócios, do gerente e da equipe.</p>'+
     '<form class="form" data-form="criarAcademia" style="margin-top:14px">'+
     '<label class="f"><span>Nome da academia</span><input name="nome" placeholder="Ex.: Panobianco Paranavaí" required></label>'+
     '<label class="f"><span>Cidade</span><input name="cidade" placeholder="Ex.: Paranavaí"></label>'+
     msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Criar academia</button></form>'+
-    '<p class="small muted" style="margin:14px 0 0">Foi cadastrado por um admin? Saia e entre com o e-mail que ele cadastrou. <button class="link" data-act="sair">Sair</button></p></section></div>';
+    '<p class="small muted" style="margin:14px 0 0">Recebeu um código de uma academia? <button class="link" data-act="sair">Sair</button> e use "Primeiro acesso".</p></section></div>';
 }
 function telaInicio(){
   var cards=[];
@@ -535,9 +577,10 @@ function telaEquipe(){
   var h='<div class="row between"><div><h1>Equipe e acessos</h1><p class="lead">'+(adm?'Você cadastra '+(isDono()?'os sócios, ':'')+'o gerente e os colaboradores e escolhe o que cada um pode ver e fazer.':'Você pode cadastrar colaboradores. As permissões de gerente só o admin muda.')+'</p></div>'+
     (S.novoAcesso?'':'<button class="btn" data-act="novoAcesso">+ Cadastrar acesso</button>')+'</div>';
   if(S.ultimoAcesso){
-    var u=S.ultimoAcesso,txt='Oi, '+u.nome.split(' ')[0]+'! Seu acesso ao sistema da academia foi criado. Entre em '+APP_URL+' , toque em "Primeiro acesso" e use o e-mail '+u.email+' para criar a sua senha.';
+    var u=S.ultimoAcesso,txt='Oi, '+u.nome.split(' ')[0]+'! Seu acesso ao sistema da academia foi criado.\n\n1. Entre em '+APP_URL+'\n2. Toque em "Primeiro acesso"\n3. Use o e-mail: '+u.email+'\n4. Código de acesso: '+u.codigo+'\n5. Crie a sua senha\n\nDepois é só entrar com e-mail e senha.';
     h+='<section class="panel" style="border-color:var(--accent)"><span class="lbl">Acesso cadastrado</span><h2 class="h2">'+esc(u.nome)+'</h2>'+
-      '<p class="lead small">Agora '+esc(u.nome.split(' ')[0])+' entra em <b>app.fitstack.com.br</b>, toca em <b>Primeiro acesso</b> e cria a própria senha com o e-mail <b>'+esc(u.email)+'</b>.</p>'+
+      '<p class="lead small">Agora '+esc(u.nome.split(' ')[0])+' entra em <b>app.fitstack.com.br</b>, toca em <b>Primeiro acesso</b> e usa o e-mail <b>'+esc(u.email)+'</b> com o código abaixo para criar a própria senha.</p>'+
+      '<div style="font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.25em;margin:8px 0">'+esc(u.codigo||'')+'</div>'+
       '<div class="row" style="margin-top:10px"><button class="btn sm" data-watxt="'+esc(txt)+'">Mandar no WhatsApp</button><button class="btn ghost sm" data-act="okAcesso">Fechar</button></div></section>';
   }
   if(S.novoAcesso){
@@ -563,8 +606,8 @@ function telaEquipe(){
     return h2;}).join('')+'</div></section>';
   if(S.convites.length){
     h+='<section class="panel"><span class="lbl">Cadastrados que ainda não criaram a senha</span><div class="list">'+S.convites.map(function(c){
-      var txt='Oi, '+(c.nome||'').split(' ')[0]+'! Seu acesso ao sistema da academia foi criado. Entre em '+APP_URL+' , toque em "Primeiro acesso" e use o e-mail '+c.email+' para criar a sua senha.';
-      return '<div class="item"><div class="main"><span class="nm">'+esc(c.nome||c.email)+'</span><span class="row small muted"><span class="chip acc">'+PAPEL[c.papel]+'</span><span>'+esc(c.email)+'</span></span></div>'+
+      var txt='Oi, '+{nome:(c.nome||''),email:c.email,codigo:c.codigo}.nome.split(' ')[0]+'! Seu acesso ao sistema da academia foi criado.\n\n1. Entre em '+APP_URL+'\n2. Toque em "Primeiro acesso"\n3. Use o e-mail: '+{nome:(c.nome||''),email:c.email,codigo:c.codigo}.email+'\n4. Código de acesso: '+{nome:(c.nome||''),email:c.email,codigo:c.codigo}.codigo+'\n5. Crie a sua senha\n\nDepois é só entrar com e-mail e senha.';
+      return '<div class="item"><div class="main"><span class="nm">'+esc(c.nome||c.email)+'</span><span class="row small muted"><span class="chip acc">'+PAPEL[c.papel]+'</span><span>'+esc(c.email)+'</span><span>· código <b style="color:var(--fg);letter-spacing:.12em">'+esc(c.codigo||'')+'</b></span></span></div>'+
         '<div class="row"><button class="btn ghost sm" data-watxt="'+esc(txt)+'">Reenviar no WhatsApp</button><button class="btn ghost sm" data-delc="'+c.id+'">Cancelar</button></div></div>';}).join('')+'</div></section>';
   }
   return h;
