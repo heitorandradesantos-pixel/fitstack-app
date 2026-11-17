@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0d0c0b">
+<title>FitStack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#0d0c0b; --surface:#171513; --surface-2:#231f1c; --line:#322d29;
+  --fg:#f6f2ee; --muted:#a99f97; --accent:#E8530A; --accent-ink:#170a03; --accent-text:#ff7d40;
+  --ok:#45c381; --ok-bg:rgba(69,195,129,.14); --warn:#e7b03c; --warn-bg:rgba(231,176,60,.14); --bad:#f15b56; --bad-bg:rgba(241,91,86,.15); --idle-bg:rgba(169,159,151,.12);
+  --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);position:sticky;top:0;z-index:5}
+.top{display:flex;align-items:center;gap:14px;justify-content:space-between;padding-block:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.12em;min-width:0}
+.brand .bu{color:var(--muted);font-weight:600;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mark{display:grid;grid-template-columns:repeat(2,8px);gap:2px;flex:none}
+.mark i{width:8px;height:8px;background:var(--accent)}
+.mark i:last-child{background:transparent;box-shadow:inset 0 0 0 2px var(--accent)}
+.who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+nav.tabs button{appearance:none;background:transparent;border:1px solid transparent;color:var(--muted);font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-current="page"]{color:var(--fg);background:var(--surface-2);border-color:var(--line)}
+main{padding-block:22px 80px;display:grid;gap:18px}
+h1,.h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,40px);line-height:1;text-transform:uppercase;margin:0}
+.h2{font-family:var(--display);font-weight:800;font-size:21px;text-transform:uppercase;letter-spacing:.04em;margin:0;line-height:1.1}
+.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.lead{margin:6px 0 0;color:var(--muted);max-width:68ch}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:8px;align-content:start;text-align:left;color:var(--fg);font:inherit;cursor:pointer;min-width:0}
+.card:hover{border-color:var(--muted)}
+.card .t{font-family:var(--display);font-weight:800;font-size:19px;text-transform:uppercase;letter-spacing:.03em;line-height:1.1}
+.card .d{color:var(--muted);font-size:14px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-height:42px}
+textarea{resize:vertical;line-height:1.45}
+label.f{display:grid;gap:4px;min-width:0}
+label.f>span{font-size:13px;color:var(--muted);font-weight:600}
+.form{display:grid;gap:12px;max-width:440px}
+.form2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border-radius:8px;cursor:pointer;min-height:42px;white-space:nowrap}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--muted)}
+.btn.sm{font-size:14px;padding:5px 10px;min-height:34px}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.link{appearance:none;background:none;border:0;color:var(--accent-text);font:inherit;cursor:pointer;padding:0;text-decoration:underline}
+.x{appearance:none;background:transparent;border:1px solid var(--line);color:var(--muted);width:36px;height:36px;border-radius:8px;cursor:pointer;flex:none;font-size:18px;line-height:1}
+.x:hover{color:var(--bad);border-color:var(--bad)}
+:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 9px;border-radius:999px;background:var(--idle-bg);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.acc{background:rgba(232,83,10,.16);color:var(--accent-text)}
+.msg{border-radius:8px;padding:10px 12px;font-size:14px;border:1px solid var(--line);background:var(--idle-bg)}
+.msg.erro{background:var(--bad-bg);border-color:var(--bad)} .msg.ok{background:var(--ok-bg);border-color:var(--ok)}
+.auth{max-width:440px;margin:6vh auto 0;display:grid;gap:16px}
+.seg{display:flex;gap:4px;background:var(--surface-2);border-radius:10px;padding:4px}
+.seg button{flex:1;appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);padding:8px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg)}
+.list{display:grid}
+.item{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.list .item:first-child{border-top:0}
+.item .main{min-width:0;flex:1 1 280px;display:grid;gap:4px}
+.item .nm{font-weight:700;font-size:16px}
+.bloco{border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px;background:var(--surface-2)}
+.pq{display:flex;gap:8px;align-items:flex-start}
+.pq textarea{min-height:42px}
+.checks{display:grid;gap:8px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
+.check input{width:20px;height:20px;min-height:0;margin:1px 0 0;accent-color:var(--accent);flex:none}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .v{font-family:var(--display);font-weight:800;font-size:36px;line-height:1}
+.kpi .s{font-size:13px;color:var(--muted);margin-top:4px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 140px 44px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.bar:first-child{border-top:0}
+.track{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.fill{height:100%;border-radius:5px}
+.num{font-family:var(--display);font-weight:700;font-size:18px;text-align:right}
+.g-ok{background:var(--ok)} .g-warn{background:var(--warn)} .g-bad{background:var(--bad)}
+.t-ok{color:var(--ok)} .t-warn{color:var(--warn)} .t-bad{color:var(--bad)}
+.coment{padding:10px 12px;border-radius:8px;background:var(--surface-2);font-size:14px;white-space:pre-wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;max-width:min(92vw,520px);z-index:20}
+.linkbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.linkbox input{flex:1 1 260px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+[hidden]{display:none!important}
+@media (max-width:640px){.bar{grid-template-columns:minmax(0,1fr) 70px 40px}}
+</style>
+</head>
+<body>
+<header id="hdr" hidden><div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span><span class="bu" id="acadNome"></span></div>
+    <div class="who"><span id="quem"></span><button class="btn ghost sm" data-act="sair">Sair</button></div>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Seções"></nav>
+</div></header>
+<main class="wrap" id="view"><p class="muted">Carregando…</p></main>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="modelos.js"></script>
+<script>
+(function(){
+'use strict';
+var SB_URL='https://bmbcdqcjeignydehwmhg.supabase.co';
+var SB_KEY='sb_publishable_4pSkdBQF_-Q16yeAVQoFHA_SjhoaXjf';
+var RESP_URL='https://avaliacao.fitstack.com.br/r/?id=';
+var APP_URL='https://app.fitstack.com.br';
+
+var sb=supabase.createClient(SB_URL,SB_KEY);
+var PERMS=[
+  {k:'placar',t:'Preencher o Placar do turno'},
+  {k:'placar_gestao',t:'Ver o Placar de todos e cobrar a equipe'},
+  {k:'comissao',t:'Ver o ranking de comissão'},
+  {k:'avaliacoes',t:'Criar avaliações e ver resultados (menos gerente, coordenador e clima)'},
+  {k:'equipe',t:'Cadastrar colaboradores'}
+];
+var PRESET={gerente:['placar','placar_gestao','comissao','avaliacoes','equipe'],colaborador:['placar','comissao']};
+var PUBLICO={equipe:'A equipe (colegas)',alunos:'Os alunos',gestor:'O gestor / a direção'};
+var PAPEL={admin:'Admin',gerente:'Gerente',colaborador:'Colaborador'};
+
+var S={sess:null,membros:[],atual:null,tab:'inicio',sub:'lista',authModo:'entrar',authMsg:'',authErro:'',ocupado:false,
+  rodadas:[],modelosSalvos:[],ed:null,res:null,equipe:null,convites:[],novoAcesso:null,ultimoAcesso:null,confirma:null,edMembro:null};
+var view=document.getElementById('view');
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var tT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(function(){t.hidden=true;},3800);}
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function isAdmin(){return S.atual&&S.atual.papel==='admin';}
+function pode(p){return S.atual&&(S.atual.papel==='admin'||(S.atual.permissoes||[]).indexOf(p)>=0);}
+function dataBR(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('pt-BR');}
+function gid(){var c='abcdefghjkmnpqrstuvwxyz23456789',s='';for(var i=0;i<7;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+function erroMsg(e){var m=(e&&(e.message||e.error_description))||String(e);
+  if(/Invalid login/i.test(m))return 'E-mail ou senha incorretos.';
+  if(/Email not confirmed/i.test(m))return 'Confirme seu e-mail primeiro: abra o link que chegou na sua caixa de entrada.';
+  if(/already registered/i.test(m))return 'Esse e-mail já tem conta. Use "Entrar" ou "Esqueci a senha".';
+  if(/Password should be/i.test(m))return 'A senha precisa ter pelo menos 6 caracteres.';
+  if(/rate limit/i.test(m))return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.';
+  return m;}
+function copiar(txt){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast('Link copiado.');},function(){prompt('Copie o link:',txt);});}
+function wa(txt){window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');}
+
+// ================= AUTENTICAÇÃO =================
+function telaAuth(){
+  var m=S.authModo,h='<div class="auth"><div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span><span class="bu">Gestão de academias</span></div>';
+  if(m==='nova-senha'){
+    h+='<section class="panel"><h1 class="h2">Criar nova senha</h1><form class="form" data-form="novaSenha" style="margin-top:14px">'+
+      '<label class="f"><span>Nova senha</span><input type="password" name="senha" minlength="6" autocomplete="new-password" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Salvar senha</button></form></section></div>';
+    return h;
+  }
+  h+='<div class="seg" role="group">'+
+    '<button type="button" data-auth="entrar" aria-pressed="'+(m==='entrar')+'">Entrar</button>'+
+    '<button type="button" data-auth="primeiro" aria-pressed="'+(m==='primeiro')+'">Primeiro acesso</button>'+
+    '<button type="button" data-auth="academia" aria-pressed="'+(m==='academia')+'">Sou dono</button></div>';
+  h+='<section class="panel">';
+  if(m==='entrar'){
+    h+='<h1 class="h2">Entrar</h1><form class="form" data-form="entrar" style="margin-top:14px">'+
+      '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
+      '<label class="f"><span>Senha</span><input type="password" name="senha" autocomplete="current-password" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Entrar</button>'+
+      '<button type="button" class="link small" data-auth="esqueci">Esqueci minha senha</button></form>';
+  }else if(m==='esqueci'){
+    h+='<h1 class="h2">Recuperar senha</h1><p class="lead small">Digite seu e-mail. Vamos mandar um link para você criar uma senha nova.</p><form class="form" data-form="esqueci" style="margin-top:14px">'+
+      '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Enviar link</button>'+
+      '<button type="button" class="link small" data-auth="entrar">Voltar</button></form>';
+  }else{
+    var dono=m==='academia';
+    h+='<h1 class="h2">'+(dono?'Criar conta de dono':'Primeiro acesso')+'</h1><p class="lead small">'+
+      (dono?'Para quem vai cadastrar a academia. Depois você cria os acessos do gerente e da equipe.'
+           :'Use o mesmo e-mail que o admin da academia cadastrou para você. Aqui você cria a sua senha.')+'</p>'+
+      '<form class="form" data-form="cadastrar" data-dono="'+(dono?1:0)+'" style="margin-top:14px">'+
+      '<label class="f"><span>Seu nome</span><input name="nome" autocomplete="name" required></label>'+
+      '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
+      '<label class="f"><span>Crie uma senha (mínimo 6 caracteres)</span><input type="password" name="senha" minlength="6" autocomplete="new-password" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Criar acesso</button></form>';
+  }
+  return h+'</section></div>';
+}
+function msgs(){return (S.authErro?'<div class="msg erro">'+esc(S.authErro)+'</div>':'')+(S.authMsg?'<div class="msg ok">'+esc(S.authMsg)+'</div>':'');}
+
+function onForm(e){
+  var f=e.target;if(!f.dataset||!f.dataset.form)return;e.preventDefault();
+  var d={};new FormData(f).forEach(function(v,k){d[k]=String(v).trim();});
+  var fn=FORMS[f.dataset.form];if(fn)fn(d,f);
+}
+var FORMS={
+  entrar:function(d){busy(sb.auth.signInWithPassword({email:d.email,password:d.senha}),function(){S.authMsg='';});},
+  esqueci:function(d){busy(sb.auth.resetPasswordForEmail(d.email,{redirectTo:APP_URL}),function(){S.authMsg='Pronto. Se esse e-mail tiver conta, o link chega em alguns minutos (olhe também o spam).';});},
+  novaSenha:function(d){busy(sb.auth.updateUser({password:d.senha}),function(){S.authModo='entrar';toast('Senha nova salva.');carregar();});},
+  cadastrar:function(d,f){
+    var dono=f.dataset.dono==='1';
+    var go=function(){busy(sb.auth.signUp({email:d.email,password:d.senha,options:{data:{nome:d.nome},emailRedirectTo:APP_URL}}),function(r){
+      if(r.data&&r.data.session){carregar();}
+      else S.authMsg='Conta criada. Abra o e-mail de confirmação que enviamos para '+d.email+' e clique no link (olhe também o spam). Depois é só entrar.';
+    });};
+    if(dono){go();return;}
+    S.ocupado=true;S.authErro='';render();
+    sb.rpc('email_convidado',{p_email:d.email}).then(function(r){
+      S.ocupado=false;
+      if(r.error||!r.data){S.authErro='Esse e-mail não foi cadastrado por nenhuma academia. Peça ao admin para cadastrar você, ou confira se digitou igual.';render();return;}
+      go();
+    });
+  },
+  criarAcademia:function(d){
+    S.ocupado=true;render();
+    sb.rpc('criar_academia',{p_nome:d.nome,p_cidade:d.cidade}).then(function(r){S.ocupado=false;
+      if(r.error){S.authErro=erroMsg(r.error);render();return;}
+      toast('Academia criada. Você é o admin.');carregar();});
+  },
+  acesso:function(d,f){
+    var perms=[].slice.call(f.querySelectorAll('input[name=perm]:checked')).map(function(i){return i.value;});
+    var row={academia_id:S.atual.academia_id,email:d.email.toLowerCase(),nome:d.nome,papel:d.papel||'colaborador',permissoes:perms};
+    S.ocupado=true;render();
+    sb.from('convites').insert(row).then(function(r){S.ocupado=false;
+      if(r.error){toast(/duplicate/.test(r.error.message)?'Esse e-mail já está cadastrado.':erroMsg(r.error));render();return;}
+      S.ultimoAcesso=row;S.novoAcesso=null;carregarEquipe();});
+  }
+};
+function busy(p,ok){
+  S.ocupado=true;S.authErro='';S.authMsg='';render();
+  p.then(function(r){S.ocupado=false;if(r.error){S.authErro=erroMsg(r.error);}else ok(r);render();},
+         function(e){S.ocupado=false;S.authErro=erroMsg(e);render();});
+}
+
+// ================= CARREGAR =================
+function carregar(){
+  sb.auth.getSession().then(function(r){
+    S.sess=r.data.session;
+    if(!S.sess){render();return;}
+    sb.rpc('aceitar_convites').then(function(){
+      sb.from('membros').select('academia_id,papel,permissoes,ativo,nome,academias(nome,cidade)').eq('user_id',S.sess.user.id).then(function(m){
+        S.membros=(m.data||[]).filter(function(x){return x.ativo;});
+        var salvo=null;try{salvo=localStorage.getItem('fs-acad');}catch(e){}
+        S.atual=S.membros.filter(function(x){return x.academia_id===salvo;})[0]||S.membros[0]||null;
+        render();
+      });
+    });
+  });
+}
+sb.auth.onAuthStateChange(function(ev,sess){
+  if(ev==='PASSWORD_RECOVERY'){S.authModo='nova-senha';S.sess=null;render();return;}
+  if(ev==='SIGNED_IN'&&!S.sess&&S.authModo!=='nova-senha'){S.sess=sess;carregar();}
+  if(ev==='SIGNED_OUT'){S.sess=null;S.atual=null;render();}
+});
+
+// ================= SHELL =================
+function render(){
+  var hdr=document.getElementById('hdr');
+  if(!S.sess||S.authModo==='nova-senha'){hdr.hidden=true;view.innerHTML=telaAuth();return;}
+  if(!S.atual){hdr.hidden=true;view.innerHTML=telaSemAcademia();return;}
+  hdr.hidden=false;
+  document.getElementById('acadNome').textContent=S.atual.academias.nome+(S.atual.academias.cidade?' · '+S.atual.academias.cidade:'');
+  var nome=(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome)||S.sess.user.email;
+  document.getElementById('quem').innerHTML=esc(nome)+' <span class="chip acc">'+PAPEL[S.atual.papel]+'</span>';
+  var tabs=[['inicio','Início']];
+  if(pode('avaliacoes'))tabs.push(['avaliacoes','Avaliações']);
+  if(pode('placar')||pode('placar_gestao'))tabs.push(['placar','Placar']);
+  if(isAdmin()||pode('equipe'))tabs.push(['equipe','Equipe e acessos']);
+  if(!tabs.some(function(t){return t[0]===S.tab;}))S.tab='inicio';
+  document.getElementById('tabs').innerHTML=tabs.map(function(t){return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+t[1]+'</button>';}).join('');
+  var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe}[S.tab];
+  view.innerHTML=fn();
+}
+function telaSemAcademia(){
+  return '<div class="auth"><div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span></div>'+
+    '<section class="panel"><h1 class="h2">Cadastre sua academia</h1><p class="lead small">Você vai ser o admin. Depois você cria os acessos do gerente e da equipe.</p>'+
+    '<form class="form" data-form="criarAcademia" style="margin-top:14px">'+
+    '<label class="f"><span>Nome da academia</span><input name="nome" placeholder="Ex.: Panobianco Paranavaí" required></label>'+
+    '<label class="f"><span>Cidade</span><input name="cidade" placeholder="Ex.: Paranavaí"></label>'+
+    msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Criar academia</button></form>'+
+    '<p class="small muted" style="margin:14px 0 0">Foi cadastrado por um admin? Saia e entre com o e-mail que ele cadastrou. <button class="link" data-act="sair">Sair</button></p></section></div>';
+}
+function telaInicio(){
+  var cards=[];
+  if(pode('avaliacoes'))cards.push(['avaliacoes','Avaliações','Crie avaliações anônimas para cada função e veja os resultados.']);
+  if(pode('placar')||pode('placar_gestao'))cards.push(['placar','Placar de Turnos','Metas do turno, relatório diário e comissão.']);
+  if(isAdmin()||pode('equipe'))cards.push(['equipe','Equipe e acessos','Cadastre o gerente e os colaboradores e escolha o que cada um vê.']);
+  var h='<div><h1>Olá'+(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome?', '+esc(S.sess.user.user_metadata.nome.split(' ')[0]):'')+'</h1><p class="lead">O que vamos fazer agora?</p></div>';
+  h+=cards.length?'<div class="grid">'+cards.map(function(c){return '<button class="card" data-tab="'+c[0]+'"><span class="t">'+c[1]+'</span><span class="d">'+c[2]+'</span></button>';}).join('')+'</div>'
+    :'<section class="panel"><p class="muted" style="margin:0">Seu acesso ainda não tem nenhuma área liberada. Fale com o admin da academia.</p></section>';
+  if(S.membros.length>1){
+    h+='<section class="panel"><span class="lbl">Trocar de academia</span><div class="row">'+S.membros.map(function(m){
+      return '<button class="btn '+(m===S.atual?'':'ghost ')+'sm" data-acad="'+m.academia_id+'">'+esc(m.academias.nome)+'</button>';}).join('')+'</div></section>';
+  }
+  return h;
+}
+function telaPlacar(){
+  return '<section class="panel"><span class="lbl">Em migração</span><h1 class="h2">Placar de Turnos</h1>'+
+    '<p class="lead">O Placar está vindo para dentro do FitStack, com o login de cada um. Enquanto isso ele continua funcionando no endereço de sempre.</p>'+
+    '<p style="margin:14px 0 0"><a class="btn" href="https://painel.fitstack.com.br" target="_blank" rel="noopener">Abrir o Placar</a></p></section>';
+}
+
+// ================= AVALIAÇÕES =================
+function telaAvaliacoes(){
+  if(S.sub==='modelos')return telaEscolherModelo();
+  if(S.sub==='editor')return telaEditor();
+  if(S.sub==='resultado')return telaResultado();
+  var h='<div class="row between"><div><h1>Avaliações</h1><p class="lead">Anônimas, sem login para quem responde. Crie, mande o link e acompanhe o resultado.</p></div>'+
+    '<button class="btn" data-act="novaAval">+ Nova avaliação</button></div>';
+  if(S.rodadas===null)return h+'<p class="muted">Carregando…</p>';
+  if(!S.rodadas.length)return h+'<section class="panel"><p class="muted" style="margin:0">Nenhuma avaliação criada ainda. Toque em <b>Nova avaliação</b> e escolha um modelo.</p></section>';
+  h+='<section class="panel"><div class="list">'+S.rodadas.map(function(r){
+    var n=(r.respostas&&r.respostas[0]&&r.respostas[0].count)||0,link=RESP_URL+r.id,conf=S.confirma==='del-'+r.id;
+    return '<div class="item"><div class="main"><span class="nm">'+esc(r.titulo)+(r.avaliado?' · '+esc(r.avaliado):'')+'</span>'+
+      '<span class="row small muted"><span class="chip '+(r.status==='aberta'?'ok':'')+'">'+(r.status==='aberta'?'Aberta':'Encerrada')+'</span>'+
+      '<span>'+n+' resposta'+(n===1?'':'s')+'</span><span>· responde: '+esc(PUBLICO[r.publico]||'')+'</span><span>· '+dataBR(r.criado_em)+'</span>'+(r.restrita?'<span class="chip">Só o admin vê</span>':'')+'</span></div>'+
+      '<div class="row"><button class="btn sm" data-res="'+r.id+'">Resultado</button>'+
+      '<button class="btn ghost sm" data-copy="'+esc(link)+'">Copiar link</button>'+
+      '<button class="btn ghost sm" data-wa="'+r.id+'">WhatsApp</button>'+
+      '<button class="btn ghost sm" data-status="'+r.id+'">'+(r.status==='aberta'?'Encerrar':'Reabrir')+'</button>'+
+      '<button class="btn '+(conf?'danger':'ghost')+' sm" data-del="'+r.id+'">'+(conf?'Confirmar exclusão':'Excluir')+'</button></div></div>';
+  }).join('')+'</div></section>';
+  return h;
+}
+function carregarRodadas(){
+  S.rodadas=null;render();
+  sb.from('rodadas').select('id,titulo,avaliado,funcao,publico,restrita,status,criado_em,config,respostas(count)').eq('academia_id',S.atual.academia_id).order('criado_em',{ascending:false})
+    .then(function(r){S.rodadas=r.data||[];if(r.error)toast(erroMsg(r.error));render();});
+}
+function carregarModelos(){
+  sb.from('modelos').select('*').eq('academia_id',S.atual.academia_id).order('criado_em',{ascending:false}).then(function(r){S.modelosSalvos=r.data||[];render();});
+}
+function telaEscolherModelo(){
+  var h='<div class="row between"><div><h1>Nova avaliação</h1><p class="lead">Escolha um modelo. Na próxima tela você tira, coloca ou muda as perguntas como quiser.</p></div>'+
+    '<button class="btn ghost" data-act="voltarLista">Voltar</button></div>';
+  if(S.modelosSalvos.length){
+    h+='<div><span class="lbl">Seus modelos</span><div class="grid">'+S.modelosSalvos.map(function(m){
+      var conf=S.confirma==='mod-'+m.id;
+      return '<div class="card" style="cursor:default"><span class="t">'+esc(m.nome)+'</span><span class="d">'+contaPerg(m.config)+' perguntas · salvo em '+dataBR(m.criado_em)+'</span>'+
+        '<span class="row"><button class="btn sm" data-usar-salvo="'+m.id+'">Usar</button><button class="btn '+(conf?'danger':'ghost')+' sm" data-del-mod="'+m.id+'">'+(conf?'Confirmar':'Excluir')+'</button></span></div>';}).join('')+'</div></div>';
+  }
+  h+='<div><span class="lbl">Modelos padrão</span><div class="grid">'+MODELOS.filter(function(m){return isAdmin()||['gerente','coordenador','clima'].indexOf(m.funcao)<0;}).map(function(m){
+    return '<button class="card" data-modelo="'+m.id+'"><span class="t">'+esc(m.nome)+'</span><span class="d">'+esc(m.desc)+'</span><span class="small muted">'+contaPerg(m)+' perguntas · responde: '+esc(PUBLICO[m.publico])+'</span></button>';}).join('')+'</div></div>';
+  h+='<div><span class="lbl">Do zero</span><div class="grid"><button class="card" data-modelo="__branco"><span class="t">Avaliação em branco</span><span class="d">Para uma função que não está na lista. Você monta tudo.</span></button></div></div>';
+  return h;
+}
+function contaPerg(m){var n=0;(m.blocos||[]).forEach(function(b){n+=b.perguntas.length;});return n+(m.nps?1:0)+(m.abertas||[]).length;}
+function abrirEditor(base,salvo){
+  var m=clone(base);
+  S.ed={base:m.id||'salvo',nome:m.nome,funcao:m.funcao||'outro',publico:m.publico||'equipe',modalidade:!!m.modalidade,academia:!!m.academia,
+    quem:m.quem||'Quem está sendo avaliado',avaliado:m.academia?S.atual.academias.nome:'',mod:'',modOutra:'',
+    blocos:m.blocos||[],npsAtivo:m.nps!==null&&m.nps!==undefined&&m.nps!=='',nps:m.nps||'De 0 a 10, quanto você indicaria {nome} para um amigo?',
+    abertas:m.abertas||[],nomeModelo:salvo?m.nome:'',erro:''};
+  S.sub='editor';render();window.scrollTo(0,0);
+}
+function telaEditor(){
+  var e=S.ed;
+  var h='<div class="row between"><div><span class="lbl">Modelo: '+esc(e.nome)+'</span><h1>Montar avaliação</h1>'+
+    '<p class="lead">Onde aparece <b>{nome}</b> entra o nome de quem está sendo avaliado'+(e.modalidade?', e <b>{modalidade}</b> vira a aula escolhida':'')+'.</p></div>'+
+    '<button class="btn ghost" data-act="voltarModelos">Voltar</button></div>';
+  h+='<section class="panel"><span class="lbl">Sobre a avaliação</span><div class="form2">'+
+    '<label class="f"><span>'+esc(e.quem)+'</span><input data-ed="avaliado" value="'+esc(e.avaliado)+'" placeholder="Ex.: Rafael"></label>';
+  if(e.modalidade){
+    h+='<label class="f"><span>Modalidade da aula</span><select data-ed="mod"><option value="">Escolha…</option>'+
+      MODALIDADES.map(function(x){return '<option'+(e.mod===x?' selected':'')+'>'+esc(x)+'</option>';}).join('')+
+      '<option value="__outra"'+(e.mod==='__outra'?' selected':'')+'>Outra (digitar)</option></select></label>';
+    if(e.mod==='__outra')h+='<label class="f"><span>Nome da modalidade</span><input data-ed="modOutra" value="'+esc(e.modOutra)+'" placeholder="Ex.: Aero Boxe"></label>';
+  }
+  h+='<label class="f"><span>Quem vai responder</span><select data-ed="publico">'+Object.keys(PUBLICO).map(function(k){return '<option value="'+k+'"'+(e.publico===k?' selected':'')+'>'+PUBLICO[k]+'</option>';}).join('')+'</select></label></div>';
+  if(['gerente','coordenador','clima'].indexOf(e.funcao)>=0)h+='<p class="small muted" style="margin:12px 0 0">Avaliação de liderança: só o admin vê o resultado, mesmo que o gerente tenha acesso às avaliações.</p>';
+  h+='</section>';
+  h+='<section class="panel"><div class="row between"><div><span class="lbl">Perguntas de 1 a 5</span><p class="small muted" style="margin:0">Discordo totalmente (1) até concordo totalmente (5).</p></div></div><div style="display:grid;gap:12px;margin-top:12px">';
+  e.blocos.forEach(function(b,bi){
+    h+='<div class="bloco"><div class="pq"><input data-bnome="'+bi+'" value="'+esc(b.nome)+'" aria-label="Nome do bloco" style="font-weight:700"><button class="x" title="Excluir bloco" aria-label="Excluir bloco" data-delb="'+bi+'">×</button></div>';
+    b.perguntas.forEach(function(p,pi){
+      h+='<div class="pq"><textarea rows="1" data-perg="'+bi+'.'+pi+'" aria-label="Pergunta">'+esc(p)+'</textarea><button class="x" title="Tirar pergunta" aria-label="Tirar pergunta" data-delp="'+bi+'.'+pi+'">×</button></div>';
+    });
+    h+='<div><button class="btn ghost sm" data-addp="'+bi+'">+ Pergunta</button></div></div>';
+  });
+  h+='<div><button class="btn ghost sm" data-act="addBloco">+ Bloco de perguntas</button></div></div></section>';
+  h+='<section class="panel"><label class="check"><input type="checkbox" data-ed="npsAtivo"'+(e.npsAtivo?' checked':'')+'><span><b>Nota geral de 0 a 10</b> (NPS)</span></label>'+
+    (e.npsAtivo?'<textarea rows="2" data-ed="nps" style="margin-top:10px">'+esc(e.nps)+'</textarea>':'')+'</section>';
+  h+='<section class="panel"><span class="lbl">Perguntas abertas (opcionais para quem responde)</span><div style="display:grid;gap:8px;margin-top:6px">'+
+    e.abertas.map(function(a,i){return '<div class="pq"><textarea rows="1" data-aberta="'+i+'">'+esc(a)+'</textarea><button class="x" aria-label="Tirar pergunta" data-dela="'+i+'">×</button></div>';}).join('')+
+    '<div><button class="btn ghost sm" data-act="addAberta">+ Pergunta aberta</button></div></div></section>';
+  if(e.erro)h+='<div class="msg erro">'+esc(e.erro)+'</div>';
+  h+='<section class="panel"><div class="row between"><div class="row"><input data-ed="nomeModelo" value="'+esc(e.nomeModelo)+'" placeholder="Nome para salvar como modelo" style="max-width:280px">'+
+    '<button class="btn ghost" data-act="salvarModelo"'+(S.ocupado?' disabled':'')+'>Salvar como modelo</button></div>'+
+    '<button class="btn" data-act="criarRodada"'+(S.ocupado?' disabled':'')+'>Criar e gerar link</button></div></section>';
+  return h;
+}
+function modalidadeAtual(){var e=S.ed;return e.mod==='__outra'?e.modOutra.trim():e.mod;}
+function cfgBruto(){var e=S.ed;return {nome:e.nomeModelo||e.nome,funcao:e.funcao,publico:e.publico,modalidade:e.modalidade,academia:e.academia,quem:e.quem,
+  blocos:e.blocos.map(function(b){return {nome:b.nome.trim(),perguntas:b.perguntas.map(function(p){return p.trim();}).filter(Boolean)};}).filter(function(b){return b.perguntas.length;}),
+  nps:e.npsAtivo?e.nps.trim():null,abertas:e.abertas.map(function(a){return a.trim();}).filter(Boolean)};}
+function criarRodada(){
+  var e=S.ed,c=cfgBruto(),av=e.avaliado.trim(),md=modalidadeAtual();
+  e.erro='';
+  if(!av)e.erro='Preencha: '+e.quem+'.';
+  else if(e.modalidade&&!md)e.erro='Escolha a modalidade da aula.';
+  else if(!c.blocos.length&&!c.nps&&!c.abertas.length)e.erro='Coloque pelo menos uma pergunta.';
+  if(e.erro){render();return;}
+  var tx=function(s){return s.split('{nome}').join(av).split('{modalidade}').join(md);};
+  var chamada=e.funcao==='alunos'?'Como está a sua experiência na '+av+'?':e.funcao==='clima'?'Como está trabalhar na '+av+'?':
+    e.modalidade?'Como você avalia a aula de '+md+' com '+av+'?':'Como você avalia o trabalho de '+av+'?';
+  var cfg={chamada:chamada,blocos:c.blocos.map(function(b){return {nome:tx(b.nome),perguntas:b.perguntas.map(tx)};}),nps:c.nps?tx(c.nps):null,abertas:c.abertas.map(tx)};
+  var titulo=e.nome+(md?' · '+md:'');
+  var tenta=function(k){
+    var id=gid();
+    S.ocupado=true;render();
+    sb.from('rodadas').insert({id:id,academia_id:S.atual.academia_id,titulo:titulo,avaliado:av,funcao:e.funcao,publico:e.publico,config:cfg}).then(function(r){
+      S.ocupado=false;
+      if(r.error){if(/duplicate/.test(r.error.message)&&k<3)return tenta(k+1);e.erro=erroMsg(r.error);render();return;}
+      S.ed=null;S.sub='lista';S.criada={id:id,titulo:titulo,avaliado:av};carregarRodadas();
+      setTimeout(function(){mostrarCriada();},400);
+    });
+  };
+  tenta(0);
+}
+function mostrarCriada(){
+  if(!S.criada)return;var c=S.criada,link=RESP_URL+c.id;
+  var box=document.createElement('section');box.className='panel';box.style.borderColor='var(--accent)';
+  box.innerHTML='<span class="lbl">Avaliação criada</span><h2 class="h2">'+esc(c.titulo)+' · '+esc(c.avaliado)+'</h2>'+
+    '<p class="lead small">Mande este link para quem vai responder. Não precisa de login e a resposta é anônima.</p>'+
+    '<div class="linkbox" style="margin-top:10px"><input readonly value="'+esc(link)+'"><button class="btn sm" data-copy="'+esc(link)+'">Copiar</button><button class="btn ghost sm" data-wa="'+c.id+'">WhatsApp</button><a class="btn ghost sm" href="'+esc(link)+'" target="_blank" rel="noopener">Abrir</a></div>';
+  view.insertBefore(box,view.children[1]||null);S.criada=null;
+}
+function textoWa(id){
+  var r=(S.rodadas||[]).filter(function(x){return x.id===id;})[0];
+  var alvo=r?r.avaliado:'';var pub=r?r.publico:'equipe';
+  return (pub==='alunos'?'Oi! Queremos saber sua opinião':'Oi, equipe! Peço que respondam a avaliação')+(alvo&&r.funcao!=='alunos'&&r.funcao!=='clima'?' sobre '+alvo:'')+
+    '. É anônima, não precisa de login e leva poucos minutos: '+RESP_URL+id;
+}
+function salvarModelo(){
+  var e=S.ed,c=cfgBruto();
+  if(!e.nomeModelo.trim()){e.erro='Dê um nome para o modelo (campo ao lado do botão).';render();return;}
+  S.ocupado=true;render();
+  sb.from('modelos').insert({academia_id:S.atual.academia_id,nome:e.nomeModelo.trim(),funcao:e.funcao,config:c}).then(function(r){
+    S.ocupado=false;if(r.error){e.erro=erroMsg(r.error);render();return;}
+    e.erro='';toast('Modelo salvo. Ele aparece em "Seus modelos".');carregarModelos();});
+}
+
+// ===== Resultado =====
+function abrirResultado(id){
+  var r=S.rodadas.filter(function(x){return x.id===id;})[0];
+  S.res={r:r,lista:null};S.sub='resultado';render();window.scrollTo(0,0);
+  sb.from('respostas').select('nps,notas,abertas,criado_em').eq('rodada_id',id).then(function(q){
+    if(q.error){toast(erroMsg(q.error));}
+    S.res.lista=q.data||[];render();});
+}
+function cor(v){return v>=4?'ok':v>=3?'warn':'bad';}
+function calc(){
+  var r=S.res.r,L=S.res.lista,cfg=r.config,mapa={},blocos={};
+  L.forEach(function(x){(x.notas||[]).forEach(function(n){var k=n.b+'||'+n.q;mapa[k]=mapa[k]||{s:0,c:0};mapa[k].s+=n.n;mapa[k].c++;});});
+  var perg=[],tot=0,cnt=0;
+  cfg.blocos.forEach(function(b){var bs=0,bc=0;b.perguntas.forEach(function(p){var m=mapa[b.nome+'||'+p];var v=m&&m.c?m.s/m.c:null;
+    perg.push({b:b.nome,q:p,v:v});if(m){bs+=m.s;bc+=m.c;tot+=m.s;cnt+=m.c;}});blocos[b.nome]=bc?bs/bc:null;});
+  var nv=L.filter(function(x){return x.nps!=null;}),pr=nv.filter(function(x){return x.nps>=9;}).length,de=nv.filter(function(x){return x.nps<=6;}).length;
+  var ab={};L.forEach(function(x){(x.abertas||[]).forEach(function(a){if(a.t&&a.t.trim()){(ab[a.q]=ab[a.q]||[]).push(a.t.trim());}});});
+  Object.keys(ab).forEach(function(k){var a=ab[k];for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}});
+  return {n:L.length,media:cnt?tot/cnt:null,blocos:blocos,perg:perg,nps:nv.length?Math.round((pr-de)/nv.length*100):null,npsN:nv.length,pr:pr,de:de,neu:nv.length-pr-de,
+    npsMedia:nv.length?nv.reduce(function(s,x){return s+x.nps;},0)/nv.length:null,ab:ab};
+}
+function barra(lbl,v,max){max=max||5;return '<div class="bar"><span>'+lbl+'</span><span class="track"><span class="fill g-'+(v==null?'warn':cor(v))+'" style="width:'+(v==null?0:Math.round(v/max*100))+'%;display:block"></span></span><span class="num t-'+(v==null?'warn':cor(v))+'">'+(v==null?'–':v.toFixed(1))+'</span></div>';}
+function telaResultado(){
+  var R=S.res,r=R.r;
+  var h='<div class="row between"><div><span class="lbl">Resultado</span><h1>'+esc(r.titulo)+' · '+esc(r.avaliado)+'</h1><p class="lead">Criada em '+dataBR(r.criado_em)+' · responde: '+esc(PUBLICO[r.publico]||'')+'</p></div>'+
+    '<div class="row"><button class="btn ghost" data-act="csv">Baixar planilha</button><button class="btn ghost" data-act="voltarLista">Voltar</button></div></div>';
+  if(R.lista===null)return h+'<p class="muted">Carregando respostas…</p>';
+  var c=calc();
+  if(!c.n)return h+'<section class="panel"><p class="muted" style="margin:0">Ainda não chegou nenhuma resposta. Mande o link: <button class="link" data-copy="'+esc(RESP_URL+r.id)+'">copiar link</button></p></section>';
+  if(c.n<3)h+='<div class="msg">Com menos de 3 respostas fica fácil adivinhar quem respondeu e o resultado ainda não é confiável. Espere chegar mais.</div>';
+  h+='<div class="kpis"><div class="kpi"><div class="v">'+c.n+'</div><div class="s">resposta'+(c.n===1?'':'s')+'</div></div>'+
+    '<div class="kpi"><div class="v t-'+(c.media==null?'warn':cor(c.media))+'">'+(c.media==null?'–':c.media.toFixed(1))+'</div><div class="s">média geral (1 a 5)</div></div>';
+  if(r.config.nps)h+='<div class="kpi"><div class="v t-'+(c.nps==null?'warn':c.nps>=50?'ok':c.nps>=0?'warn':'bad')+'">'+(c.nps==null?'–':c.nps)+'</div><div class="s">NPS (de −100 a 100) · nota média '+(c.npsMedia==null?'–':c.npsMedia.toFixed(1))+'</div></div>'+
+    '<div class="kpi"><div class="v" style="font-size:22px;line-height:1.3"><span class="t-ok">'+c.pr+'</span> · <span class="t-warn">'+c.neu+'</span> · <span class="t-bad">'+c.de+'</span></div><div class="s">promotores (9–10) · neutros (7–8) · detratores (0–6)</div></div>';
+  h+='</div>';
+  if(r.config.blocos.length){
+    h+='<section class="panel"><span class="lbl">Média por bloco</span>'+r.config.blocos.map(function(b){return barra(esc(b.nome),c.blocos[b.nome]);}).join('')+'</section>';
+    var ord=c.perg.filter(function(p){return p.v!=null;}).slice().sort(function(a,b){return b.v-a.v;});
+    if(ord.length>=4){
+      h+='<div class="form2"><section class="panel"><span class="lbl">Pontos fortes</span>'+ord.slice(0,3).map(function(p){return barra(esc(p.q),p.v);}).join('')+'</section>'+
+        '<section class="panel"><span class="lbl">Pontos de atenção</span>'+ord.slice(-3).reverse().map(function(p){return barra(esc(p.q),p.v);}).join('')+'</section></div>';
+    }
+    h+='<section class="panel"><span class="lbl">Todas as perguntas</span>'+r.config.blocos.map(function(b){
+      return '<h3 class="h2" style="font-size:17px;margin:14px 0 4px">'+esc(b.nome)+'</h3>'+c.perg.filter(function(p){return p.b===b.nome;}).map(function(p){return barra(esc(p.q),p.v);}).join('');}).join('')+'</section>';
+  }
+  if(r.config.abertas.length){
+    h+='<section class="panel"><span class="lbl">Respostas abertas</span><p class="small muted" style="margin:0 0 6px">Embaralhadas, para não dar para ligar um comentário a uma pessoa.</p>'+r.config.abertas.map(function(q){
+      var a=c.ab[q]||[];return '<h3 class="h2" style="font-size:17px;margin:16px 0 8px">'+esc(q)+'</h3>'+(a.length?'<div style="display:grid;gap:8px">'+a.map(function(t){return '<div class="coment">'+esc(t)+'</div>';}).join('')+'</div>':'<p class="small muted" style="margin:0">Ninguém respondeu.</p>');}).join('')+'</section>';
+  }
+  return h;
+}
+function baixarCSV(){
+  var r=S.res.r,c=calc(),q=function(s){return '"'+String(s==null?'':s).replace(/"/g,'""')+'"';};
+  var L=[['Avaliação',r.titulo],['Avaliado',r.avaliado],['Respostas',c.n],['Média geral',c.media==null?'':c.media.toFixed(2)],['NPS',c.nps==null?'':c.nps],[],['Bloco','Pergunta','Média (1 a 5)']];
+  c.perg.forEach(function(p){L.push([p.b,p.q,p.v==null?'':p.v.toFixed(2)]);});
+  L.push([],['Pergunta aberta','Resposta']);
+  r.config.abertas.forEach(function(qq){(c.ab[qq]||[]).forEach(function(t){L.push([qq,t]);});});
+  var csv='﻿'+L.map(function(l){return l.map(q).join(';');}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=('avaliacao-'+r.titulo+'-'+r.avaliado).toLowerCase().replace(/[^a-z0-9]+/gi,'-')+'.csv';a.click();
+}
+
+// ================= EQUIPE =================
+function carregarEquipe(){
+  S.equipe=null;render();
+  Promise.all([
+    sb.from('membros').select('user_id,papel,permissoes,ativo,nome,email').eq('academia_id',S.atual.academia_id).order('criado_em'),
+    sb.from('convites').select('*').eq('academia_id',S.atual.academia_id).order('criado_em')
+  ]).then(function(rs){S.equipe=rs[0].data||[];S.convites=rs[1].data||[];render();});
+}
+function permChecks(sel,limite){
+  return '<div class="checks">'+PERMS.filter(function(p){return !limite||limite.indexOf(p.k)>=0;}).map(function(p){
+    return '<label class="check"><input type="checkbox" name="perm" value="'+p.k+'"'+(sel.indexOf(p.k)>=0?' checked':'')+'><span>'+esc(p.t)+'</span></label>';}).join('')+'</div>';
+}
+function telaEquipe(){
+  var adm=isAdmin(),lim=adm?null:PRESET.colaborador;
+  var h='<div class="row between"><div><h1>Equipe e acessos</h1><p class="lead">'+(adm?'Você cadastra o gerente e os colaboradores e escolhe o que cada um pode ver e fazer.':'Você pode cadastrar colaboradores. As permissões de gerente só o admin muda.')+'</p></div>'+
+    (S.novoAcesso?'':'<button class="btn" data-act="novoAcesso">+ Cadastrar acesso</button>')+'</div>';
+  if(S.ultimoAcesso){
+    var u=S.ultimoAcesso,txt='Oi, '+u.nome.split(' ')[0]+'! Seu acesso ao sistema da academia foi criado. Entre em '+APP_URL+' , toque em "Primeiro acesso" e use o e-mail '+u.email+' para criar a sua senha.';
+    h+='<section class="panel" style="border-color:var(--accent)"><span class="lbl">Acesso cadastrado</span><h2 class="h2">'+esc(u.nome)+'</h2>'+
+      '<p class="lead small">Agora '+esc(u.nome.split(' ')[0])+' entra em <b>app.fitstack.com.br</b>, toca em <b>Primeiro acesso</b> e cria a própria senha com o e-mail <b>'+esc(u.email)+'</b>.</p>'+
+      '<div class="row" style="margin-top:10px"><button class="btn sm" data-watxt="'+esc(txt)+'">Mandar no WhatsApp</button><button class="btn ghost sm" data-act="okAcesso">Fechar</button></div></section>';
+  }
+  if(S.novoAcesso){
+    var na=S.novoAcesso;
+    h+='<section class="panel"><span class="lbl">Novo acesso</span><form data-form="acesso" style="display:grid;gap:14px;margin-top:6px"><div class="form2">'+
+      '<label class="f"><span>Nome</span><input name="nome" required placeholder="Ex.: Ana Souza"></label>'+
+      '<label class="f"><span>E-mail da pessoa</span><input type="email" name="email" required placeholder="ana@gmail.com"></label>'+
+      (adm?'<label class="f"><span>Cargo</span><select name="papel" data-papel>'+['colaborador','gerente'].map(function(p){return '<option value="'+p+'"'+(na.papel===p?' selected':'')+'>'+PAPEL[p]+'</option>';}).join('')+'</select></label>':'<input type="hidden" name="papel" value="colaborador">')+
+      '</div><div><span class="lbl">O que essa pessoa pode ver e fazer</span>'+permChecks(PRESET[na.papel],lim)+'</div>'+
+      '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Cadastrar</button><button type="button" class="btn ghost" data-act="cancelAcesso">Cancelar</button></div></form></section>';
+  }
+  if(S.equipe===null)return h+'<p class="muted">Carregando…</p>';
+  h+='<section class="panel"><span class="lbl">Quem já tem acesso</span><div class="list">'+S.equipe.map(function(m){
+    var eu=m.user_id===S.sess.user.id,editando=S.edMembro===m.user_id,podeEditar=!eu&&(adm||(m.papel==='colaborador'&&pode('equipe')));
+    var h2='<div class="item"><div class="main"><span class="nm">'+esc(m.nome||m.email)+(eu?' <span class="muted small">(você)</span>':'')+'</span>'+
+      '<span class="row small muted"><span class="chip acc">'+PAPEL[m.papel]+'</span>'+(m.ativo?'':'<span class="chip bad">Desativado</span>')+'<span>'+esc(m.email||'')+'</span></span>'+
+      (m.papel==='admin'?'<span class="small muted">Vê e faz tudo.</span>':'<span class="row">'+(m.permissoes||[]).map(function(k){var p=PERMS.filter(function(x){return x.k===k;})[0];return p?'<span class="chip">'+esc(p.t.split(' (')[0])+'</span>':'';}).join('')+'</span>')+'</div>';
+    if(podeEditar)h2+='<div class="row">'+(adm?'<button class="btn ghost sm" data-editm="'+m.user_id+'">'+(editando?'Fechar':'Permissões')+'</button>':'')+
+      '<button class="btn ghost sm" data-ativo="'+m.user_id+'">'+(m.ativo?'Desativar':'Reativar')+'</button></div>';
+    h2+='</div>';
+    if(editando)h2+='<form class="bloco" data-membro="'+m.user_id+'" style="margin-bottom:12px"><label class="f" style="max-width:240px"><span>Cargo</span><select name="papel">'+['colaborador','gerente'].map(function(p){return '<option value="'+p+'"'+(m.papel===p?' selected':'')+'>'+PAPEL[p]+'</option>';}).join('')+'</select></label>'+
+      permChecks(m.permissoes||[])+'<div><button class="btn sm" data-salvarm="'+m.user_id+'" type="button">Salvar permissões</button></div></form>';
+    return h2;}).join('')+'</div></section>';
+  if(S.convites.length){
+    h+='<section class="panel"><span class="lbl">Cadastrados que ainda não criaram a senha</span><div class="list">'+S.convites.map(function(c){
+      var txt='Oi, '+(c.nome||'').split(' ')[0]+'! Seu acesso ao sistema da academia foi criado. Entre em '+APP_URL+' , toque em "Primeiro acesso" e use o e-mail '+c.email+' para criar a sua senha.';
+      return '<div class="item"><div class="main"><span class="nm">'+esc(c.nome||c.email)+'</span><span class="row small muted"><span class="chip acc">'+PAPEL[c.papel]+'</span><span>'+esc(c.email)+'</span></span></div>'+
+        '<div class="row"><button class="btn ghost sm" data-watxt="'+esc(txt)+'">Reenviar no WhatsApp</button><button class="btn ghost sm" data-delc="'+c.id+'">Cancelar</button></div></div>';}).join('')+'</div></section>';
+  }
+  return h;
+}
+
+// ================= EVENTOS =================
+view.addEventListener('submit',onForm);
+view.addEventListener('input',function(ev){
+  var t=ev.target,e=S.ed;
+  if(t.matches('textarea'))autoH(t);
+  if(!e)return;
+  if(t.dataset.ed){var k=t.dataset.ed;if(t.type==='checkbox'){e[k]=t.checked;render();}else{e[k]=t.value;if(k==='mod')render();}}
+  else if(t.dataset.bnome!==undefined)e.blocos[+t.dataset.bnome].nome=t.value;
+  else if(t.dataset.perg){var a=t.dataset.perg.split('.');e.blocos[+a[0]].perguntas[+a[1]]=t.value;}
+  else if(t.dataset.aberta!==undefined)e.abertas[+t.dataset.aberta]=t.value;
+});
+view.addEventListener('change',function(ev){
+  var t=ev.target;
+  if(t.matches('[data-papel]')&&S.novoAcesso){S.novoAcesso.papel=t.value;
+    var f=t.form;f.querySelectorAll('input[name=perm]').forEach(function(i){i.checked=PRESET[t.value].indexOf(i.value)>=0;});}
+});
+function autoH(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,240)+'px';}
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('button,a');if(!b)return;var d=b.dataset;
+  if(d.auth){S.authModo=d.auth;S.authErro='';S.authMsg='';render();return;}
+  if(d.tab){S.tab=d.tab;S.sub='lista';S.confirma=null;
+    if(d.tab==='avaliacoes'){carregarRodadas();carregarModelos();}
+    if(d.tab==='equipe'){S.novoAcesso=null;carregarEquipe();}
+    render();window.scrollTo(0,0);return;}
+  if(d.acad){try{localStorage.setItem('fs-acad',d.acad);}catch(e){}S.atual=S.membros.filter(function(m){return m.academia_id===d.acad;})[0];render();return;}
+  if(d.copy){copiar(d.copy);return;}
+  if(d.wa){wa(textoWa(d.wa));return;}
+  if(d.watxt){wa(d.watxt);return;}
+  if(d.modelo){abrirEditor(d.modelo==='__branco'?{id:'branco',nome:'Avaliação personalizada',funcao:'outro',publico:'equipe',quem:'Quem está sendo avaliado',blocos:[{nome:'Bloco 1',perguntas:['']}],nps:'De 0 a 10, quanto você indicaria {nome} para um amigo?',abertas:['O que {nome} faz muito bem?','O que {nome} precisa melhorar?']}:MODELOS.filter(function(m){return m.id===d.modelo;})[0]);return;}
+  if(d.usarSalvo){var ms=S.modelosSalvos.filter(function(m){return m.id===d.usarSalvo;})[0];abrirEditor(ms.config,true);return;}
+  if(d.delMod){if(S.confirma!=='mod-'+d.delMod){S.confirma='mod-'+d.delMod;render();return;}
+    sb.from('modelos').delete().eq('id',d.delMod).then(function(){S.confirma=null;carregarModelos();});return;}
+  if(d.res){abrirResultado(d.res);return;}
+  if(d.status){var r=S.rodadas.filter(function(x){return x.id===d.status;})[0];
+    sb.from('rodadas').update({status:r.status==='aberta'?'encerrada':'aberta'}).eq('id',r.id).then(function(q){if(q.error)toast(erroMsg(q.error));carregarRodadas();});return;}
+  if(d.del){if(S.confirma!=='del-'+d.del){S.confirma='del-'+d.del;render();return;}
+    sb.from('rodadas').delete().eq('id',d.del).then(function(q){S.confirma=null;if(q.error)toast(erroMsg(q.error));else toast('Avaliação excluída.');carregarRodadas();});return;}
+  var e=S.ed;
+  if(d.delb!==undefined){e.blocos.splice(+d.delb,1);render();return;}
+  if(d.delp){var a=d.delp.split('.');e.blocos[+a[0]].perguntas.splice(+a[1],1);render();return;}
+  if(d.addp!==undefined){e.blocos[+d.addp].perguntas.push('');render();var tt=view.querySelectorAll('[data-perg^="'+d.addp+'."]');if(tt.length)tt[tt.length-1].focus();return;}
+  if(d.dela!==undefined){e.abertas.splice(+d.dela,1);render();return;}
+  if(d.editm){S.edMembro=S.edMembro===d.editm?null:d.editm;render();return;}
+  if(d.salvarm){var f=view.querySelector('form[data-membro="'+d.salvarm+'"]');
+    var perms=[].slice.call(f.querySelectorAll('input[name=perm]:checked')).map(function(i){return i.value;});
+    sb.from('membros').update({papel:f.papel.value,permissoes:perms}).eq('academia_id',S.atual.academia_id).eq('user_id',d.salvarm).then(function(q){
+      if(q.error)toast(erroMsg(q.error));else{toast('Permissões salvas.');S.edMembro=null;}carregarEquipe();});return;}
+  if(d.ativo){var mm=S.equipe.filter(function(x){return x.user_id===d.ativo;})[0];
+    sb.from('membros').update({ativo:!mm.ativo}).eq('academia_id',S.atual.academia_id).eq('user_id',d.ativo).then(function(q){
+      if(q.error)toast(erroMsg(q.error));else toast(mm.ativo?'Acesso desativado.':'Acesso reativado.');carregarEquipe();});return;}
+  if(d.delc){sb.from('convites').delete().eq('id',d.delc).then(function(){carregarEquipe();});return;}
+  var act=d.act;if(!act)return;
+  if(act==='sair'){sb.auth.signOut();return;}
+  if(act==='novaAval'){S.sub='modelos';S.confirma=null;render();window.scrollTo(0,0);return;}
+  if(act==='voltarLista'){S.sub='lista';S.res=null;render();return;}
+  if(act==='voltarModelos'){S.sub='modelos';render();return;}
+  if(act==='addBloco'){e.blocos.push({nome:'Novo bloco',perguntas:['']});render();return;}
+  if(act==='addAberta'){e.abertas.push('');render();return;}
+  if(act==='criarRodada'){criarRodada();return;}
+  if(act==='salvarModelo'){salvarModelo();return;}
+  if(act==='csv'){baixarCSV();return;}
+  if(act==='novoAcesso'){S.novoAcesso={papel:'colaborador'};S.ultimoAcesso=null;render();return;}
+  if(act==='cancelAcesso'){S.novoAcesso=null;render();return;}
+  if(act==='okAcesso'){S.ultimoAcesso=null;render();return;}
+});
+new MutationObserver(function(){view.querySelectorAll('textarea').forEach(autoH);}).observe(view,{childList:true});
+
+carregar();
+})();
+</script>
+</body>
+</html>
