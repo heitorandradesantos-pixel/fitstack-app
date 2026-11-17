@@ -643,6 +643,9 @@ function telaContatos(){
   var D=S.evoDados,L=S.lista||(D&&D.risco&&(D.risco.itens||[]).length?'risco':'aniversario');
   var feitos=(S.evoContLista||[]).length;
   var h='<div><h1>Contatos do dia</h1><p class="lead" style="margin:6px 0 0">Toque no WhatsApp: a mensagem já vai pronta e o contato fica marcado. '+(feitos?'<b>'+feitos+' contato'+(feitos>1?'s':'')+' feito'+(feitos>1?'s':'')+' hoje.</b>':'')+'</p></div>';
+  var eu=S.atual.nome||(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome)||S.sess.user.email;
+  if(S.atual.papel!=='colaborador')h+='<div class="insight warn"><b>Você está no login de '+esc(eu)+' ('+esc(PAPEL[S.atual.papel]||S.atual.papel)+').</b> Todo contato marcado aqui fica no nome de '+esc(eu)+'. Se você é da recepção, toque em <button class="link" data-act="sair">Sair</button> e entre com o seu login, para o contato contar para você.</div>';
+  else h+='<p class="small muted" style="margin:0">Os contatos ficam no nome de <b>'+esc(eu)+'</b>. Não é você? <button class="link" data-act="sair">Sair</button> e entre com o seu login.</p>';
   if(D===undefined)return h+'<p class="muted">Carregando…</p>';
   if(!D.aniversariantes)return h+semDadosEvo();
   var cont=function(l){return arrLista(l).length;};
