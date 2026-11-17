@@ -71,6 +71,7 @@ function telDe(m: any): string | null {
     return pa - pb;
   });
   for (const c of ord) {
+    if (/mail/i.test(c.contactType || "")) continue;
     let d = String(c.description || "").replace(/\D/g, "");
     if (d.length < 10) continue;
     if (d.startsWith("0")) d = d.replace(/^0+/, "");
@@ -90,7 +91,7 @@ async function sincronizar(cfg: Cfg) {
   const avisos: string[] = [];
 
   // 1) Todos os alunos ativos (aniversário, última presença, telefone, contrato)
-  const at = await todas(cfg, "/api/v2/members", { status: 1 }, 80);
+  const at = await todas(cfg, "/api/v2/members", { status: 1, showMemberships: true }, 80);
   if (at.truncado) avisos.push("Mais de 4.000 alunos ativos: lista cortada.");
   const ativos = at.itens;
   const porId = new Map<number, any>();
@@ -119,10 +120,10 @@ async function sincronizar(cfg: Cfg) {
       nuncaVieram++;
       sumidos.push({ id: m.idMember, nome, tel, dias: null, nunca: true, desde });
     }
-    const ms: any[] = (m.memberships || []).filter((x: any) => !x.cancelDate);
+    const ms: any[] = (m.memberships || []).filter((x: any) => !x.cancelDate && !/cancel/i.test(x.membershipStatus || ""));
     const fimMax = ms.map((x) => soData(x.endDate)).filter(Boolean).sort().pop() as string | undefined;
     const atual = ms.find((x) => soData(x.endDate) === fimMax);
-    if (fimMax && !atual?.flRenewed) {
+    if (fimMax && !atual?.idMemberMembershipRenewed && !atual?.flRenewed) {
       const d = diasEntre(hoje, fimMax);
       if (d >= 0 && d <= 15) vencendo.push({ id: m.idMember, nome, tel, dias: d, fim: fimMax, plano: atual?.name || "" });
     }
@@ -133,7 +134,7 @@ async function sincronizar(cfg: Cfg) {
 
   // 2) Mensalidades vencidas e não pagas (últimos 120 dias)
   const rc = await todas(cfg, "/api/v1/receivables", {
-    dueDateStart: ymd(new Date(Date.parse(hoje) - 120 * DIA)), dueDateEnd: ontem, accountStatus: "1",
+    dueDateStart: ymd(new Date(Date.parse(hoje) - 120 * DIA)), dueDateEnd: ontem, accountStatus: "4",
   }, 30);
   if (rc.truncado) avisos.push("Muitas contas em aberto: lista de inadimplentes cortada em 1.500.");
   const porDevedor = new Map<string, any>();
@@ -154,21 +155,29 @@ async function sincronizar(cfg: Cfg) {
 
   // 3) Movimento do mês: matrículas (convertidos) e cancelamentos
   const novos = await todas(cfg, "/api/v2/members", { conversionDateStart: iniMes, conversionDateEnd: hoje }, 10);
-  const canc = await todas(cfg, "/api/v2/members", { membershipCancelDateStart: iniMes, membershipCancelDateEnd: hoje }, 10);
-  const cancelados = canc.itens.map((m) => {
-    const c = (m.memberships || []).filter((x: any) => soData(x.cancelDate)).sort((a: any, b: any) => String(b.cancelDate).localeCompare(String(a.cancelDate)))[0];
-    return { id: m.idMember, nome: nomeDe(m), tel: telDe(m), dia: soData(c?.cancelDate), plano: c?.name || "" };
-  });
+  const canc: any[] = [];
+  for (let p = 0; p < 12; p++) {
+    const pag = await evo(cfg, "/api/v2/membermembership", { cancelDateStart: iniMes, cancelDateEnd: hoje, take: 25, skip: p * 25 });
+    if (!Array.isArray(pag)) break;
+    canc.push(...pag);
+    if (pag.length < 25) break;
+  }
+  const cancelados = canc.map((c) => {
+    const m = porId.get(c.idMember);
+    return { id: c.idMember, nome: c.name || (m ? nomeDe(m) : "Sem nome"), tel: m ? telDe(m) : null, dia: soData(c.cancelDate),
+      plano: c.nameMembership || "", motivo: c.reasonCancellation || "", valor: Number(c.saleValue) || 0, ativo: !!m };
+  }).sort((a, b) => String(b.dia).localeCompare(String(a.dia)));
 
   // 4) Leads / visitas do mês
   let leads: any[] = [];
   try {
-    const pr = await todas(cfg, "/api/v1/prospects", { registerDateStart: iniMes, registerDateEnd: hoje }, 10);
+    const pr = await todas(cfg, "/api/v1/prospects", { registerDateStart: iniMes, registerDateEnd: hoje }, 20);
     leads = pr.itens.map((p) => ({
-      id: p.idProspect, nome: [p.firstName, p.lastName].filter(Boolean).join(" ") || p.name || "Sem nome",
-      tel: telDe({ contacts: p.contacts || [{ contactType: "Celular", description: p.cellphone || p.phone || "" }] }),
-      dia: soData(p.registerDate), convertido: !!p.conversionDate,
-    }));
+      id: p.idProspect, nome: [p.firstName, p.lastName].filter(Boolean).join(" ") || "Sem nome",
+      tel: telDe({ contacts: [{ contactType: "Celular", description: p.cellphone || "" }] }),
+      dia: soData(p.registerDate), convertido: !!(p.conversionDate || p.idMember),
+      canal: p.mktChannel || "", temperatura: p.temperature || "", etapa: p.currentStep || "", por: p.employeeRegisterName || "",
+    })).sort((a, b) => String(b.dia).localeCompare(String(a.dia)));
   } catch (_e) { avisos.push("Não deu para ler os leads do EVO."); }
 
   const resumo = {
@@ -182,6 +191,11 @@ async function sincronizar(cfg: Cfg) {
     vencendo15: vencendo.length,
     matriculasMes: novos.itens.length,
     canceladosMes: cancelados.length,
+    canceladosValor: Math.round(cancelados.reduce((s, x) => s + x.valor, 0) * 100) / 100,
+    motivos: Object.entries(cancelados.reduce((o: Record<string, number>, c) => { const k = c.motivo || "Sem motivo"; o[k] = (o[k] || 0) + 1; return o; }, {}))
+      .sort((a, b) => b[1] - a[1]).slice(0, 8),
+    canais: Object.entries(leads.reduce((o: Record<string, number>, l) => { const k = l.canal || "Não informado"; o[k] = (o[k] || 0) + 1; return o; }, {}))
+      .sort((a, b) => b[1] - a[1]).slice(0, 8),
     leadsMes: leads.length,
     leadsConvertidos: leads.filter((l) => l.convertido).length,
   };
