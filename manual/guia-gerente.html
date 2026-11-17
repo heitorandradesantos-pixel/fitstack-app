@@ -1,0 +1,73 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guia rápido do gerente · FitStack</title><style>
+:root{--ink:#1b1714;--muted:#6b625b;--line:#e4ddd6;--bg:#ffffff;--soft:#f6f2ee;--acc:#E8530A;--acc-soft:#fdeee5;--ok:#1f8a55;--ok-soft:#e6f4ec;--bad:#c23b36;--bad-soft:#fbe9e8;--warn:#9a6a00;--warn-soft:#fdf3dc}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:860px;margin:0 auto;padding:28px 18px 60px}
+.topo{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.marca{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.14em;font-size:14px}
+.marca i{display:grid;grid-template-columns:9px 9px;gap:2px}.marca i b{width:9px;height:9px;background:var(--acc);display:block}.marca i b:last-child{background:transparent;border:2px solid var(--acc)}
+.baixar{display:inline-block;background:var(--acc);color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:8px;font-size:15px}
+.capa{border-radius:14px;background:var(--ink);color:#fff;padding:30px 26px;margin-bottom:28px}
+.capa small{display:block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:#ffb08a;font-weight:700}
+.capa h1{font-size:38px;line-height:1.05;margin:8px 0 10px;letter-spacing:-.01em}
+.capa p{margin:0;color:#ddd5ce;font-size:16px}
+h2{font-size:25px;line-height:1.15;margin:44px 0 6px;padding-top:6px;border-top:3px solid var(--ink)}
+h2 .n{color:var(--acc);margin-right:8px}
+h3{font-size:18px;margin:26px 0 8px}
+p{margin:8px 0}
+.lead{color:var(--muted);margin:0 0 14px}
+.indice{background:var(--soft);border-radius:12px;padding:16px 20px}
+.indice b{display:block;margin-bottom:6px}
+.indice ol{margin:0;padding-left:22px;columns:2;column-gap:28px}
+.indice li{margin:3px 0;break-inside:avoid}
+.passos{list-style:none;margin:12px 0;padding:0;counter-reset:p}
+.passos>li{counter-increment:p;position:relative;padding:12px 14px 12px 64px;border:1px solid var(--line);border-radius:10px;margin:8px 0;break-inside:avoid;background:#fff}
+.passos>li::before{content:"PASSO " counter(p);position:absolute;left:10px;top:12px;width:46px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--acc);border-radius:6px;text-align:center;padding:5px 2px;line-height:1.15}
+.passos>li .ve{display:block;color:var(--muted);font-size:14px;margin-top:3px}
+.passos>li .ve::before{content:"👀 O que aparece: ";font-weight:700;color:var(--ink)}
+.botao{display:inline-block;border:1.5px solid var(--ink);border-radius:6px;padding:0 7px;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;background:#fff}
+.botao.lar{background:var(--acc);border-color:var(--acc);color:#fff}
+.botao.zap{background:#25D366;border-color:#25D366;color:#06210f;text-transform:none;letter-spacing:0}
+.box{border-radius:10px;padding:12px 14px 12px 14px;margin:12px 0;break-inside:avoid;border-left:5px solid}
+.box b.t{display:block;margin-bottom:2px}
+.dica{background:var(--ok-soft);border-color:var(--ok)}
+.atencao{background:var(--warn-soft);border-color:#d99a00}
+.nunca{background:var(--bad-soft);border-color:var(--bad)}
+.regra{background:var(--acc-soft);border-color:var(--acc)}
+figure{margin:14px 0 18px;break-inside:avoid}
+figure img{width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block}
+figure.cel img{max-width:300px;margin:0 auto}
+figure.meio img{max-width:420px;margin:0 auto}
+figcaption{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15px;break-inside:auto}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;letter-spacing:.03em;text-transform:uppercase}
+tr{break-inside:avoid}
+.check{list-style:none;padding:0;margin:10px 0}
+.check li{padding:7px 0 7px 34px;position:relative;border-bottom:1px dashed var(--line)}
+.check li::before{content:"";position:absolute;left:4px;top:9px;width:18px;height:18px;border:2px solid var(--ink);border-radius:4px}
+.check li b.h{display:inline-block;min-width:62px;color:var(--acc)}
+.rodape{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+@media (max-width:640px){.capa h1{font-size:30px}.indice ol{columns:1}.passos>li{padding-left:14px;padding-top:40px}.passos>li::before{top:10px;left:14px;width:auto;padding:4px 8px}}
+@media print{
+  @page{size:A4;margin:13mm 12mm 14mm}
+  body{font-size:12.5px}
+  .wrap{max-width:none;padding:0}
+  .topo .baixar{display:none}
+  h2{break-before:page;margin-top:0}
+  h2.sem-quebra{break-before:auto;margin-top:28px}
+  .capa{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .box,.passos>li::before,.botao,th,.indice{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  figure img{max-height:92mm;width:auto;max-width:100%;margin:0 auto}
+  figure.cel img{max-height:80mm}
+  a{color:inherit;text-decoration:none}
+}
+</style><style>@media print{h2{break-before:auto!important;margin-top:14px!important}figure img{max-height:40mm!important}figure{margin:8px 0}body{font-size:11px}.capa{padding:14px 18px;margin-bottom:16px}.box{margin:8px 0;padding:9px 12px}.capa h1{font-size:26px}h2{break-after:avoid}.passos>li{padding:6px 10px 6px 62px;margin:4px 0}.passos>li::before{top:7px}th,td{padding:5px 8px}.rodape{display:none}.tela-web{display:none}h2+p,h2+table,h2+.passos{break-before:avoid}}</style></head><body><div class="wrap">
+<div class="topo"><div class="marca"><i><b></b><b></b><b></b><b></b></i>FITSTACK</div><a class="baixar" href="guia-rapido-gerente.pdf" download>Baixar em PDF</a></div>
+<div class="capa"><small>Manual · Gerente</small><h1>Guia rápido do gerente</h1><p>Como usar Salvar hoje, Alertas e os selos de resultado para comandar a recepção.</p></div>
+
+<h2 class="sem-quebra"><span class="n">1.</span>Sua rotina com as listas novas</h2><table><thead><tr><th>Quando</th><th>O que fazer</th><th>Onde</th></tr></thead><tbody><tr><td><b>Ao chegar</b></td><td>Abrir <b>Salvar hoje</b> e dividir os 20 nomes entre as recepcionistas do dia (ex.: 1 a 10 manhã, 11 a 20 tarde).</td><td>Contatos do dia</td></tr><tr><td><b>Até 10h</b></td><td>Conferir os turnos de ontem.</td><td>Placar → Gerente</td></tr><tr><td><b>De hora em hora</b></td><td>Olhar <b>Alertas</b>. Cartão recusado e boleto vencido têm que ser chamados no mesmo turno.</td><td>Contatos do dia → Alertas</td></tr><tr><td><b>11h e 17h</b></td><td>Ver o "X para chamar" de cada lista do turno. Se sobrou muito, cobrar na hora.</td><td>Contatos do dia</td></tr><tr><td><b>Fim do dia</b></td><td>Procurar os selos verdes <b>✓ Voltou / ✓ Pagou / ✓ Renovou</b> e ver quem chamou cada um.</td><td>Contatos do dia</td></tr><tr><td><b>Toda semana</b></td><td>Conversa de 10 minutos com cada recepcionista: quantos chamou, quantos deram resultado, uma mensagem que funcionou.</td><td>Contatos do dia + Placar</td></tr></tbody></table><h2><span class="n">2.</span>Como ler a lista Salvar hoje</h2><p>Cada aluno tem uma <b>nota de risco de 0 a 100</b>. Ela soma os sinais de que ele vai cancelar:</p><table><thead><tr><th>Sinal</th><th>Pontos</th></tr></thead><tbody><tr><td>Não treina há 7 a 14 dias</td><td>25</td></tr><tr><td>Não treina há 15 a 29 dias</td><td>35</td></tr><tr><td>Não treina há 30 dias ou mais, ou nunca treinou</td><td>45</td></tr><tr><td>Mensalidade atrasada (mais de 30 dias pesa mais)</td><td>25 a 35</td></tr><tr><td>Plano vence em até 15 dias sem renovar</td><td>20</td></tr><tr><td>Aluno novo (menos de 3 meses)</td><td>10</td></tr></tbody></table><p>Nota <b>60 ou mais</b> é risco alto. Quem foi chamado nos últimos 7 dias sai da prioridade, para a equipe não insistir no mesmo aluno.</p><div class="box dica"><b class="t">Mensagem que funciona</b>Perguntar o que aconteceu e oferecer ajuda (treino novo, outro horário, conversa com professor) traz mais aluno de volta do que só cobrar. Quando a recepção acertar, mostre a mensagem dela para as outras.</div><h2><span class="n">3.</span>Quando você decide</h2><table><thead><tr><th>Situação</th><th>O que fazer</th></tr></thead><tbody><tr><td>Aluno pede desconto ou parcelamento da dívida</td><td>Só você autoriza. A recepção anota e te passa.</td></tr><tr><td>Aluno "Sem celular" no EVO</td><td>Pedir o número quando ele vier e cadastrar no EVO.</td></tr><tr><td>Alerta de cartão recusado que se repete</td><td>Ligar você mesmo e oferecer outra forma de pagamento.</td></tr><tr><td>Recepcionista marca "Chamei" e não tem selo nunca</td><td>Conferir a qualidade das mensagens. Se marcou sem chamar, é falta grave: registre a medida no Placar.</td></tr><tr><td>Lista sem atualizar desde ontem</td><td>Avisar o dono: ele toca em Atualizar agora no Painel.</td></tr></tbody></table>
+<div class="rodape">FitStack · app.fitstack.com.br · Manual atualizado em novembro de 2026. Se alguma tela estiver diferente do manual, avise o gerente.</div>
+</div></body></html>

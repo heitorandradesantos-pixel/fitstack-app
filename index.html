@@ -665,16 +665,17 @@ function marcar(k){var a=achar(k);if(!a.x)return;
 }
 // ================= MANUAL =================
 var MANUAIS={
-  recepcao:['Recepção e colaboradores','Entrar, chamar os alunos no WhatsApp, preencher o Placar do turno, comissão e avaliações anônimas.','manual/recepcao.html','manual/manual-recepcao-colaboradores.pdf'],
-  gerente:['Gerente','Conferir os turnos, cobrar com registro, mudar metas, acompanhar os contatos e cadastrar a equipe.','manual/gerente.html','manual/manual-gerente.pdf'],
-  dono:['Dono e sócios','Comece por aqui, primeiro acesso, ligar o EVO passo a passo, várias unidades, Painel, equipe e permissões, comissão e avaliações.','manual/dono-socios.html','manual/manual-dono-socios.pdf']
+  recepcao:['Recepção e colaboradores','Entrar, chamar os alunos no WhatsApp, preencher o Placar do turno, comissão e avaliações anônimas.','manual/recepcao.html','manual/manual-recepcao-colaboradores.pdf','manual/guia-recepcao.html','manual/guia-rapido-recepcao.pdf'],
+  gerente:['Gerente','Conferir os turnos, cobrar com registro, mudar metas, acompanhar os contatos e cadastrar a equipe.','manual/gerente.html','manual/manual-gerente.pdf','manual/guia-gerente.html','manual/guia-rapido-gerente.pdf'],
+  dono:['Dono e sócios','Comece por aqui, primeiro acesso, ligar o EVO passo a passo, várias unidades, Painel, equipe e permissões, comissão e avaliações.','manual/dono-socios.html','manual/manual-dono-socios.pdf','manual/guia-socios.html','manual/guia-rapido-socios.pdf']
 };
 function telaManual(){
   var ks=isAdmin()?['dono','gerente','recepcao']:(S.atual.papel==='gerente'||pode('placar_gestao'))?['gerente','recepcao']:['recepcao'];
   var h='<div><h1>Manual</h1><p class="lead">Passo a passo de cada tela. Leia uma vez inteiro e depois use para consultar.'+(isAdmin()?' Mande o PDF de cada cargo para a pessoa certa.':'')+'</p></div><div class="grid">';
   ks.forEach(function(k){var m=MANUAIS[k];
     h+='<section class="panel" style="display:grid;gap:10px;align-content:start"><span class="lbl">Manual</span><h2 class="h2">'+m[0]+'</h2><p class="muted" style="margin:0">'+m[1]+'</p>'+
-      '<div class="row"><a class="btn" href="'+m[2]+'" target="_blank" rel="noopener">Abrir</a><a class="btn ghost" href="'+m[3]+'" download>Baixar PDF</a>'+
+      '<div style="border:1px solid var(--line);border-radius:8px;padding:10px 12px"><b>Guia rápido</b> <span class="small muted">· 2 páginas, o dia a dia com Salvar hoje, Alertas e resultados</span><div class="row" style="margin-top:8px"><a class="btn sm" href="'+m[4]+'" target="_blank" rel="noopener">Abrir</a><a class="btn ghost sm" href="'+m[5]+'" download>PDF</a></div></div>'+
+      '<span class="small muted">Manual completo</span><div class="row"><a class="btn ghost sm" href="'+m[2]+'" target="_blank" rel="noopener">Abrir</a><a class="btn ghost sm" href="'+m[3]+'" download>PDF</a>'+
       (isAdmin()?'<button class="btn ghost" data-act="zapManual" data-k="'+k+'">WhatsApp</button>':'')+'</div></section>';});
   return h+'</div>';
 }
@@ -1008,7 +1009,7 @@ document.addEventListener('click',function(ev){
   if(act==='evoAtualizar'){evoAtualizar();return;}
   if(act==='novaUnidade'){S.novaUnidade=true;render();return;}
   if(act==='cancelUnidade'){S.novaUnidade=false;render();return;}
-  if(act==='zapManual'){var m=MANUAIS[d.k];wa('Manual do FitStack · '+m[0]+':\n'+APP_URL+'/'+m[3]+'\n\nLeia com calma, é passo a passo.');return;}
+  if(act==='zapManual'){var m=MANUAIS[d.k];wa('FitStack · '+m[0]+'\n\nGuia rápido (2 páginas, comece por ele):\n'+APP_URL+'/'+m[5]+'\n\nManual completo:\n'+APP_URL+'/'+m[3]+'\n\nLeia com calma, é passo a passo.');return;}
   if(act==='mais'){S.mostrar=(S.mostrar||40)+40;render();return;}
   if(act==='sair'){sb.auth.signOut();return;}
   if(act==='novaAval'){S.sub='modelos';S.confirma=null;render();window.scrollTo(0,0);return;}

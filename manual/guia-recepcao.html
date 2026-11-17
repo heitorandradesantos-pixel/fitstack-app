@@ -1,0 +1,73 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guia rápido: Contatos do dia · FitStack</title><style>
+:root{--ink:#1b1714;--muted:#6b625b;--line:#e4ddd6;--bg:#ffffff;--soft:#f6f2ee;--acc:#E8530A;--acc-soft:#fdeee5;--ok:#1f8a55;--ok-soft:#e6f4ec;--bad:#c23b36;--bad-soft:#fbe9e8;--warn:#9a6a00;--warn-soft:#fdf3dc}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:860px;margin:0 auto;padding:28px 18px 60px}
+.topo{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.marca{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.14em;font-size:14px}
+.marca i{display:grid;grid-template-columns:9px 9px;gap:2px}.marca i b{width:9px;height:9px;background:var(--acc);display:block}.marca i b:last-child{background:transparent;border:2px solid var(--acc)}
+.baixar{display:inline-block;background:var(--acc);color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:8px;font-size:15px}
+.capa{border-radius:14px;background:var(--ink);color:#fff;padding:30px 26px;margin-bottom:28px}
+.capa small{display:block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:#ffb08a;font-weight:700}
+.capa h1{font-size:38px;line-height:1.05;margin:8px 0 10px;letter-spacing:-.01em}
+.capa p{margin:0;color:#ddd5ce;font-size:16px}
+h2{font-size:25px;line-height:1.15;margin:44px 0 6px;padding-top:6px;border-top:3px solid var(--ink)}
+h2 .n{color:var(--acc);margin-right:8px}
+h3{font-size:18px;margin:26px 0 8px}
+p{margin:8px 0}
+.lead{color:var(--muted);margin:0 0 14px}
+.indice{background:var(--soft);border-radius:12px;padding:16px 20px}
+.indice b{display:block;margin-bottom:6px}
+.indice ol{margin:0;padding-left:22px;columns:2;column-gap:28px}
+.indice li{margin:3px 0;break-inside:avoid}
+.passos{list-style:none;margin:12px 0;padding:0;counter-reset:p}
+.passos>li{counter-increment:p;position:relative;padding:12px 14px 12px 64px;border:1px solid var(--line);border-radius:10px;margin:8px 0;break-inside:avoid;background:#fff}
+.passos>li::before{content:"PASSO " counter(p);position:absolute;left:10px;top:12px;width:46px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--acc);border-radius:6px;text-align:center;padding:5px 2px;line-height:1.15}
+.passos>li .ve{display:block;color:var(--muted);font-size:14px;margin-top:3px}
+.passos>li .ve::before{content:"👀 O que aparece: ";font-weight:700;color:var(--ink)}
+.botao{display:inline-block;border:1.5px solid var(--ink);border-radius:6px;padding:0 7px;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;background:#fff}
+.botao.lar{background:var(--acc);border-color:var(--acc);color:#fff}
+.botao.zap{background:#25D366;border-color:#25D366;color:#06210f;text-transform:none;letter-spacing:0}
+.box{border-radius:10px;padding:12px 14px 12px 14px;margin:12px 0;break-inside:avoid;border-left:5px solid}
+.box b.t{display:block;margin-bottom:2px}
+.dica{background:var(--ok-soft);border-color:var(--ok)}
+.atencao{background:var(--warn-soft);border-color:#d99a00}
+.nunca{background:var(--bad-soft);border-color:var(--bad)}
+.regra{background:var(--acc-soft);border-color:var(--acc)}
+figure{margin:14px 0 18px;break-inside:avoid}
+figure img{width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block}
+figure.cel img{max-width:300px;margin:0 auto}
+figure.meio img{max-width:420px;margin:0 auto}
+figcaption{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15px;break-inside:auto}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;letter-spacing:.03em;text-transform:uppercase}
+tr{break-inside:avoid}
+.check{list-style:none;padding:0;margin:10px 0}
+.check li{padding:7px 0 7px 34px;position:relative;border-bottom:1px dashed var(--line)}
+.check li::before{content:"";position:absolute;left:4px;top:9px;width:18px;height:18px;border:2px solid var(--ink);border-radius:4px}
+.check li b.h{display:inline-block;min-width:62px;color:var(--acc)}
+.rodape{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+@media (max-width:640px){.capa h1{font-size:30px}.indice ol{columns:1}.passos>li{padding-left:14px;padding-top:40px}.passos>li::before{top:10px;left:14px;width:auto;padding:4px 8px}}
+@media print{
+  @page{size:A4;margin:13mm 12mm 14mm}
+  body{font-size:12.5px}
+  .wrap{max-width:none;padding:0}
+  .topo .baixar{display:none}
+  h2{break-before:page;margin-top:0}
+  h2.sem-quebra{break-before:auto;margin-top:28px}
+  .capa{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .box,.passos>li::before,.botao,th,.indice{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  figure img{max-height:92mm;width:auto;max-width:100%;margin:0 auto}
+  figure.cel img{max-height:80mm}
+  a{color:inherit;text-decoration:none}
+}
+</style><style>@media print{h2{break-before:auto!important;margin-top:14px!important}figure img{max-height:40mm!important}figure{margin:8px 0}body{font-size:11px}.capa{padding:14px 18px;margin-bottom:16px}.box{margin:8px 0;padding:9px 12px}.capa h1{font-size:26px}h2{break-after:avoid}.passos>li{padding:6px 10px 6px 62px;margin:4px 0}.passos>li::before{top:7px}th,td{padding:5px 8px}.rodape{display:none}.tela-web{display:none}h2+p,h2+table,h2+.passos{break-before:avoid}}</style></head><body><div class="wrap">
+<div class="topo"><div class="marca"><i><b></b><b></b><b></b><b></b></i>FITSTACK</div><a class="baixar" href="guia-rapido-recepcao.pdf" download>Baixar em PDF</a></div>
+<div class="capa"><small>Manual · Recepção</small><h1>Guia rápido: Contatos do dia</h1><p>O que fazer, em que ordem, em cada turno. Para deixar aberto ou impresso no balcão.</p></div>
+
+<h2 class="sem-quebra"><span class="n">1.</span>A ordem do seu turno</h2><p class="lead">Abra <b>Contatos do dia</b> assim que chegar. Faça as listas nesta ordem. Uma por vez, de cima para baixo.</p><table><thead><tr><th>Turno</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th></tr></thead><tbody><tr><td><b>Manhã</b></td><td><b>Aniversários</b> (todos até as 10h)</td><td><b>Alertas</b></td><td><b>Salvar hoje</b></td><td><b>Inadimplentes</b> (alunos ativos)</td></tr><tr><td><b>Tarde</b></td><td><b>Alertas</b></td><td><b>Salvar hoje</b> (o que sobrou)</td><td><b>Sumidos</b> 7 a 14 dias</td><td><b>Renovação</b></td></tr><tr><td><b>Noite</b></td><td><b>Alertas</b></td><td><b>Leads</b> do dia</td><td><b>Salvar hoje</b> (o que sobrou)</td><td><b>Cancelados</b></td></tr></tbody></table><p><b>Regra de ouro: Alertas sempre primeiro</b> quando tiver algum. Cartão recusado resolvido hoje não vira dívida amanhã.</p><h2><span class="n">2.</span>Como chamar cada aluno</h2><ol class="passos"><li>Toque na lista (exemplo: <span class="botao ">Salvar hoje</span>).<span class="ve">Os nomes, com o motivo embaixo.</span></li><li>Leia o motivo do primeiro nome.<span class="ve">Exemplo: "Não vem há 22 dias · Deve R$ 259,80 · Plano vence em 3 dias".</span></li><li>Toque no botão verde <span class="botao zap">WhatsApp</span>.<span class="ve">O WhatsApp abre com a mensagem pronta.</span></li><li>Leia, ajuste se quiser e <b>envie</b>.</li><li>Volte para o FitStack.<span class="ve">O nome fica riscado com o seu nome e a hora. Já está contado.</span></li><li>Chamou por ligação ou pessoalmente? Toque em <span class="botao ">Chamei</span>.</li><li>No <b>Placar</b>, aperte <b>+</b> na tarefa certa (sumidos, inadimplentes, retorno…).<span class="ve">O Placar ainda é preenchido por você.</span></li></ol><div class="tela-web"><figure class=""><img src="img/salvar-hoje.jpg" alt="Salvar hoje: os 20 mais urgentes, com o motivo de cada um" loading="lazy"><figcaption>Salvar hoje: os 20 mais urgentes, com o motivo de cada um</figcaption></figure></div><h2><span class="n">3.</span>O que cada lista quer dizer</h2><table><thead><tr><th>Lista</th><th>Quem está nela</th><th>Como agir</th></tr></thead><tbody><tr><td><b>Salvar hoje</b></td><td>Os 20 alunos com maior risco de cancelar.</td><td>Contato caprichado: pergunte o que aconteceu, ofereça ajuda (treino novo, outro horário).</td></tr><tr><td><b>Alertas</b></td><td>Cartão recusado, boleto vencido, contrato vencendo, faltou, visita. Chega na hora.</td><td>Chamar no mesmo dia. Cartão: pedir para atualizar ou pagar por Pix.</td></tr><tr><td><b>Aniversários</b></td><td>Quem faz aniversário hoje.</td><td>Parabéns até as 10h.</td></tr><tr><td><b>Sumidos</b></td><td>Ativos sem treinar há 7 dias ou mais.</td><td>Comece pela faixa de 7 a 14 dias.</td></tr><tr><td><b>Inadimplentes</b></td><td>Mensalidade vencida.</td><td>Cobrar com educação. Alunos ativos primeiro.</td></tr><tr><td><b>Renovação</b></td><td>Plano vence em até 15 dias.</td><td>Convidar a renovar antes de vencer.</td></tr><tr><td><b>Leads</b> / <b>Cancelados</b></td><td>Interessados do mês / quem saiu no mês.</td><td>Oferecer plano ou aula experimental / tentar trazer de volta.</td></tr></tbody></table><h2><span class="n">4.</span>Como você é medida</h2><p>Toda manhã o sistema confere no EVO quem você chamou:</p><table><thead><tr><th>Selo</th><th>Quer dizer</th></tr></thead><tbody><tr><td><span class="botao" style="border-color:#1f8a55;color:#1f8a55">✓ Voltou</span></td><td>O aluno passou na catraca depois do seu contato.</td></tr><tr><td><span class="botao" style="border-color:#1f8a55;color:#1f8a55">✓ Pagou</span></td><td>A dívida diminuiu depois do seu contato (mostra quanto).</td></tr><tr><td><span class="botao" style="border-color:#1f8a55;color:#1f8a55">✓ Renovou</span></td><td>O plano ganhou data nova.</td></tr></tbody></table><p>O dono e o gerente veem quantos contatos cada pessoa fez e <b>quantos deram resultado</b>. Mensagem bem feita vale mais que mensagem rápida.</p><div class="box nunca"><b class="t">Nunca</b>Marcar "Chamei" sem ter chamado. Prometer desconto que o gerente não autorizou. Cobrar em tom grosso ou de ameaça. Usar o login de outra pessoa.</div>
+<div class="rodape">FitStack · app.fitstack.com.br · Manual atualizado em novembro de 2026. Se alguma tela estiver diferente do manual, avise o gerente.</div>
+</div></body></html>

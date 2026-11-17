@@ -1,5 +1,5 @@
 const {chromium}=require('playwright');const M='/home/claude/fitstack-app/manual';
-const L=[['recepcao','manual-recepcao-colaboradores','Recepção e colaboradores'],['gerente','manual-gerente','Gerente'],['dono-socios','manual-dono-socios','Dono e sócios']];
+const L=[['recepcao','manual-recepcao-colaboradores','Recepção e colaboradores'],['gerente','manual-gerente','Gerente'],['dono-socios','manual-dono-socios','Dono e sócios'],['guia-recepcao','guia-rapido-recepcao','Guia rápido da recepção'],['guia-gerente','guia-rapido-gerente','Guia rápido do gerente'],['guia-socios','guia-rapido-socios','Guia rápido dos sócios']];
 (async()=>{const b=await chromium.launch();const p=await b.newPage();
 for(const [h,pdf,t] of L){await p.goto('file://'+M+'/'+h+'.html');await p.waitForLoadState('networkidle');
  await p.emulateMedia({media:'print'});

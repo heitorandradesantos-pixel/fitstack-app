@@ -93,17 +93,17 @@ def tabela(cab, linhas):
 def check(itens):
     return '<ul class="check">' + ''.join(f'<li>{i}</li>' for i in itens) + '</ul>'
 
-def pagina(arq, titulo, sub, publico, secoes, pdf):
+def pagina(arq, titulo, sub, publico, secoes, pdf, guia=False):
     ind = ''.join(f'<li>{s[0]}</li>' for s in secoes)
     corpo = ''
     for i, (t, conteudo) in enumerate(secoes, 1):
         cls = ' class="sem-quebra"' if i == 1 else ''
         corpo += f'<h2{cls}><span class="n">{i}.</span>{t}</h2>{conteudo}'
     doc = f'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{titulo} · FitStack</title><style>{CSS}</style></head><body><div class="wrap">
+<title>{titulo} · FitStack</title><style>{CSS}</style>{'<style>@media print{h2{break-before:auto!important;margin-top:14px!important}figure img{max-height:40mm!important}figure{margin:8px 0}body{font-size:11px}.capa{padding:14px 18px;margin-bottom:16px}.box{margin:8px 0;padding:9px 12px}.capa h1{font-size:26px}h2{break-after:avoid}.passos>li{padding:6px 10px 6px 62px;margin:4px 0}.passos>li::before{top:7px}th,td{padding:5px 8px}.rodape{display:none}.tela-web{display:none}h2+p,h2+table,h2+.passos{break-before:avoid}}</style>' if guia else ''}</head><body><div class="wrap">
 <div class="topo"><div class="marca"><i><b></b><b></b><b></b><b></b></i>FITSTACK</div><a class="baixar" href="{pdf}" download>Baixar em PDF</a></div>
 <div class="capa"><small>Manual · {publico}</small><h1>{titulo}</h1><p>{sub}</p></div>
-<div class="indice"><b>O que tem neste manual</b><ol>{ind}</ol></div>
+{'' if guia else '<div class="indice"><b>O que tem neste manual</b><ol>'+ind+'</ol></div>'}
 {corpo}
 <div class="rodape">FitStack · app.fitstack.com.br · Manual atualizado em novembro de 2026. Se alguma tela estiver diferente do manual, avise o gerente.</div>
 </div></body></html>'''
@@ -355,6 +355,9 @@ ger.append(('Contatos do dia: acompanhar a recepção', '''
 ''' + check([
     'Cada nome marcado mostra <b>quem</b> chamou e <b>a que horas</b>. Confira se bate com o Placar dela.',
     'Em cima aparece "X para chamar · Y já chamados hoje". Se no fim do turno "para chamar" ainda está alto, cobre.',
+    '<b>Salvar hoje</b> traz os 20 alunos com maior risco de cancelar, com o motivo. Divida a lista entre as recepcionistas logo cedo. O filtro <b>Todos em risco</b> mostra a lista inteira.',
+    '<b>Alertas</b> chega na hora (cartão recusado, boleto vencido, aluno que faltou). Alerta parado mais de 2 horas sem contato é cobrança.',
+    'O selo verde <b>✓ Voltou / ✓ Pagou / ✓ Renovou</b> mostra o contato que deu resultado (o sistema confere no EVO toda manhã). Elogie quem trouxe resultado e mostre a mensagem dela como exemplo.',
     'Na lista de Inadimplentes, "Alunos ativos" são prioridade: eles ainda passam pela catraca.',
     'Na lista de Sumidos, a faixa de 7 a 14 dias é a que mais volta.',
     'Se um aluno não tem celular ("Sem celular"), peça para a recepção cadastrar no EVO quando ele vier.',
@@ -597,3 +600,82 @@ pagina('dono-socios.html', 'Manual do Dono e dos Sócios',
        'Do primeiro acesso ao dia a dia: ligar o EVO, cadastrar a equipe e as unidades, ler o Painel, comissão, histórico e avaliações.',
        'Dono e sócios', don, 'manual-dono-socios.pdf')
 print('ok')
+
+# =============== GUIA RÁPIDO DA RECEPÇÃO ===============
+gui = []
+gui.append(('A ordem do seu turno', '<p class="lead">Abra <b>Contatos do dia</b> assim que chegar. Faça as listas nesta ordem. Uma por vez, de cima para baixo.</p>' + tabela(['Turno', '1º', '2º', '3º', '4º'], [
+    ['<b>Manhã</b>', '<b>Aniversários</b> (todos até as 10h)', '<b>Alertas</b>', '<b>Salvar hoje</b>', '<b>Inadimplentes</b> (alunos ativos)'],
+    ['<b>Tarde</b>', '<b>Alertas</b>', '<b>Salvar hoje</b> (o que sobrou)', '<b>Sumidos</b> 7 a 14 dias', '<b>Renovação</b>'],
+    ['<b>Noite</b>', '<b>Alertas</b>', '<b>Leads</b> do dia', '<b>Salvar hoje</b> (o que sobrou)', '<b>Cancelados</b>'],
+]) + '<p><b>Regra de ouro: Alertas sempre primeiro</b> quando tiver algum. Cartão recusado resolvido hoje não vira dívida amanhã.</p>'))
+gui.append(('Como chamar cada aluno', passos(
+    ('Toque na lista (exemplo: ' + B('Salvar hoje') + ').', 'Os nomes, com o motivo embaixo.'),
+    ('Leia o motivo do primeiro nome.', 'Exemplo: "Não vem há 22 dias · Deve R$ 259,80 · Plano vence em 3 dias".'),
+    ('Toque no botão verde ' + B('WhatsApp', 'zap') + '.', 'O WhatsApp abre com a mensagem pronta.'),
+    ('Leia, ajuste se quiser e <b>envie</b>.', ''),
+    ('Volte para o FitStack.', 'O nome fica riscado com o seu nome e a hora. Já está contado.'),
+    ('Chamou por ligação ou pessoalmente? Toque em ' + B('Chamei') + '.', ''),
+    ('No <b>Placar</b>, aperte <b>+</b> na tarefa certa (sumidos, inadimplentes, retorno…).', 'O Placar ainda é preenchido por você.'),
+) + '<div class="tela-web">' + fig('salvar-hoje', 'Salvar hoje: os 20 mais urgentes, com o motivo de cada um') + '</div>'))
+gui.append(('O que cada lista quer dizer', tabela(['Lista', 'Quem está nela', 'Como agir'], [
+    ['<b>Salvar hoje</b>', 'Os 20 alunos com maior risco de cancelar.', 'Contato caprichado: pergunte o que aconteceu, ofereça ajuda (treino novo, outro horário).'],
+    ['<b>Alertas</b>', 'Cartão recusado, boleto vencido, contrato vencendo, faltou, visita. Chega na hora.', 'Chamar no mesmo dia. Cartão: pedir para atualizar ou pagar por Pix.'],
+    ['<b>Aniversários</b>', 'Quem faz aniversário hoje.', 'Parabéns até as 10h.'],
+    ['<b>Sumidos</b>', 'Ativos sem treinar há 7 dias ou mais.', 'Comece pela faixa de 7 a 14 dias.'],
+    ['<b>Inadimplentes</b>', 'Mensalidade vencida.', 'Cobrar com educação. Alunos ativos primeiro.'],
+    ['<b>Renovação</b>', 'Plano vence em até 15 dias.', 'Convidar a renovar antes de vencer.'],
+    ['<b>Leads</b> / <b>Cancelados</b>', 'Interessados do mês / quem saiu no mês.', 'Oferecer plano ou aula experimental / tentar trazer de volta.'],
+])))
+gui.append(('Como você é medida', '<p>Toda manhã o sistema confere no EVO quem você chamou:</p>' + tabela(['Selo', 'Quer dizer'], [
+    ['<span class="botao" style="border-color:#1f8a55;color:#1f8a55">✓ Voltou</span>', 'O aluno passou na catraca depois do seu contato.'],
+    ['<span class="botao" style="border-color:#1f8a55;color:#1f8a55">✓ Pagou</span>', 'A dívida diminuiu depois do seu contato (mostra quanto).'],
+    ['<span class="botao" style="border-color:#1f8a55;color:#1f8a55">✓ Renovou</span>', 'O plano ganhou data nova.'],
+]) + '<p>O dono e o gerente veem quantos contatos cada pessoa fez e <b>quantos deram resultado</b>. Mensagem bem feita vale mais que mensagem rápida.</p>' +
+box('nunca', 'Nunca', 'Marcar "Chamei" sem ter chamado. Prometer desconto que o gerente não autorizou. Cobrar em tom grosso ou de ameaça. Usar o login de outra pessoa.')))
+pagina('guia-recepcao.html', 'Guia rápido: Contatos do dia', 'O que fazer, em que ordem, em cada turno. Para deixar aberto ou impresso no balcão.', 'Recepção', gui, 'guia-rapido-recepcao.pdf', guia=True)
+
+# =============== GUIA RÁPIDO DO GERENTE ===============
+gg = []
+gg.append(('Sua rotina com as listas novas', tabela(['Quando', 'O que fazer', 'Onde'], [
+    ['<b>Ao chegar</b>', 'Abrir <b>Salvar hoje</b> e dividir os 20 nomes entre as recepcionistas do dia (ex.: 1 a 10 manhã, 11 a 20 tarde).', 'Contatos do dia'],
+    ['<b>Até 10h</b>', 'Conferir os turnos de ontem.', 'Placar → Gerente'],
+    ['<b>De hora em hora</b>', 'Olhar <b>Alertas</b>. Cartão recusado e boleto vencido têm que ser chamados no mesmo turno.', 'Contatos do dia → Alertas'],
+    ['<b>11h e 17h</b>', 'Ver o "X para chamar" de cada lista do turno. Se sobrou muito, cobrar na hora.', 'Contatos do dia'],
+    ['<b>Fim do dia</b>', 'Procurar os selos verdes <b>✓ Voltou / ✓ Pagou / ✓ Renovou</b> e ver quem chamou cada um.', 'Contatos do dia'],
+    ['<b>Toda semana</b>', 'Conversa de 10 minutos com cada recepcionista: quantos chamou, quantos deram resultado, uma mensagem que funcionou.', 'Contatos do dia + Placar'],
+])))
+gg.append(('Como ler a lista Salvar hoje', '<p>Cada aluno tem uma <b>nota de risco de 0 a 100</b>. Ela soma os sinais de que ele vai cancelar:</p>' + tabela(['Sinal', 'Pontos'], [
+    ['Não treina há 7 a 14 dias', '25'], ['Não treina há 15 a 29 dias', '35'], ['Não treina há 30 dias ou mais, ou nunca treinou', '45'],
+    ['Mensalidade atrasada (mais de 30 dias pesa mais)', '25 a 35'], ['Plano vence em até 15 dias sem renovar', '20'], ['Aluno novo (menos de 3 meses)', '10'],
+]) + '<p>Nota <b>60 ou mais</b> é risco alto. Quem foi chamado nos últimos 7 dias sai da prioridade, para a equipe não insistir no mesmo aluno.</p>' +
+box('dica', 'Mensagem que funciona', 'Perguntar o que aconteceu e oferecer ajuda (treino novo, outro horário, conversa com professor) traz mais aluno de volta do que só cobrar. Quando a recepção acertar, mostre a mensagem dela para as outras.')))
+gg.append(('Quando você decide', tabela(['Situação', 'O que fazer'], [
+    ['Aluno pede desconto ou parcelamento da dívida', 'Só você autoriza. A recepção anota e te passa.'],
+    ['Aluno "Sem celular" no EVO', 'Pedir o número quando ele vier e cadastrar no EVO.'],
+    ['Alerta de cartão recusado que se repete', 'Ligar você mesmo e oferecer outra forma de pagamento.'],
+    ['Recepcionista marca "Chamei" e não tem selo nunca', 'Conferir a qualidade das mensagens. Se marcou sem chamar, é falta grave: registre a medida no Placar.'],
+    ['Lista sem atualizar desde ontem', 'Avisar o dono: ele toca em Atualizar agora no Painel.'],
+])))
+pagina('guia-gerente.html', 'Guia rápido do gerente', 'Como usar Salvar hoje, Alertas e os selos de resultado para comandar a recepção.', 'Gerente', gg, 'guia-rapido-gerente.pdf', guia=True)
+
+# =============== GUIA RÁPIDO DO DONO E DOS SÓCIOS ===============
+gs = []
+gs.append(('Os 3 números para olhar todo dia', tabela(['Número', 'Onde', 'O que quer dizer'], [
+    ['<b>Risco alto de cancelar</b>', 'Painel (quadro vermelho)', 'Alunos com nota de risco 60 ou mais. Se sobe de um dia para o outro, a recepção não está dando conta da lista Salvar hoje.'],
+    ['<b>Resultado dos contatos</b>', 'Painel → Resultado dos contatos (30 dias)', 'Quantos alunos voltaram a treinar, quanto foi pago e quantos renovaram depois do contato da equipe. É o dinheiro que a recepção recuperou.'],
+    ['<b>Em atraso</b>', 'Painel', 'Total de mensalidades vencidas. Com os Alertas ligados, deve cair: cartão recusado passa a ser cobrado no mesmo dia.'],
+])))
+gs.append(('Reunião de 15 minutos toda segunda', check([
+    '<b class="h">1</b> <b>Saldo do mês</b>: matrículas menos cancelamentos. Está positivo?',
+    '<b class="h">2</b> <b>Risco alto</b>: subiu ou caiu desde a última segunda? (tabela Evolução dia a dia)',
+    '<b class="h">3</b> <b>Resultado dos contatos</b>: quanto foi recuperado e quem mais trouxe resultado. Reconhecer em público.',
+    '<b class="h">4</b> <b>Taxa por pessoa</b>: quem chama muito e quase não tem resultado precisa de treino na mensagem, não de bronca.',
+    '<b class="h">5</b> <b>Uma decisão</b> para a semana (ex.: "esta semana, todos os sumidos de 7 a 14 dias", "gerente liga para quem deve mais de R$ 300").',
+])))
+gs.append(('Decisões que ficam com vocês', tabela(['Assunto', 'Sugestão'], [
+    ['Comissão por resultado', 'Hoje a comissão paga por tarefa feita. Com os selos, dá para dar bônus por aluno que voltou ou valor recuperado. Combine com a equipe antes de mudar.'],
+    ['Alertas em tempo real', 'Ligue em Integrações → Alertas em tempo real (precisa da EVO API com webhook). Sem isso, a lista Alertas fica vazia.'],
+    ['Meta da recepção', 'Comece com: todo dia, os 20 do Salvar hoje chamados e 30% dos contatos com resultado no mês.'],
+    ['Desconto para devedor voltar', 'Definir até quanto o gerente pode dar sem pedir para vocês.'],
+])))
+pagina('guia-socios.html', 'Guia rápido do dono e dos sócios', 'Os números novos do Painel e como decidir com eles: risco de cancelamento, resultado da equipe e alertas.', 'Dono e sócios', gs, 'guia-rapido-socios.pdf', guia=True)
