@@ -99,6 +99,30 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .linkbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .linkbox input{flex:1 1 260px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
 [hidden]{display:none!important}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills button{appearance:none;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 13px var(--body);padding:6px 11px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.pills button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.pills button b{font-weight:800}
+.lst{display:grid}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.it:first-child{border-top:0}
+.it .n{font-weight:700;overflow-wrap:anywhere}
+.it .dt{font-size:13px;color:var(--muted)}
+.it.feito .n{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.zap{appearance:none;border:0;background:#25D366;color:#06210f;font:700 14px var(--body);padding:8px 12px;border-radius:8px;cursor:pointer;min-height:38px;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+.zap:disabled{background:var(--surface-2);color:var(--muted);cursor:not-allowed}
+.feitoTag{font-size:12px;color:var(--ok);white-space:nowrap}
+.insight{padding:12px 14px;border-radius:8px;border-left:3px solid var(--warn);background:var(--surface-2);font-size:14px}
+.insight.bad{border-left-color:var(--bad)} .insight.ok{border-left-color:var(--ok)}
+.insight b{font-weight:700}
+.kpi .v.sm{font-size:28px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th,.tbl td{padding:7px 8px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl th{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;border-top:0}
+.scrollx{overflow-x:auto}
+@media (max-width:640px){.it{grid-template-columns:1fr}.acts{justify-content:flex-start}}
 @media (max-width:640px){.bar{grid-template-columns:minmax(0,1fr) 70px 40px}}
 </style>
 </head>
@@ -326,10 +350,12 @@ function render(){
   if(pode('avaliacoes'))tabs.push(['avaliacoes','Avaliações']);
   if(pode('placar')||pode('placar_gestao')||pode('comissao'))tabs.push(['placar','Placar']);
   if(isAdmin()||pode('equipe'))tabs.push(['equipe','Equipe e acessos']);
+  if(isAdmin())tabs.splice(1,0,['painel','Painel']);
+  if(pode('placar')||pode('placar_gestao'))tabs.splice(isAdmin()?2:1,0,['contatos','Contatos do dia']);
   if(isAdmin())tabs.push(['integracoes','Integrações']);
   if(!tabs.some(function(t){return t[0]===S.tab;}))S.tab='inicio';
   document.getElementById('tabs').innerHTML=tabs.map(function(t){return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+t[1]+'</button>';}).join('');
-  var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe,integracoes:telaIntegracoes}[S.tab];
+  var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe,integracoes:telaIntegracoes,painel:telaPainel,contatos:telaContatos}[S.tab];
   view.innerHTML=fn();
 }
 function telaSemAcademia(){
@@ -348,6 +374,8 @@ function telaSemAcademia(){
 }
 function telaInicio(){
   var cards=[];
+  if(isAdmin())cards.push(['painel','Painel da academia','Alunos ativos, sumidos, inadimplência, matrículas e cancelamentos do mês, direto do EVO.']);
+  if(pode('placar')||pode('placar_gestao'))cards.push(['contatos','Contatos do dia','Aniversariantes, alunos sumidos, inadimplentes e renovações, com o botão do WhatsApp.']);
   if(pode('avaliacoes'))cards.push(['avaliacoes','Avaliações','Crie avaliações anônimas para cada função e veja os resultados.']);
   if(pode('placar')||pode('placar_gestao')||pode('comissao'))cards.push(['placar','Placar de Turnos','Metas do turno, conferência do gerente, ranking de comissão e relatório do dia.']);
   if(isAdmin()||pode('equipe'))cards.push(['equipe','Equipe e acessos','Cadastre o gerente e os colaboradores e escolha o que cada um vê.']);
@@ -373,10 +401,10 @@ function telaIntegracoes(){
   if(ev&&!trocando){
     h+='<h2 class="h2" style="margin-top:4px">✅ Chave do EVO salva</h2>'+
       '<p class="small" style="margin:8px 0 0">DNS: <b>'+esc(ev.dns)+'</b> · token terminando em <b>••••'+esc(ev.final||'')+'</b></p>'+
-      '<p class="small muted" style="margin:4px 0 0">Salva em '+dataHora(ev.atualizado_em)+'. '+(ev.ultima_sync?'Última busca no EVO: '+dataHora(ev.ultima_sync)+'.':'A busca automática no EVO está sendo preparada.')+'</p>'+
+      '<p class="small muted" style="margin:4px 0 0">Salva em '+dataHora(ev.atualizado_em)+'. '+(ev.ultima_sync?'Última busca no EVO: '+dataHora(ev.ultima_sync)+'. A busca automática roda todo dia às 05:40.':'A primeira busca ainda não rodou.')+'</p>'+
       (ev.ultimo_erro?'<div class="msg erro" style="margin-top:10px">'+esc(ev.ultimo_erro)+'</div>':'')+
       '<p class="small muted" style="margin:10px 0 0">Por segurança, ninguém consegue ver a chave inteira de novo, nem você. Só o servidor usa ela.</p>'+
-      '<div class="row" style="margin-top:14px"><button class="btn ghost sm" data-act="evoTrocar">Trocar a chave</button>'+
+      '<div class="row" style="margin-top:14px"><button class="btn sm" data-act="evoAtualizar"'+(S.evoBuscando?' disabled':'')+'>'+(S.evoBuscando?'Buscando no EVO…':'Atualizar agora')+'</button><button class="btn ghost sm" data-act="evoTrocar">Trocar a chave</button>'+
       '<button class="btn ghost sm" data-act="evoRemover">'+(S.confirma==='evo'?'Toque de novo para desligar':'Desligar integração')+'</button></div></section>';
     return h;
   }
@@ -390,6 +418,165 @@ function telaIntegracoes(){
     '<p class="small muted" style="margin:0">A chave fica guardada só no servidor do FitStack e só é usada para <b>ler</b> dados do EVO. Ninguém da equipe vê.</p>'+
     '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Salvar chave</button>'+(ev?'<button type="button" class="btn ghost" data-act="evoCancelar">Cancelar</button>':'')+'</div></form></section>';
   return h;
+}
+// ================= EVO: PAINEL E CONTATOS =================
+var LISTAS={aniversario:'Aniversários',sumido:'Sumidos',inad:'Inadimplentes',renovacao:'Renovação',lead:'Leads',cancelado:'Cancelados'};
+function hojeBR(){return new Date(Date.now()-3*3600e3).toISOString().slice(0,10);}
+function dBR(x){return x?x.slice(8,10)+'/'+x.slice(5,7):'';}
+function brl(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function brl0(v){return 'R$ '+Math.round(Number(v||0)).toLocaleString('pt-BR');}
+function pct(a,b){return b?Math.round(a*100/b)+'%':'0%';}
+function carregarEvoDados(){
+  sb.from('evo_dados').select('chave,dados,atualizado_em').eq('academia_id',S.atual.academia_id).then(function(r){
+    var o={};(r.data||[]).forEach(function(x){o[x.chave]=x.dados;o['_'+x.chave]=x.atualizado_em;});S.evoDados=o;
+    if(S.tab==='painel'||S.tab==='contatos')render();});
+}
+function carregarContatos(){
+  sb.from('evo_contatos').select('id,lista,id_aluno,por,por_nome,quando').eq('academia_id',S.atual.academia_id).eq('dia',hojeBR()).then(function(r){
+    var m={};(r.data||[]).forEach(function(x){m[x.lista+':'+x.id_aluno]=x;});S.evoCont=m;S.evoContLista=r.data||[];
+    if(S.tab==='painel'||S.tab==='contatos')render();});
+}
+function evoAtualizar(){
+  S.evoBuscando=true;render();
+  sb.functions.invoke('evo-sync',{body:{academia_id:S.atual.academia_id}}).then(function(r){S.evoBuscando=false;
+    var x=r.data&&r.data.resultado&&r.data.resultado[0];
+    if(r.error||!x){toast('Não deu para falar com o EVO agora. Tente de novo em instantes.');render();return;}
+    if(x.erro){toast(x.erro);render();return;}
+    toast('Dados do EVO atualizados.');carregarEvoDados();if(S.tab==='integracoes')carregarEvo();else render();
+  },function(){S.evoBuscando=false;toast('Não deu para falar com o EVO agora. Tente de novo em instantes.');render();});
+}
+function semDadosEvo(){
+  return '<section class="panel"><span class="lbl">EVO</span><h2 class="h2">Ainda não temos dados do EVO</h2>'+
+    (isAdmin()?'<p class="muted" style="margin:8px 0 14px">Conecte o EVO em Integrações e toque em Atualizar agora. Depois disso a busca roda sozinha todo dia às 05:40.</p><div class="row"><button class="btn" data-tab="integracoes">Abrir Integrações</button></div>'
+      :'<p class="muted" style="margin:8px 0 0">O dono da academia ainda não ligou o EVO. Assim que ligar, as listas aparecem aqui.</p>')+'</section>';
+}
+function barras(lista,total,cls){
+  var max=Math.max.apply(null,lista.map(function(x){return x[1];}).concat([1]));
+  return lista.map(function(x){return '<div class="bar"><span class="small" style="overflow-wrap:anywhere">'+esc(x[0])+'</span><div class="track"><div class="fill '+(cls||'g-warn')+'" style="width:'+Math.round(x[1]*100/max)+'%"></div></div><span class="num">'+x[1]+'</span></div>';}).join('');
+}
+function insights(r){
+  var a=[],sum=r.sumidos7+r.sumidos15+r.sumidos30,saldo=r.matriculasMes-r.canceladosMes;
+  if(r.sumidos30)a.push(['bad','<b>'+r.sumidos30+' alunos ativos não aparecem há mais de 30 dias.</b> Quem não treina não renova: esse é o próximo cancelamento. Comece pela faixa de 7 a 14 dias, que é a mais fácil de trazer de volta ('+r.sumidos7+' alunos).']);
+  else if(sum)a.push(['bad','<b>'+sum+' alunos ativos não vêm há 7 dias ou mais.</b> Chame primeiro quem sumiu há menos tempo.']);
+  if(r.inadValor){var inadAt=((S.evoDados.inadimplentes||{}).itens||[]).filter(function(x){return x.ativo;});
+    a.push(['bad','<b>'+brl0(r.inadValor)+' em atraso</b> ('+r.inadimplentes+' pessoas). '+(inadAt.length===1?'1 ainda é aluno ativo e passa':inadAt.length+' ainda são alunos ativos e passam')+' pela catraca: dá para cobrar no balcão, com educação, antes de virar cancelamento.']);}
+  var auto=(r.motivos||[]).filter(function(m){return /inadimpl/i.test(m[0]);}).reduce(function(s,m){return s+m[1];},0);
+  if(auto&&r.canceladosMes)a.push(['warn','<b>'+auto+' dos '+r.canceladosMes+' cancelamentos do mês ('+pct(auto,r.canceladosMes)+') foram automáticos por falta de pagamento.</b> É receita que dava para salvar com cobrança mais cedo.']);
+  var semCanal=(r.canais||[]).filter(function(c){return /não informado/i.test(c[0]);}).reduce(function(s,c){return s+c[1];},0);
+  if(semCanal&&r.leadsMes&&semCanal/r.leadsMes>=.3)a.push(['warn','<b>'+pct(semCanal,r.leadsMes)+' dos leads estão sem o canal preenchido.</b> Sem isso não dá para saber qual propaganda traz aluno. Peça à recepção para marcar sempre o "Como conheceu" no EVO.']);
+  if(r.matriculasMes||r.canceladosMes)a.push([saldo>=0?'ok':'bad','<b>Saldo do mês: '+(saldo>=0?'+':'')+saldo+' alunos</b> ('+r.matriculasMes+' entraram, '+r.canceladosMes+' cancelaram).']);
+  return a.map(function(x){return '<div class="insight '+x[0]+'">'+x[1]+'</div>';}).join('');
+}
+function telaPainel(){
+  var D=S.evoDados;
+  var topo='<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h1>Painel</h1><p class="lead" style="margin:6px 0 0">'+
+    (D&&D._resumo?'Dados do EVO de '+dataHora(D._resumo)+'.':'Os números da academia, direto do EVO.')+'</p></div>'+
+    '<button class="btn ghost sm" data-act="evoAtualizar"'+(S.evoBuscando?' disabled':'')+'>'+(S.evoBuscando?'Buscando no EVO…':'Atualizar agora')+'</button></div>';
+  if(D===undefined)return topo+'<p class="muted">Carregando…</p>';
+  if(!D.resumo)return topo+semDadosEvo();
+  var r=D.resumo,sum=r.sumidos7+r.sumidos15+r.sumidos30,saldo=r.matriculasMes-r.canceladosMes;
+  var h=topo;
+  h+='<div class="kpis">'+
+    '<div class="kpi"><span class="lbl">Alunos ativos</span><div class="v">'+r.ativos.toLocaleString('pt-BR')+'</div><div class="s">contando Wellhub e VIPs</div></div>'+
+    '<div class="kpi"><span class="lbl">Saldo do mês</span><div class="v '+(saldo>=0?'t-ok':'t-bad')+'">'+(saldo>=0?'+':'')+saldo+'</div><div class="s">'+r.matriculasMes+' matrículas · '+r.canceladosMes+' cancelamentos</div></div>'+
+    '<div class="kpi"><span class="lbl">Sumidos 7+ dias</span><div class="v t-bad">'+sum+'</div><div class="s">'+pct(sum,r.ativos)+' da base não está vindo</div></div>'+
+    '<div class="kpi"><span class="lbl">Em atraso</span><div class="v sm t-bad">'+brl0(r.inadValor)+'</div><div class="s">'+r.inadimplentes+' pessoas devendo</div></div>'+
+    '<div class="kpi"><span class="lbl">Renovam em 15 dias</span><div class="v">'+r.vencendo15+'</div><div class="s">planos que não renovam sozinhos</div></div>'+
+    '<div class="kpi"><span class="lbl">Leads no mês</span><div class="v">'+r.leadsMes+'</div><div class="s">'+r.aniversariantesHoje+' aniversariante'+(r.aniversariantesHoje===1?'':'s')+' hoje</div></div>'+
+  '</div>';
+  h+='<section class="panel"><span class="lbl">Onde está o gap</span><div style="display:grid;gap:10px">'+insights(r)+'</div>'+
+    '<div class="row" style="margin-top:14px"><button class="btn" data-tab="contatos">Abrir contatos do dia</button></div></section>';
+  h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">';
+  h+='<section class="panel"><span class="lbl">Alunos sumidos (ativos sem treinar)</span>'+barras([['7 a 14 dias',r.sumidos7],['15 a 29 dias',r.sumidos15],['30 dias ou mais',r.sumidos30],['Nunca treinaram',r.nuncaVieram||0]],r.ativos,'g-bad')+'</section>';
+  h+='<section class="panel"><span class="lbl">Motivos de cancelamento no mês · '+brl0(r.canceladosValor)+' em contratos</span>'+(r.motivos&&r.motivos.length?barras(r.motivos,r.canceladosMes,'g-warn'):'<p class="muted small">Nenhum cancelamento no mês.</p>')+'</section>';
+  h+='<section class="panel"><span class="lbl">De onde vieram os leads do mês</span>'+(r.canais&&r.canais.length?barras(r.canais,r.leadsMes,'g-ok'):'<p class="muted small">Nenhum lead no mês.</p>')+'</section>';
+  var cl=S.evoContLista||[],porP={},porL={};cl.forEach(function(c){var n=c.por_nome||'Sem nome';porP[n]=(porP[n]||0)+1;porL[LISTAS[c.lista]||c.lista]=(porL[LISTAS[c.lista]||c.lista]||0)+1;});
+  var pp=Object.keys(porP).map(function(k){return [k,porP[k]];}).sort(function(a,b){return b[1]-a[1];});
+  h+='<section class="panel"><span class="lbl">Contatos feitos hoje · '+cl.length+'</span>'+(pp.length?barras(pp,cl.length,'g-ok')+'<p class="small muted" style="margin:10px 0 0">'+Object.keys(porL).map(function(k){return k+': '+porL[k];}).join(' · ')+'</p>':'<p class="muted small" style="margin:0">Ninguém marcou contato hoje ainda.</p>')+'</section>';
+  h+='</div>';
+  var hist=(r.historico||[]).slice(-14).reverse();
+  if(hist.length>1){
+    h+='<section class="panel"><span class="lbl">Evolução dia a dia</span><div class="scrollx"><table class="tbl"><thead><tr><th>Dia</th><th>Ativos</th><th>Sumidos 7+</th><th>Em atraso</th><th>Matrículas mês</th><th>Cancel. mês</th></tr></thead><tbody>'+
+      hist.map(function(x){return '<tr><td>'+dBR(x.dia)+'</td><td>'+x.ativos+'</td><td>'+(x.sumidos7+x.sumidos15+x.sumidos30)+'</td><td>'+brl0(x.inadValor)+'</td><td>'+x.matriculasMes+'</td><td>'+x.canceladosMes+'</td></tr>';}).join('')+'</tbody></table></div></section>';
+  }else h+='<p class="small muted">A partir de amanhã aparece aqui a evolução dia a dia (a busca roda todo dia às 05:40).</p>';
+  if(r.avisos&&r.avisos.length)h+='<div class="msg">'+r.avisos.map(esc).join('<br>')+'</div>';
+  return h;
+}
+// ---- Contatos do dia ----
+function itensDe(lista){
+  var D=S.evoDados||{},f=S.filtro||'';
+  if(lista==='aniversario')return ((D.aniversariantes||{}).itens||[]).filter(function(x){return f==='semana'?x.em>0:x.em===0;});
+  if(lista==='sumido')return ((D.sumidos||{}).itens||[]).filter(function(x){
+    if(f==='15')return x.dias>=15&&x.dias<30; if(f==='30')return x.dias>=30; if(f==='nunca')return x.nunca; return x.dias>=7&&x.dias<15;});
+  if(lista==='inad')return ((D.inadimplentes||{}).itens||[]).filter(function(x){return f==='ex'?!x.ativo:x.ativo;});
+  if(lista==='renovacao')return (D.vencendo||{}).itens||[];
+  if(lista==='lead')return (D.leads||{}).itens||[];
+  if(lista==='cancelado')return (D.cancelados||{}).itens||[];
+  return [];
+}
+var FILTROS={aniversario:[['','Hoje'],['semana','Próximos 7 dias']],sumido:[['','7 a 14 dias'],['15','15 a 29 dias'],['30','30+ dias'],['nunca','Nunca treinaram']],inad:[['','Alunos ativos'],['ex','Ex-alunos']]};
+function detalhe(lista,x){
+  if(lista==='aniversario')return x.em===0?'Faz '+x.idade+' anos hoje 🎉':'Aniversário em '+x.em+' dia'+(x.em>1?'s':'')+' · faz '+x.idade;
+  if(lista==='sumido')return x.nunca?'Matriculado em '+dBR(x.desde)+' e nunca treinou':'Não vem há '+x.dias+' dias · último treino '+dBR(x.ultima);
+  if(lista==='inad')return brl(x.valor)+' · '+x.parcelas+' parcela'+(x.parcelas>1?'s':'')+' · atrasado há '+x.dias+' dia'+(x.dias>1?'s':'');
+  if(lista==='renovacao')return (x.dias===0?'Vence hoje':'Vence em '+x.dias+' dia'+(x.dias>1?'s':'')+' ('+dBR(x.fim)+')')+(x.plano?' · '+x.plano:'');
+  if(lista==='lead')return 'Cadastro em '+dBR(x.dia)+(x.canal?' · '+x.canal:'')+(x.por?' · por '+x.por:'');
+  if(lista==='cancelado')return 'Cancelou em '+dBR(x.dia)+(x.motivo?' · '+x.motivo:'');
+  return '';
+}
+function mensagem(lista,x){
+  var ac=S.atual.academias.nome,n=(x.nome||'').split(' ')[0];n=n.charAt(0)+n.slice(1).toLowerCase();
+  if(lista==='aniversario')return x.em===0?'Oi '+n+'! Aqui é da '+ac+' 🎉 Feliz aniversário! Que seu novo ano venha com muita saúde e muito treino. Passa aqui hoje pra gente te dar um abraço!'
+    :'Oi '+n+'! Aqui é da '+ac+'. Seu aniversário está chegando e a gente não podia deixar passar 🎉 Já fica aqui nosso parabéns adiantado!';
+  if(lista==='sumido')return x.nunca?'Oi '+n+'! Aqui é da '+ac+'. Vimos que você ainda não começou a treinar com a gente. Quer que a gente agende seu primeiro treino com um professor? É só me falar o melhor horário.'
+    :'Oi '+n+', tudo bem? Aqui é da '+ac+'. Sentimos sua falta por aqui, faz '+x.dias+' dias que você não aparece. Aconteceu alguma coisa? Bora voltar essa semana? Se quiser, a gente monta um treino novo pra você 💪';
+  if(lista==='inad')return x.ativo?'Oi '+n+', tudo bem? Aqui é da '+ac+'. Consta uma pendência de '+brl(x.valor)+' no seu plano. Consegue regularizar? Pode ser aqui na recepção ou por Pix. Qualquer dúvida estou à disposição!'
+    :'Oi '+n+', tudo bem? Aqui é da '+ac+'. Ficou uma pendência de '+brl(x.valor)+' no seu cadastro. Quer resolver e aproveitar para voltar a treinar? Temos uma condição especial de retorno.';
+  if(lista==='renovacao')return 'Oi '+n+'! Aqui é da '+ac+'. Seu plano vence '+(x.dias===0?'hoje':'dia '+dBR(x.fim))+'. Quer garantir a renovação e continuar treinando sem parar? Responde aqui ou passa na recepção que a gente resolve.';
+  if(lista==='lead')return 'Oi '+n+'! Aqui é da '+ac+'. Vi que você se interessou em treinar com a gente. Posso te ajudar a escolher o melhor plano ou agendar uma aula experimental?';
+  if(lista==='cancelado')return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. Sentimos sua saída e queremos entender como podemos melhorar. Se quiser voltar, temos uma condição especial pra você. Posso te contar?';
+  return 'Oi '+n+'!';
+}
+function telaContatos(){
+  var D=S.evoDados,L=S.lista||'aniversario';
+  var feitos=(S.evoContLista||[]).length;
+  var h='<div><h1>Contatos do dia</h1><p class="lead" style="margin:6px 0 0">Toque no WhatsApp: a mensagem já vai pronta e o contato fica marcado. '+(feitos?'<b>'+feitos+' contato'+(feitos>1?'s':'')+' feito'+(feitos>1?'s':'')+' hoje.</b>':'')+'</p></div>';
+  if(D===undefined)return h+'<p class="muted">Carregando…</p>';
+  if(!D.aniversariantes)return h+semDadosEvo();
+  var cont=function(l){return arrLista(l).length;};
+  h+='<div class="pills">'+Object.keys(LISTAS).map(function(k){return '<button data-lista="'+k+'" aria-pressed="'+(L===k)+'">'+LISTAS[k]+' <b>'+cont(k)+'</b></button>';}).join('')+'</div>';
+  if(FILTROS[L])h+='<div class="pills">'+FILTROS[L].map(function(f){var f0=S.filtro;S.filtro=f[0];var n=itensDe(L).length;S.filtro=f0;
+    return '<button data-filtro="'+f[0]+'" aria-pressed="'+((S.filtro||'')===f[0])+'">'+f[1]+' <b>'+n+'</b></button>';}).join('')+'</div>';
+  var itens=itensDe(L),C=S.evoCont||{};
+  var pend=itens.filter(function(x){return !C[L+':'+x.id];}),feitosL=itens.filter(function(x){return C[L+':'+x.id];});
+  var ord=pend.concat(feitosL),lim=S.mostrar||40;
+  h+='<section class="panel">';
+  if(!itens.length)h+='<p class="muted" style="margin:0">Ninguém nesta lista hoje. 👏</p>';
+  else{
+    h+='<p class="small muted" style="margin:0 0 6px">'+pend.length+' para chamar · '+feitosL.length+' já chamado'+(feitosL.length===1?'':'s')+' hoje</p><div class="lst">';
+    h+=ord.slice(0,lim).map(function(x){var c=C[L+':'+x.id],k=L+':'+x.id;
+      return '<div class="it'+(c?' feito':'')+'"><div><div class="n">'+esc(x.nome)+'</div><div class="dt">'+esc(detalhe(L,x))+'</div></div><div class="acts">'+
+        (c?'<span class="feitoTag">✓ '+esc((c.por_nome||'').split(' ')[0])+' às '+new Date(c.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</span>'+
+          (c.por===S.sess.user.id||isAdmin()?'<button class="btn ghost sm" data-desfaz="'+c.id+'">Desfazer</button>':''):'')+
+        (x.tel?'<button class="zap" data-zap="'+esc(k)+'">WhatsApp</button>':'<button class="zap" disabled title="Sem celular no EVO">Sem celular</button>')+
+        (!c?'<button class="btn ghost sm" data-chamei="'+esc(k)+'">Chamei</button>':'')+'</div></div>';}).join('');
+    h+='</div>';
+    if(ord.length>lim)h+='<div class="row" style="margin-top:12px"><button class="btn ghost sm" data-act="mais">Mostrar mais ('+(ord.length-lim)+')</button></div>';
+  }
+  h+='</section>';
+  if(D._aniversariantes)h+='<p class="small muted">Lista do EVO de '+dataHora(D._aniversariantes)+'.</p>';
+  return h;
+}
+function arrLista(L){var D=S.evoDados||{};var k={aniversario:'aniversariantes',sumido:'sumidos',inad:'inadimplentes',renovacao:'vencendo',lead:'leads',cancelado:'cancelados'}[L];return (D[k]||{}).itens||[];}
+function achar(k){var i=k.indexOf(':'),L=k.slice(0,i),id=k.slice(i+1),x=null;
+  arrLista(L).forEach(function(y){if(String(y.id)===id)x=y;});return {L:L,x:x};}
+setInterval(function(){if(S.atual&&S.tab==='contatos'&&!document.hidden)carregarContatos();},30000);
+function marcar(k){var a=achar(k);if(!a.x)return;
+  if((S.evoCont||{})[k])return;
+  var tmp={id:'tmp',lista:a.L,id_aluno:String(a.x.id),por:S.sess.user.id,por_nome:(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome)||'Você',quando:new Date().toISOString()};
+  S.evoCont[k]=tmp;S.evoContLista=(S.evoContLista||[]).concat([tmp]);render();
+  sb.from('evo_contatos').insert({academia_id:S.atual.academia_id,lista:a.L,id_aluno:String(a.x.id),nome:a.x.nome}).then(function(r){
+    if(r.error&&!/duplicate|unique/i.test(r.error.message))toast(erroMsg(r.error));carregarContatos();});
 }
 function telaPlacar(){
   return '<section class="panel"><span class="lbl">Em migração</span><h1 class="h2">Placar de Turnos</h1>'+
@@ -677,6 +864,8 @@ document.addEventListener('click',function(ev){
     if(d.tab==='avaliacoes'){carregarRodadas();carregarModelos();}
     if(d.tab==='equipe'){S.novoAcesso=null;carregarEquipe();}
     if(d.tab==='integracoes'){S.evoTrocar=false;carregarEvo();}
+    if(d.tab==='painel'){carregarEvoDados();carregarContatos();}
+    if(d.tab==='contatos'){S.mostrar=40;carregarEvoDados();carregarContatos();}
     render();window.scrollTo(0,0);return;}
   if(d.acad){try{localStorage.setItem('fs-acad',d.acad);}catch(e){}S.atual=S.membros.filter(function(m){return m.academia_id===d.acad;})[0];render();return;}
   if(d.copy){copiar(d.copy);return;}
@@ -706,7 +895,14 @@ document.addEventListener('click',function(ev){
     sb.from('membros').update({ativo:!mm.ativo}).eq('academia_id',S.atual.academia_id).eq('user_id',d.ativo).then(function(q){
       if(q.error)toast(erroMsg(q.error));else toast(mm.ativo?'Acesso desativado.':'Acesso reativado.');carregarEquipe();});return;}
   if(d.delc){sb.from('convites').delete().eq('id',d.delc).then(function(){carregarEquipe();});return;}
+  if(d.lista){S.lista=d.lista;S.filtro='';S.mostrar=40;render();return;}
+  if(d.filtro!==undefined){S.filtro=d.filtro;S.mostrar=40;render();return;}
+  if(d.zap){var a=achar(d.zap);if(a.x&&a.x.tel){window.open('https://wa.me/'+a.x.tel+'?text='+encodeURIComponent(mensagem(a.L,a.x)),'_blank','noopener');marcar(d.zap);}return;}
+  if(d.chamei){marcar(d.chamei);return;}
+  if(d.desfaz){if(d.desfaz==='tmp')return;sb.from('evo_contatos').delete().eq('id',d.desfaz).then(function(r){if(r.error)toast(erroMsg(r.error));carregarContatos();});return;}
   var act=d.act;if(!act)return;
+  if(act==='evoAtualizar'){evoAtualizar();return;}
+  if(act==='mais'){S.mostrar=(S.mostrar||40)+40;render();return;}
   if(act==='sair'){sb.auth.signOut();return;}
   if(act==='novaAval'){S.sub='modelos';S.confirma=null;render();window.scrollTo(0,0);return;}
   if(act==='voltarLista'){S.sub='lista';S.res=null;render();return;}
