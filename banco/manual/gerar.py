@@ -486,6 +486,43 @@ don.append(('Painel da academia (EVO)', '''
     ['Evolução dia a dia', 'Os últimos 14 dias: ativos, sumidos, atraso, matrículas e cancelamentos.'],
 ])))
 
+don.append(('Financeiro: contas a pagar e DRE', '''
+<p class="lead">A aba <b>Financeiro</b> é só do dono e dos sócios. Ela faz duas coisas: confere boletos e Pix <b>antes</b> de pagar e monta a DRE do mês com o que entrou e saiu.</p>
+<h3>Conferir um boleto ou Pix antes de pagar</h3>
+''' + passos(
+    ('Toque na aba ' + B('Financeiro') + '.', 'Abre em "Contas a pagar".'),
+    ('Toque em <b>PDF ou foto do boleto</b> e escolha o arquivo.', 'Ou copie a linha digitável (ou o Pix copia e cola) e cole no campo do código.'),
+    ('Escreva o <b>Fornecedor</b> que você espera que receba e o <b>Valor impresso</b>.', 'O CNPJ é opcional, mas ajuda: o FitStack consulta na Receita.'),
+    ('Escolha a <b>Linha da DRE</b> (ex.: Aluguel, Folha, Equipamentos).', 'É onde essa conta vai aparecer na DRE.'),
+    ('Toque em ' + B('Conferir', 'lar') + '.', 'Aparece 🟢, 🟡 ou 🔴 com o motivo.'),
+    ('Se deu 🔴, <b>não pague</b>.', 'Ligue para o fornecedor num número que você já tinha (não o do boleto). Só depois marque a caixinha de confirmação.'),
+    ('Toque em ' + B('Salvar em contas a pagar') + ' ou ' + B('Salvar como paga hoje') + '.', 'A conta entra na lista do mês.'),
+) + fig('financeiro-conferir', 'Conferência de um boleto') + tabela(['O que o FitStack confere', 'Por quê'], [
+    ['Dígitos de segurança do código', 'Boleto adulterado (golpe do boleto falso) quase sempre erra esses dígitos.'],
+    ['Valor, banco e vencimento escondidos no código', 'O golpista muda o impresso, mas o código diz outra coisa.'],
+    ['CNPJ na Receita', 'Empresa inexistente, baixada ou aberta há pouco é sinal de alerta.'],
+    ['Fornecedor que trocou de banco ou de chave Pix', 'É o sinal nº 1 do golpe do e-mail invadido.'],
+    ['Código já lançado antes', 'Evita pagar a mesma conta duas vezes.'],
+]) + box('atencao', 'É uma triagem, não uma garantia', 'Mesmo com 🟢, antes de pagar veja no app do banco o <b>nome de quem vai receber</b>. Se não for quem você espera, não pague.') + passos(
+    ('Na lista <b>Contas de (mês)</b>, toque em ' + B('Paguei') + ' quando pagar.', 'A conta fica verde e entra na DRE do mês do pagamento.'),
+    ('Errou? Toque em ' + B('Desfazer') + ' ou ' + B('Excluir') + ' (toque duas vezes para confirmar).', ''),
+    ('Conta sem código (salário, transferência)? Preencha valor, vencimento e linha da DRE e toque em ' + B('Lançar sem código') + '.', ''),
+) + fig('financeiro-contas', 'Contas do mês') + '''
+<h3>DRE do mês</h3>
+<p>A DRE soma <b>o que entrou</b> (recebido no EVO + entradas que você lançar, como o repasse do Wellhub) e <b>o que saiu</b> (contas pagas no EVO + contas pagas aqui). O FitStack busca no EVO sozinho todo dia às 6h10.</p>
+''' + passos(
+    ('Toque em ' + B('DRE') + '.', 'Use ‹ e › para trocar o mês.'),
+    ('Leia os 4 números de cima: Receita, Despesas, Resultado operacional e Sobra de caixa.', ''),
+    ('Leia o quadro <b>Onde está o gap financeiro</b>.', 'Frases prontas: folha alta, aluguel pesado, parcela de equipamento, pouco marketing.'),
+    ('Entrou dinheiro fora do EVO (Wellhub, Totalpass)? Em <b>Entradas do mês</b>, preencha e toque em ' + B('Adicionar entrada') + '.', ''),
+    ('Em <b>Centros de custo do EVO</b>, confira se cada um está na linha certa da DRE.', 'Se estiver errado, troque: vale para todos os meses.'),
+    ('Mesma conta lançada no EVO e aqui? Desmarque uma das fontes embaixo da tabela.', 'Assim nada é contado duas vezes.'),
+) + fig('financeiro-gap', 'Onde está o gap financeiro') + fig('financeiro-dre', 'DRE do mês') + tabela(['Linha', 'O que é'], [
+    ['<b>Resultado operacional</b>', 'O que a academia gera com a operação, antes de juros, retiradas e equipamentos.'],
+    ['<b>Resultado antes das retiradas</b>', 'Resultado operacional menos taxas de cartão, bancárias e juros.'],
+    ['<b>Sobra de caixa do mês</b>', 'O que sobra depois do pró-labore e das parcelas de equipamento. Se fica negativo, o caixa está diminuindo.'],
+]) + box('dica', 'Conciliação bancária', 'Ainda não confere com o extrato do banco. Isso vem numa próxima versão.')))
+
 don.append(('Equipe e acessos', '''
 <p class="lead">Aqui você cria o acesso de cada pessoa e escolhe o que ela pode ver e fazer.</p>
 ''' + passos(
@@ -597,7 +634,7 @@ don.append(('Se der problema', tabela(['Problema', 'O que fazer'], [
 
 _e=[x for x in don if x[0].startswith('Ligar o EVO')][0];don.remove(_e);don.insert(2,_e)
 pagina('dono-socios.html', 'Manual do Dono e dos Sócios',
-       'Do primeiro acesso ao dia a dia: ligar o EVO, cadastrar a equipe e as unidades, ler o Painel, comissão, histórico e avaliações.',
+       'Do primeiro acesso ao dia a dia: ligar o EVO, cadastrar a equipe e as unidades, ler o Painel, o Financeiro (contas e DRE), comissão, histórico e avaliações.',
        'Dono e sócios', don, 'manual-dono-socios.pdf')
 print('ok')
 
@@ -671,6 +708,11 @@ gs.append(('Reunião de 15 minutos toda segunda', check([
     '<b class="h">3</b> <b>Resultado dos contatos</b>: quanto foi recuperado e quem mais trouxe resultado. Reconhecer em público.',
     '<b class="h">4</b> <b>Taxa por pessoa</b>: quem chama muito e quase não tem resultado precisa de treino na mensagem, não de bronca.',
     '<b class="h">5</b> <b>Uma decisão</b> para a semana (ex.: "esta semana, todos os sumidos de 7 a 14 dias", "gerente liga para quem deve mais de R$ 300").',
+])))
+gs.append(('Financeiro em 3 passos', check([
+    '<b>Antes de pagar qualquer boleto ou Pix:</b> Financeiro → Contas a pagar → Conferir. 🔴 = não paga sem ligar para o fornecedor.',
+    '<b>Pagou?</b> Toque em Paguei. A conta entra na DRE do mês.',
+    '<b>Todo começo de mês:</b> Financeiro → DRE do mês anterior. Leia "Onde está o gap financeiro" e compare com o mês de antes.',
 ])))
 gs.append(('Decisões que ficam com vocês', tabela(['Assunto', 'Sugestão'], [
     ['Comissão por resultado', 'Hoje a comissão paga por tarefa feita. Com os selos, dá para dar bônus por aluno que voltou ou valor recuperado. Combine com a equipe antes de mudar.'],
