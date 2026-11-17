@@ -432,6 +432,14 @@ function telaIntegracoes(){
       '<p class="small muted" style="margin:10px 0 0">Por segurança, ninguém consegue ver a chave inteira de novo, nem você. Só o servidor usa ela.</p>'+
       '<div class="row" style="margin-top:14px"><button class="btn sm" data-act="evoAtualizar"'+(S.evoBuscando?' disabled':'')+'>'+(S.evoBuscando?'Buscando no EVO…':'Atualizar agora')+'</button><button class="btn ghost sm" data-act="evoTrocar">Trocar a chave</button>'+
       '<button class="btn ghost sm" data-act="evoRemover">'+(S.confirma==='evo'?'Toque de novo para desligar':'Desligar integração')+'</button></div></section>';
+    if(ev.webhook_key){var url='https://bmbcdqcjeignydehwmhg.supabase.co/functions/v1/evo-webhook?k='+ev.webhook_key;
+      h+='<section class="panel"><span class="lbl">Alertas em tempo real</span><h2 class="h2" style="margin-top:4px">'+(ev.ultimo_alerta?'✅ Recebendo alertas':'Ligar os alertas do EVO')+'</h2>'+
+        (ev.ultimo_alerta?'<p class="small muted" style="margin:6px 0 0">Último alerta recebido em '+dataHora(ev.ultimo_alerta)+'.</p>':'')+
+        '<p class="small" style="margin:8px 0">Com isso, quando o cartão de um aluno é recusado ou um boleto vence, o aviso aparece na hora em <b>Contatos do dia → Alertas</b>, com o WhatsApp do aluno.</p>'+
+        '<ol class="small" style="margin:0;padding-left:18px;line-height:1.7"><li>No EVO: <b>Configurações → Integrações → EVO API → aba Webhook</b>.</li><li>Cole o endereço abaixo.</li>'+
+        '<li>Marque os avisos: cartão recusado na recorrência, saldo vencido, boleto vencido, cancelamento por inadimplência, vencimento de contrato, ausência, visita e aula experimental.</li><li>Salve.</li></ol>'+
+        '<div class="linkbox" style="margin-top:10px"><input readonly value="'+esc(url)+'" aria-label="Endereço dos alertas"><button class="btn sm" data-copiar="'+esc(url)+'">Copiar</button></div>'+
+        '<p class="small muted" style="margin:8px 0 0">Não mande esse endereço para ninguém: ele é só da sua academia.</p></section>';}
     return h;
   }
   h+='<h2 class="h2" style="margin-top:4px">'+(ev?'Trocar a chave do EVO':'Conectar ao EVO')+'</h2>'+
@@ -446,7 +454,7 @@ function telaIntegracoes(){
   return h;
 }
 // ================= EVO: PAINEL E CONTATOS =================
-var LISTAS={aniversario:'Aniversários',sumido:'Sumidos',inad:'Inadimplentes',renovacao:'Renovação',lead:'Leads',cancelado:'Cancelados'};
+var LISTAS={risco:'Salvar hoje',alerta:'Alertas',aniversario:'Aniversários',sumido:'Sumidos',inad:'Inadimplentes',renovacao:'Renovação',lead:'Leads',cancelado:'Cancelados'};
 function hojeBR(){return new Date(Date.now()-3*3600e3).toISOString().slice(0,10);}
 function dBR(x){return x?x.slice(8,10)+'/'+x.slice(5,7):'';}
 function brl(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -461,6 +469,13 @@ function carregarContatos(){
   sb.from('evo_contatos').select('id,lista,id_aluno,por,por_nome,quando').eq('academia_id',S.atual.academia_id).eq('dia',hojeBR()).then(function(r){
     var m={};(r.data||[]).forEach(function(x){m[x.lista+':'+x.id_aluno]=x;});S.evoCont=m;S.evoContLista=r.data||[];
     if(S.tab==='painel'||S.tab==='contatos')render();});
+  var d3=new Date(Date.now()-3*864e5).toISOString();
+  sb.from('evo_eventos').select('id,tipo,id_aluno,nome,tel,valor,recebido_em').eq('academia_id',S.atual.academia_id).gte('recebido_em',d3).order('recebido_em',{ascending:false}).limit(300).then(function(r){
+    S.evoEventos=(r.data||[]).map(function(e){return {id:'e'+e.id,membro:e.id_aluno,nome:e.nome||'Aluno sem nome',tel:e.tel,tipo:e.tipo,valor:e.valor,quando:e.recebido_em};});
+    if(S.tab==='contatos')render();});
+  var d30=new Date(Date.now()-30*864e5-3*3600e3).toISOString().slice(0,10);
+  sb.from('evo_contatos').select('id_aluno,info,resultado,resultado_em,resultado_valor').eq('academia_id',S.atual.academia_id).gte('dia',d30).not('resultado','is',null).limit(2000).then(function(r){
+    var m={};(r.data||[]).forEach(function(x){m[String((x.info&&x.info.membro)||x.id_aluno)]=x;});S.evoRes=m;if(S.tab==='contatos')render();});
 }
 function evoAtualizar(){
   S.evoBuscando=true;render();
@@ -490,6 +505,8 @@ function insights(r){
   if(auto&&r.canceladosMes)a.push(['warn','<b>'+auto+' dos '+r.canceladosMes+' cancelamentos do mês ('+pct(auto,r.canceladosMes)+') foram automáticos por falta de pagamento.</b> É receita que dava para salvar com cobrança mais cedo.']);
   var semCanal=(r.canais||[]).filter(function(c){return /não informado/i.test(c[0]);}).reduce(function(s,c){return s+c[1];},0);
   if(semCanal&&r.leadsMes&&semCanal/r.leadsMes>=.3)a.push(['warn','<b>'+pct(semCanal,r.leadsMes)+' dos leads estão sem o canal preenchido.</b> Sem isso não dá para saber qual propaganda traz aluno. Peça à recepção para marcar sempre o "Como conheceu" no EVO.']);
+  var R=r.resultados;if(R&&(R.voltou+R.pagou+R.renovou))a.push(['ok','<b>Nos últimos 30 dias, os contatos trouxeram '+R.voltou+' aluno'+(R.voltou===1?'':'s')+' de volta'+(R.pagouValor?' e recuperaram '+brl0(R.pagouValor):'')+(R.renovou?', com '+R.renovou+' renovaç'+(R.renovou===1?'ão':'ões'):'')+'.</b> Veja quem mais trouxe resultado no quadro abaixo.']);
+  if(r.riscoAlto)a.push(['bad','<b>'+r.riscoAlto+' alunos estão com risco alto de cancelar.</b> A lista "Salvar hoje" no Contatos do dia mostra os 20 mais urgentes, com o motivo de cada um.']);
   if(r.matriculasMes||r.canceladosMes)a.push([saldo>=0?'ok':'bad','<b>Saldo do mês: '+(saldo>=0?'+':'')+saldo+' alunos</b> ('+r.matriculasMes+' entraram, '+r.canceladosMes+' cancelaram).']);
   return a.map(function(x){return '<div class="insight '+x[0]+'">'+x[1]+'</div>';}).join('');
 }
@@ -508,10 +525,12 @@ function telaPainel(){
     '<div class="kpi"><span class="lbl">Sumidos 7+ dias</span><div class="v t-bad">'+sum+'</div><div class="s">'+pct(sum,r.ativos)+' da base não está vindo</div></div>'+
     '<div class="kpi"><span class="lbl">Em atraso</span><div class="v sm t-bad">'+brl0(r.inadValor)+'</div><div class="s">'+r.inadimplentes+' pessoas devendo</div></div>'+
     '<div class="kpi"><span class="lbl">Renovam em 15 dias</span><div class="v">'+r.vencendo15+'</div><div class="s">planos que não renovam sozinhos</div></div>'+
+    (r.riscoAlto!=null?'<div class="kpi"><span class="lbl">Risco alto de cancelar</span><div class="v t-bad">'+r.riscoAlto+'</div><div class="s">alunos com nota 60 ou mais</div></div>':'')+
     '<div class="kpi"><span class="lbl">Leads no mês</span><div class="v">'+r.leadsMes+'</div><div class="s">'+r.aniversariantesHoje+' aniversariante'+(r.aniversariantesHoje===1?'':'s')+' hoje</div></div>'+
   '</div>';
   h+='<section class="panel"><span class="lbl">Onde está o gap</span><div style="display:grid;gap:10px">'+insights(r)+'</div>'+
     '<div class="row" style="margin-top:14px"><button class="btn" data-tab="contatos">Abrir contatos do dia</button></div></section>';
+  h+=painelResultados(r.resultados);
   h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">';
   h+='<section class="panel"><span class="lbl">Alunos sumidos (ativos sem treinar)</span>'+barras([['7 a 14 dias',r.sumidos7],['15 a 29 dias',r.sumidos15],['30 dias ou mais',r.sumidos30],['Nunca treinaram',r.nuncaVieram||0]],r.ativos,'g-bad')+'</section>';
   h+='<section class="panel"><span class="lbl">Motivos de cancelamento no mês · '+brl0(r.canceladosValor)+' em contratos</span>'+(r.motivos&&r.motivos.length?barras(r.motivos,r.canceladosMes,'g-warn'):'<p class="muted small">Nenhum cancelamento no mês.</p>')+'</section>';
@@ -528,9 +547,25 @@ function telaPainel(){
   if(r.avisos&&r.avisos.length)h+='<div class="msg">'+r.avisos.map(esc).join('<br>')+'</div>';
   return h;
 }
+function painelResultados(R){
+  if(!R)return '';
+  var h='<section class="panel"><span class="lbl">Resultado dos contatos · últimos 30 dias</span>';
+  if(!R.chamados)return h+'<p class="muted small" style="margin:0">Ainda não há contatos marcados. Quando a equipe chamar pelo Contatos do dia, aqui aparece quem voltou a treinar, quem pagou e quem renovou.</p></section>';
+  var res=R.voltou+R.pagou+R.renovou;
+  h+='<div class="kpis" style="margin-top:4px"><div class="kpi"><span class="lbl">Contatos feitos</span><div class="v">'+R.chamados+'</div><div class="s">'+res+' com resultado ('+pct(res,R.mediveis||R.chamados)+')</div></div>'+
+    '<div class="kpi"><span class="lbl">Voltaram a treinar</span><div class="v t-ok">'+R.voltou+'</div><div class="s">depois do contato</div></div>'+
+    '<div class="kpi"><span class="lbl">Pagaram</span><div class="v sm t-ok">'+brl0(R.pagouValor)+'</div><div class="s">'+R.pagou+' pessoa'+(R.pagou===1?'':'s')+'</div></div>'+
+    '<div class="kpi"><span class="lbl">Renovaram</span><div class="v t-ok">'+R.renovou+'</div><div class="s">plano renovado</div></div></div>';
+  if(R.porPessoa&&R.porPessoa.length)h+='<div class="scrollx" style="margin-top:12px"><table class="tbl"><thead><tr><th>Quem chamou</th><th>Contatos</th><th>Com resultado</th><th>Taxa</th><th>Recuperado</th></tr></thead><tbody>'+
+    R.porPessoa.map(function(p){return '<tr><td>'+esc(p.nome)+'</td><td>'+p.chamados+'</td><td>'+p.resultados+'</td><td>'+pct(p.resultados,p.chamados)+'</td><td>'+brl0(p.valor)+'</td></tr>';}).join('')+'</tbody></table></div>';
+  return h+'<p class="small muted" style="margin:10px 0 0">O resultado é medido pelo EVO na busca de cada manhã: voltou = passou na catraca depois do contato; pagou = a dívida diminuiu; renovou = o plano ganhou data nova.</p></section>';
+}
 // ---- Contatos do dia ----
 function itensDe(lista){
   var D=S.evoDados||{},f=S.filtro||'';
+  if(lista==='risco'){var rs=(D.risco||{}).itens||[];if(f==='todos')return rs;var C0=S.evoCont||{};
+    return rs.filter(function(x){return !x.chamadoRecente||C0['risco:'+x.id];}).slice(0,20);}
+  if(lista==='alerta')return S.evoEventos||[];
   if(lista==='aniversario')return ((D.aniversariantes||{}).itens||[]).filter(function(x){return f==='semana'?x.em>0:x.em===0;});
   if(lista==='sumido')return ((D.sumidos||{}).itens||[]).filter(function(x){
     if(f==='15')return x.dias>=15&&x.dias<30; if(f==='30')return x.dias>=30; if(f==='nunca')return x.nunca; return x.dias>=7&&x.dias<15;});
@@ -540,8 +575,13 @@ function itensDe(lista){
   if(lista==='cancelado')return (D.cancelados||{}).itens||[];
   return [];
 }
-var FILTROS={aniversario:[['','Hoje'],['semana','Próximos 7 dias']],sumido:[['','7 a 14 dias'],['15','15 a 29 dias'],['30','30+ dias'],['nunca','Nunca treinaram']],inad:[['','Alunos ativos'],['ex','Ex-alunos']]};
+var ALERTAS={recurring_debit_charge_declined:'Cartão recusado na cobrança',overdue_balance_expiry:'Saldo vencido',boleto_expiry:'Boleto vencido',automatic_cancellation_delinquency:'Cancelado por falta de pagamento',
+  contract_due_date:'Contrato vencendo',no_attendance:'Faltou ao treino',prospect_visit:'Visita de interessado',prospect_trial_class_completed:'Fez aula experimental'};
+function rotuloAlerta(t){return ALERTAS[t]||ALERTAS[String(t).toLowerCase()]||String(t).replace(/_/g,' ');}
+var FILTROS={risco:[['','Prioridade de hoje'],['todos','Todos em risco']],aniversario:[['','Hoje'],['semana','Próximos 7 dias']],sumido:[['','7 a 14 dias'],['15','15 a 29 dias'],['30','30+ dias'],['nunca','Nunca treinaram']],inad:[['','Alunos ativos'],['ex','Ex-alunos']]};
 function detalhe(lista,x){
+  if(lista==='risco')return 'Risco '+x.score+' · '+(x.motivos||[]).join(' · ');
+  if(lista==='alerta')return rotuloAlerta(x.tipo)+(x.valor?' · '+brl(x.valor):'')+' · '+new Date(x.quando).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
   if(lista==='aniversario')return x.em===0?'Faz '+x.idade+' anos hoje 🎉':'Aniversário em '+x.em+' dia'+(x.em>1?'s':'')+' · faz '+x.idade;
   if(lista==='sumido')return x.nunca?'Matriculado em '+dBR(x.desde)+' e nunca treinou':'Não vem há '+x.dias+' dias · último treino '+dBR(x.ultima);
   if(lista==='inad')return brl(x.valor)+' · '+x.parcelas+' parcela'+(x.parcelas>1?'s':'')+' · atrasado há '+x.dias+' dia'+(x.dias>1?'s':'');
@@ -552,6 +592,21 @@ function detalhe(lista,x){
 }
 function mensagem(lista,x){
   var ac=S.atual.academias.nome,n=(x.nome||'').split(' ')[0];n=n.charAt(0)+n.slice(1).toLowerCase();
+  if(lista==='risco'){
+    if(x.dias===null&&!x.valor&&!x.fim)return mensagem('sumido',{nome:x.nome,nunca:true});
+    if(x.dias>=7)return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. Sentimos sua falta por aqui, faz '+x.dias+' dias que você não aparece. Aconteceu alguma coisa?'+(x.valor?' Aproveitando: consta uma pendência de '+brl(x.valor)+' no seu plano, a gente resolve junto quando você vier.':'')+' Bora voltar essa semana? 💪';
+    if(x.valor)return mensagem('inad',{nome:x.nome,valor:x.valor,ativo:true});
+    if(x.fim)return mensagem('renovacao',{nome:x.nome,dias:1,fim:x.fim});
+    return mensagem('sumido',{nome:x.nome,dias:x.dias||7});
+  }
+  if(lista==='alerta'){var t=String(x.tipo).toLowerCase();
+    if(t==='recurring_debit_charge_declined')return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. A cobrança do seu plano no cartão não passou (pode ser limite ou cartão vencido). Consegue atualizar o cartão aqui na recepção ou pagar por Pix? Qualquer dúvida estou à disposição!';
+    if(/overdue|boleto|delinquency/.test(t))return mensagem('inad',{nome:x.nome,valor:x.valor||0,ativo:!/delinquency/.test(t)}).replace('de R$ 0,00 ','');
+    if(t==='contract_due_date')return 'Oi '+n+'! Aqui é da '+ac+'. Seu plano está vencendo. Quer garantir a renovação e continuar treinando sem parar? Responde aqui ou passa na recepção que a gente resolve.';
+    if(t==='no_attendance')return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. Sentimos sua falta no treino! Aconteceu alguma coisa? Se precisar mudar o horário, me fala que a gente ajusta 💪';
+    if(/prospect/.test(t))return 'Oi '+n+'! Aqui é da '+ac+'. Que bom que você veio conhecer a academia! O que achou? Posso te ajudar a escolher o melhor plano?';
+    return 'Oi '+n+'! Aqui é da '+ac+'.';
+  }
   if(lista==='aniversario')return x.em===0?'Oi '+n+'! Aqui é da '+ac+' 🎉 Feliz aniversário! Que seu novo ano venha com muita saúde e muito treino. Passa aqui hoje pra gente te dar um abraço!'
     :'Oi '+n+'! Aqui é da '+ac+'. Seu aniversário está chegando e a gente não podia deixar passar 🎉 Já fica aqui nosso parabéns adiantado!';
   if(lista==='sumido')return x.nunca?'Oi '+n+'! Aqui é da '+ac+'. Vimos que você ainda não começou a treinar com a gente. Quer que a gente agende seu primeiro treino com um professor? É só me falar o melhor horário.'
@@ -564,7 +619,7 @@ function mensagem(lista,x){
   return 'Oi '+n+'!';
 }
 function telaContatos(){
-  var D=S.evoDados,L=S.lista||'aniversario';
+  var D=S.evoDados,L=S.lista||(D&&D.risco&&(D.risco.itens||[]).length?'risco':'aniversario');
   var feitos=(S.evoContLista||[]).length;
   var h='<div><h1>Contatos do dia</h1><p class="lead" style="margin:6px 0 0">Toque no WhatsApp: a mensagem já vai pronta e o contato fica marcado. '+(feitos?'<b>'+feitos+' contato'+(feitos>1?'s':'')+' feito'+(feitos>1?'s':'')+' hoje.</b>':'')+'</p></div>';
   if(D===undefined)return h+'<p class="muted">Carregando…</p>';
@@ -577,11 +632,14 @@ function telaContatos(){
   var pend=itens.filter(function(x){return !C[L+':'+x.id];}),feitosL=itens.filter(function(x){return C[L+':'+x.id];});
   var ord=pend.concat(feitosL),lim=S.mostrar||40;
   h+='<section class="panel">';
-  if(!itens.length)h+='<p class="muted" style="margin:0">Ninguém nesta lista hoje. 👏</p>';
+  if(L==='risco'&&(S.filtro||'')==='')h+='<p class="small" style="margin:0 0 8px">Os 20 alunos com maior chance de cancelar, juntando dias sem treinar, mensalidade atrasada, plano vencendo e tempo de casa. Quem já foi chamado nos últimos 7 dias não aparece aqui.</p>';
+  if(L==='alerta')h+='<p class="small" style="margin:0 0 8px">Avisos que o EVO manda na hora (cartão recusado, boleto vencido, etc.), dos últimos 3 dias.'+(isAdmin()?' Para ligar, veja Integrações.':'')+'</p>';
+  if(!itens.length)h+='<p class="muted" style="margin:0">'+(L==='alerta'?'Nenhum alerta nos últimos 3 dias.':'Ninguém nesta lista hoje. 👏')+'</p>';
   else{
     h+='<p class="small muted" style="margin:0 0 6px">'+pend.length+' para chamar · '+feitosL.length+' já chamado'+(feitosL.length===1?'':'s')+' hoje</p><div class="lst">';
     h+=ord.slice(0,lim).map(function(x){var c=C[L+':'+x.id],k=L+':'+x.id;
-      return '<div class="it'+(c?' feito':'')+'"><div><div class="n">'+esc(x.nome)+'</div><div class="dt">'+esc(detalhe(L,x))+'</div></div><div class="acts">'+
+      var rz=(S.evoRes||{})[String(x.membro||x.id)],selo=rz?' <span class="chip ok">✓ '+({voltou:'Voltou',pagou:'Pagou',renovou:'Renovou'}[rz.resultado]||rz.resultado)+' '+dBR(rz.resultado_em)+(rz.resultado_valor?' · '+brl(rz.resultado_valor):'')+'</span>':'';
+      return '<div class="it'+(c?' feito':'')+'"><div><div class="n">'+esc(x.nome)+selo+'</div><div class="dt">'+esc(detalhe(L,x))+'</div></div><div class="acts">'+
         (c?'<span class="feitoTag">✓ '+esc((c.por_nome||'').split(' ')[0])+' às '+new Date(c.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</span>'+
           (c.por===S.sess.user.id||isAdmin()?'<button class="btn ghost sm" data-desfaz="'+c.id+'">Desfazer</button>':''):'')+
         (x.tel?'<button class="zap" data-zap="'+esc(k)+'">WhatsApp</button>':'<button class="zap" disabled title="Sem celular no EVO">Sem celular</button>')+
@@ -593,7 +651,7 @@ function telaContatos(){
   if(D._aniversariantes)h+='<p class="small muted">Lista do EVO de '+dataHora(D._aniversariantes)+'.</p>';
   return h;
 }
-function arrLista(L){var D=S.evoDados||{};var k={aniversario:'aniversariantes',sumido:'sumidos',inad:'inadimplentes',renovacao:'vencendo',lead:'leads',cancelado:'cancelados'}[L];return (D[k]||{}).itens||[];}
+function arrLista(L){var D=S.evoDados||{};if(L==='alerta')return S.evoEventos||[];var k={risco:'risco',aniversario:'aniversariantes',sumido:'sumidos',inad:'inadimplentes',renovacao:'vencendo',lead:'leads',cancelado:'cancelados'}[L];return (D[k]||{}).itens||[];}
 function achar(k){var i=k.indexOf(':'),L=k.slice(0,i),id=k.slice(i+1),x=null;
   arrLista(L).forEach(function(y){if(String(y.id)===id)x=y;});return {L:L,x:x};}
 setInterval(function(){if(S.atual&&S.tab==='contatos'&&!document.hidden)carregarContatos();},30000);
@@ -601,7 +659,8 @@ function marcar(k){var a=achar(k);if(!a.x)return;
   if((S.evoCont||{})[k])return;
   var tmp={id:'tmp',lista:a.L,id_aluno:String(a.x.id),por:S.sess.user.id,por_nome:(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome)||'Você',quando:new Date().toISOString()};
   S.evoCont[k]=tmp;S.evoContLista=(S.evoContLista||[]).concat([tmp]);render();
-  sb.from('evo_contatos').insert({academia_id:S.atual.academia_id,lista:a.L,id_aluno:String(a.x.id),nome:a.x.nome}).then(function(r){
+  var x=a.x,info={membro:String(x.membro||x.id)};['valor','fim','dias','ativo','score','tipo'].forEach(function(k){if(x[k]!==undefined&&x[k]!==null)info[k]=x[k];});
+  sb.from('evo_contatos').insert({academia_id:S.atual.academia_id,lista:a.L,id_aluno:String(a.x.id),nome:a.x.nome,info:info}).then(function(r){
     if(r.error&&!/duplicate|unique/i.test(r.error.message))toast(erroMsg(r.error));carregarContatos();});
 }
 // ================= MANUAL =================
@@ -943,6 +1002,7 @@ document.addEventListener('click',function(ev){
   if(d.filtro!==undefined){S.filtro=d.filtro;S.mostrar=40;render();return;}
   if(d.zap){var a=achar(d.zap);if(a.x&&a.x.tel){window.open('https://wa.me/'+a.x.tel+'?text='+encodeURIComponent(mensagem(a.L,a.x)),'_blank','noopener');marcar(d.zap);}return;}
   if(d.chamei){marcar(d.chamei);return;}
+  if(d.copiar){try{navigator.clipboard.writeText(d.copiar).then(function(){toast('Endereço copiado.');},function(){toast('Selecione o endereço e copie.');});}catch(e){toast('Selecione o endereço e copie.');}return;}
   if(d.desfaz){if(d.desfaz==='tmp')return;sb.from('evo_contatos').delete().eq('id',d.desfaz).then(function(r){if(r.error)toast(erroMsg(r.error));carregarContatos();});return;}
   var act=d.act;if(!act)return;
   if(act==='evoAtualizar'){evoAtualizar();return;}
