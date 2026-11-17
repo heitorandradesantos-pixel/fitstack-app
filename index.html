@@ -138,6 +138,9 @@ var PAPEL={admin:'Admin',gerente:'Gerente',colaborador:'Colaborador'};
 var S={sess:null,membros:[],atual:null,tab:'inicio',sub:'lista',authModo:'entrar',authMsg:'',authErro:'',ocupado:false,
   rodadas:[],modelosSalvos:[],ed:null,res:null,equipe:null,convites:[],novoAcesso:null,ultimoAcesso:null,confirma:null,edMembro:null};
 var view=document.getElementById('view');
+// Cadastro de academia nova só aparece pelo link app.fitstack.com.br/?nova=1
+var NOVA=/[?&]nova=1/.test(location.search);
+if(NOVA)S.authModo='academia';
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 var tT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(function(){t.hidden=true;},3800);}
@@ -168,7 +171,7 @@ function telaAuth(){
   h+='<div class="seg" role="group">'+
     '<button type="button" data-auth="entrar" aria-pressed="'+(m==='entrar')+'">Entrar</button>'+
     '<button type="button" data-auth="primeiro" aria-pressed="'+(m==='primeiro')+'">Primeiro acesso</button>'+
-    '<button type="button" data-auth="academia" aria-pressed="'+(m==='academia')+'">Sou dono</button></div>';
+    (NOVA?'<button type="button" data-auth="academia" aria-pressed="'+(m==='academia')+'">Cadastrar academia</button>':'')+'</div>';
   h+='<section class="panel">';
   if(m==='entrar'){
     h+='<h1 class="h2">Entrar</h1><form class="form" data-form="entrar" style="margin-top:14px">'+
@@ -183,7 +186,7 @@ function telaAuth(){
       '<button type="button" class="link small" data-auth="entrar">Voltar</button></form>';
   }else{
     var dono=m==='academia';
-    h+='<h1 class="h2">'+(dono?'Criar conta de dono':'Primeiro acesso')+'</h1><p class="lead small">'+
+    h+='<h1 class="h2">'+(dono?'Cadastrar minha academia':'Primeiro acesso')+'</h1><p class="lead small">'+
       (dono?'Para quem vai cadastrar a academia. Depois você cria os acessos do gerente e da equipe.'
            :'Use o mesmo e-mail que o admin da academia cadastrou para você. Aqui você cria a sua senha.')+'</p>'+
       '<form class="form" data-form="cadastrar" data-dono="'+(dono?1:0)+'" style="margin-top:14px">'+
