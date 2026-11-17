@@ -351,7 +351,7 @@ async function diagnostico(cfg: Cfg) {
 
 
 // Sondagem: quais endpoints financeiros o token consegue ler (só nomes de campos, contagens e somas).
-async function sondar(cfg: Cfg) {
+async function sondar(cfg: Cfg, extra?: any) {
   const hoje = ymd(agoraBR()), ini = hoje.slice(0, 8) + "01";
   const iniAnt = ymd(new Date(Date.parse(ini) - 20 * DIA)).slice(0, 8) + "01";
   const testes: [string, string, Record<string, unknown>][] = [
@@ -368,7 +368,8 @@ async function sondar(cfg: Cfg) {
     ["entries", "/api/v1/entries", { take: 25 }],
   ];
   const out: any = {};
-  for (const [nome, path, params] of testes) {
+  const lista = Array.isArray(extra) ? extra.filter((x: any) => Array.isArray(x) && /^\/api\/v[12]\/(payables|receivables|costcenter|sales|bank-accounts)$/.test(String(x[1]))).slice(0, 12) : testes;
+  for (const [nome, path, params] of lista) {
     const u = new URL(EVO + path);
     for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
     try {
@@ -382,6 +383,7 @@ async function sondar(cfg: Cfg) {
         o.qtd = l.length; o.campos = l[0] ? Object.keys(l[0]) : [];
         const dist: any = {}, soma: any = {};
         for (const x of l) for (const [k, v] of Object.entries(x || {})) {
+          if (/date/i.test(k) && typeof v === "string") { o.min = o.min && o.min < v ? o.min : v; o.max = o.max && o.max > v ? o.max : v; }
           if (typeof v === "number" && /amm|amount|value|valor|total/i.test(k)) soma[k] = Math.round(((soma[k] || 0) + v) * 100) / 100;
           if (/cost|categ|plan|account|descr|supplier|forneced|status|type|form|payment/i.test(k)) {
             const val = typeof v === "object" ? JSON.stringify(v).slice(0, 80) : String(v).slice(0, 60);
@@ -425,7 +427,7 @@ Deno.serve(async (req) => {
       const cfg: Cfg = { academia_id: a, dns: c.dns, token: c.token, calls: 0 };
       try {
         if (body.modo === "diag") { saida.push({ academia_id: a, diag: await diagnostico(cfg) }); continue; }
-        if (body.modo === "diag-fin") { saida.push({ academia_id: a, diag: await sondar(cfg) }); continue; }
+        if (body.modo === "diag-fin") { saida.push({ academia_id: a, diag: await sondar(cfg, body.sonda) }); continue; }
         const r = await sincronizar(cfg);
         await gravar(cfg, r);
         saida.push({ academia_id: a, ok: true, resumo: r.resumo, avisos: r.avisos, consultas: cfg.calls });
