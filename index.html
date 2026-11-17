@@ -253,6 +253,8 @@ function carregar(){
         S.membros=(m.data||[]).filter(function(x){return x.ativo;});
         var salvo=null;try{salvo=localStorage.getItem('fs-acad');}catch(e){}
         S.atual=S.membros.filter(function(x){return x.academia_id===salvo;})[0]||S.membros[0]||null;
+        if(S.atual)try{localStorage.setItem('fs-acad',S.atual.academia_id);}catch(e){}
+        if(S.atual&&location.hash==='#equipe'&&(isAdmin()||pode('equipe'))){S.tab='equipe';history.replaceState(null,'',location.pathname);carregarEquipe();return;}
         render();
       });
     });
@@ -275,7 +277,7 @@ function render(){
   document.getElementById('quem').innerHTML=esc(nome)+' <span class="chip acc">'+PAPEL[S.atual.papel]+'</span>';
   var tabs=[['inicio','Início']];
   if(pode('avaliacoes'))tabs.push(['avaliacoes','Avaliações']);
-  if(pode('placar')||pode('placar_gestao'))tabs.push(['placar','Placar']);
+  if(pode('placar')||pode('placar_gestao')||pode('comissao'))tabs.push(['placar','Placar']);
   if(isAdmin()||pode('equipe'))tabs.push(['equipe','Equipe e acessos']);
   if(!tabs.some(function(t){return t[0]===S.tab;}))S.tab='inicio';
   document.getElementById('tabs').innerHTML=tabs.map(function(t){return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+t[1]+'</button>';}).join('');
@@ -294,7 +296,7 @@ function telaSemAcademia(){
 function telaInicio(){
   var cards=[];
   if(pode('avaliacoes'))cards.push(['avaliacoes','Avaliações','Crie avaliações anônimas para cada função e veja os resultados.']);
-  if(pode('placar')||pode('placar_gestao'))cards.push(['placar','Placar de Turnos','Metas do turno, relatório diário e comissão.']);
+  if(pode('placar')||pode('placar_gestao')||pode('comissao'))cards.push(['placar','Placar de Turnos','Metas do turno, conferência do gerente, ranking de comissão e relatório do dia.']);
   if(isAdmin()||pode('equipe'))cards.push(['equipe','Equipe e acessos','Cadastre o gerente e os colaboradores e escolha o que cada um vê.']);
   var h='<div><h1>Olá'+(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome?', '+esc(S.sess.user.user_metadata.nome.split(' ')[0]):'')+'</h1><p class="lead">O que vamos fazer agora?</p></div>';
   h+=cards.length?'<div class="grid">'+cards.map(function(c){return '<button class="card" data-tab="'+c[0]+'"><span class="t">'+c[1]+'</span><span class="d">'+c[2]+'</span></button>';}).join('')+'</div>'
@@ -585,6 +587,7 @@ function autoH(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2
 document.addEventListener('click',function(ev){
   var b=ev.target.closest('button,a');if(!b)return;var d=b.dataset;
   if(d.auth){S.authModo=d.auth;S.authErro='';S.authMsg='';render();return;}
+  if(d.tab==='placar'){location.href='placar.html';return;}
   if(d.tab){S.tab=d.tab;S.sub='lista';S.confirma=null;
     if(d.tab==='avaliacoes'){carregarRodadas();carregarModelos();}
     if(d.tab==='equipe'){S.novoAcesso=null;carregarEquipe();}

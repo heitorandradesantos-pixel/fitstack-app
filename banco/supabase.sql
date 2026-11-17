@@ -222,3 +222,50 @@ grant select, update, delete on public.membros to authenticated;
 grant select, insert, update, delete on public.convites, public.modelos, public.rodadas to authenticated;
 grant select on public.respostas to authenticated;
 grant execute on function public.meu_papel(uuid), public.pode(uuid,text) to authenticated;
+-- FitStack · Placar de Turnos
+create table if not exists public.placar_docs(
+  academia_id uuid not null references public.academias on delete cascade,
+  colecao text not null,
+  doc_id text not null,
+  data date,
+  dados jsonb not null default '{}',
+  atualizado_em timestamptz not null default now(),
+  atualizado_por uuid default auth.uid(),
+  primary key (academia_id, colecao, doc_id)
+);
+create index if not exists placar_docs_data_idx on public.placar_docs(academia_id, colecao, data);
+alter table public.placar_docs enable row level security;
+
+-- Quem pode ver cada parte
+create or replace function public.placar_ler(a uuid, c text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case c
+    when 'registros' then public.pode(a,'placar') or public.pode(a,'placar_gestao') or public.pode(a,'comissao')
+    when 'conf'      then public.pode(a,'placar_gestao')
+    when 'config'    then public.meu_papel(a) is not null
+    else public.meu_papel(a) = 'admin' end
+$$;
+-- Quem pode gravar (no registro já existente: recepção não mexe em turno fechado ou conferido)
+create or replace function public.placar_gravar(a uuid, c text, atual jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case c
+    when 'registros' then public.pode(a,'placar_gestao')
+      or (public.pode(a,'placar') and coalesce((atual->>'enviado')::boolean,false) = false
+                                  and coalesce((atual->>'conferido')::boolean,false) = false)
+    when 'conf'      then public.pode(a,'placar_gestao')
+    else public.meu_papel(a) = 'admin' end
+$$;
+
+drop policy if exists placar_ver on public.placar_docs;
+create policy placar_ver on public.placar_docs for select using (public.placar_ler(academia_id, colecao));
+drop policy if exists placar_criar on public.placar_docs;
+create policy placar_criar on public.placar_docs for insert with check (public.placar_gravar(academia_id, colecao, null));
+drop policy if exists placar_mudar on public.placar_docs;
+create policy placar_mudar on public.placar_docs for update
+  using (public.placar_gravar(academia_id, colecao, dados))
+  with check (public.placar_gravar(academia_id, colecao, null));
+drop policy if exists placar_apagar on public.placar_docs;
+create policy placar_apagar on public.placar_docs for delete using (public.meu_papel(academia_id) = 'admin');
+
+grant select, insert, update, delete on public.placar_docs to authenticated;
+grant execute on function public.placar_ler(uuid,text), public.placar_gravar(uuid,text,jsonb) to authenticated;
