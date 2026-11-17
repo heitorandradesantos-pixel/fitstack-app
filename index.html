@@ -285,7 +285,7 @@ var FORMS={
     sb.rpc('aceitar_convites',{p_codigo:String(d.codigo||'').toUpperCase().trim()}).then(function(r){S.ocupado=false;
       if(r.error){S.authErro=erroMsg(r.error);render();return;}
       if(!r.data){S.authErro='Esse código não confere com o seu e-mail. Confira com o admin da academia.';render();return;}
-      carregar();},function(e){S.ocupado=false;S.authErro=erroMsg(e);render();});
+      S.authErro='';toast('Pronto! A unidade nova já está no seletor lá em cima.');carregar();},function(e){S.ocupado=false;S.authErro=erroMsg(e);render();});
   },
   evo:function(d,f){
     S.ocupado=true;render();
@@ -413,6 +413,10 @@ function telaInicio(){
     }
     h+='</section>';
   }
+  h+='<section class="panel"><span class="lbl">Recebeu acesso a outra unidade?</span>'+
+    '<p class="small muted" style="margin:0 0 10px">Digite aqui o código de 6 letras e números que o dono daquela unidade te mandou. Ela aparece junto com as suas, no seletor lá em cima.</p>'+
+    '<form class="form" data-form="usarCodigo"><label class="f"><span>Código de acesso</span><input name="codigo" maxlength="6" autocomplete="off" required style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"></label>'+
+    msgs()+'<div class="row"><button class="btn sm"'+(S.ocupado?' disabled':'')+'>Entrar na unidade</button></div></form></section>';
   return h;
 }
 // ================= INTEGRAÇÕES =================
