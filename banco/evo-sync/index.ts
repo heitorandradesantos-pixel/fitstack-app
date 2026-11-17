@@ -188,8 +188,13 @@ async function sincronizar(cfg: Cfg) {
     })).sort((a, b) => String(b.dia).localeCompare(String(a.dia)));
   } catch (_e) { avisos.push("Não deu para ler os leads do EVO."); }
 
+  // 5) Risco de cancelamento por aluno e resultado dos contatos já feitos
+  const rr = await riscoEResultados(cfg, hoje, ativos, porId, inadimplentes, vencendo);
+
   const resumo = {
     dia: hoje, ativos: ativos.length, bloqueados, nuncaVieram,
+    riscoAlto: rr.risco.filter((x: any) => x.score >= 60).length,
+    resultados: rr.resultados,
     aniversariantesHoje: aniversariantes.filter((a) => a.em === 0).length,
     sumidos7: sumidos.filter((s) => s.dias !== null && s.dias >= 7 && s.dias < 15).length,
     sumidos15: sumidos.filter((s) => s.dias !== null && s.dias >= 15 && s.dias < 30).length,
@@ -206,7 +211,7 @@ async function sincronizar(cfg: Cfg) {
       .sort((a, b) => b[1] - a[1]).slice(0, 8),
     leadsMes: leads.length,
   };
-  return { hoje, resumo, aniversariantes, sumidos, vencendo, inadimplentes, cancelados, leads, avisos };
+  return { hoje, resumo, aniversariantes, sumidos, vencendo, inadimplentes, cancelados, leads, risco: rr.risco, avisos };
 }
 
 async function gravar(cfg: Cfg, r: Awaited<ReturnType<typeof sincronizar>>) {
@@ -222,10 +227,92 @@ async function gravar(cfg: Cfg, r: Awaited<ReturnType<typeof sincronizar>>) {
     { chave: "inadimplentes", dados: { dia: r.hoje, itens: r.inadimplentes } },
     { chave: "cancelados", dados: { dia: r.hoje, itens: r.cancelados } },
     { chave: "leads", dados: { dia: r.hoje, itens: r.leads } },
+    { chave: "risco", dados: { dia: r.hoje, itens: r.risco } },
   ].map((l) => ({ academia_id: a, chave: l.chave, dados: l.dados, atualizado_em: agora }));
   const { error } = await db.from("evo_dados").upsert(linhas);
   if (error) throw new Error("Não deu para gravar no FitStack: " + error.message);
   await db.from("integracoes_evo").update({ ultima_sync: agora, ultimo_erro: null, ultimas_consultas: cfg.calls }).eq("academia_id", a);
+}
+
+// ---------- risco e resultados ----------
+const brl = (v: number) => "R$ " + (Math.round(v * 100) / 100).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+function fimDe(m: any): string | null {
+  const ms: any[] = (m?.memberships || []).filter((x: any) => !x.cancelDate && !/cancel/i.test(x.membershipStatus || ""));
+  return (ms.map((x) => soData(x.endDate)).filter(Boolean).sort().pop() as string) || null;
+}
+async function riscoEResultados(cfg: Cfg, hoje: string, ativos: any[], porId: Map<number, any>, inadimplentes: any[], vencendo: any[]) {
+  const d35 = ymd(new Date(Date.parse(hoje) - 35 * DIA)), d30 = ymd(new Date(Date.parse(hoje) - 30 * DIA)), d7 = ymd(new Date(Date.parse(hoje) - 7 * DIA));
+  const { data: cont } = await db.from("evo_contatos").select("id,dia,lista,id_aluno,info,resultado,resultado_valor,por_nome")
+    .eq("academia_id", cfg.academia_id).gte("dia", d35).limit(5000);
+  const contatos: any[] = cont || [];
+  const membroDe = (c: any) => String(c.info?.membro ?? c.id_aluno);
+  const recentes = new Set(contatos.filter((c) => c.dia >= d7).map(membroDe));
+  const inadPorId = new Map<string, any>(); for (const x of inadimplentes) if (x.id) inadPorId.set(String(x.id), x);
+  const vencPorId = new Map<string, any>(vencendo.map((v) => [String(v.id), v]));
+
+  // Nota de risco (0 a 100) de cada aluno ativo
+  const risco: any[] = [];
+  for (const m of ativos) {
+    const id = String(m.idMember), ult = soData(m.lastAccessDate), reg = soData(m.registerDate);
+    const d = ult ? diasEntre(ult, hoje) : null;
+    let pts = 0; const motivos: string[] = [];
+    if (d === null) { if (reg && diasEntre(reg, hoje) >= 7) { pts += 45; motivos.push("Nunca treinou desde a matrícula"); } }
+    else if (d >= 30) { pts += 45; motivos.push(`Não vem há ${d} dias`); }
+    else if (d >= 15) { pts += 35; motivos.push(`Não vem há ${d} dias`); }
+    else if (d >= 7) { pts += 25; motivos.push(`Não vem há ${d} dias`); }
+    const inad = inadPorId.get(id);
+    if (inad) { pts += inad.dias > 30 ? 35 : 25; motivos.push(`Deve ${brl(inad.valor)} há ${inad.dias} dia${inad.dias === 1 ? "" : "s"}`); }
+    const v = vencPorId.get(id);
+    if (v) { pts += 20; motivos.push(v.dias === 0 ? "Plano vence hoje" : `Plano vence em ${v.dias} dia${v.dias === 1 ? "" : "s"}`); }
+    if (pts > 0 && reg && diasEntre(reg, hoje) <= 90) { pts += 10; motivos.push("Aluno novo (menos de 3 meses)"); }
+    if (pts >= 40) risco.push({ id: m.idMember, nome: nomeDe(m), tel: telDe(m), score: Math.min(100, pts), motivos, dias: d,
+      valor: inad ? inad.valor : 0, fim: v ? v.fim : null, chamadoRecente: recentes.has(id) });
+  }
+  risco.sort((a, b) => b.score - a.score || (b.dias ?? 999) - (a.dias ?? 999));
+
+  // Resultado de cada contato ainda sem resultado
+  let marcados = 0;
+  for (const c of contatos) {
+    if (c.resultado || marcados >= 400) continue;
+    const id = membroDe(c), m = porId.get(Number(id)), info = c.info || {};
+    let res: string | null = null, em: string | null = null, val: number | null = null;
+    if (["inad", "risco", "alerta"].includes(c.lista) && Number(info.valor) > 0) {
+      const agora = inadPorId.get(id), atual = agora ? Number(agora.valor) : 0;
+      if (atual < Number(info.valor) - 0.01) { res = "pagou"; em = hoje; val = Math.round((Number(info.valor) - atual) * 100) / 100; }
+    }
+    if (!res && ["sumido", "risco", "alerta"].includes(c.lista)) {
+      const ult = m && soData(m.lastAccessDate);
+      if (ult && ult > c.dia) { res = "voltou"; em = ult; }
+    }
+    if (!res && (c.lista === "renovacao" || ((c.lista === "risco" || c.lista === "alerta") && info.fim))) {
+      const f = fimDe(m);
+      if (info.fim && f && f > info.fim) { res = "renovou"; em = hoje; }
+    }
+    if (!res && c.lista === "cancelado" && info.ativo === false && m) { res = "voltou"; em = hoje; }
+    if (res) {
+      const { error } = await db.from("evo_contatos").update({ resultado: res, resultado_em: em, resultado_valor: val }).eq("id", c.id);
+      if (!error) { c.resultado = res; c.resultado_valor = val; marcados++; }
+    }
+  }
+
+  // Resumo dos últimos 30 dias
+  const ult30 = contatos.filter((c) => c.dia >= d30);
+  const mediveis = ult30.filter((c) => c.lista !== "aniversario" && c.lista !== "lead");
+  const porPessoa: Record<string, any> = {};
+  for (const c of ult30) {
+    const k = c.por_nome || "Sem nome";
+    const p = porPessoa[k] || (porPessoa[k] = { nome: k, chamados: 0, resultados: 0, valor: 0 });
+    p.chamados++; if (c.resultado) { p.resultados++; p.valor += Number(c.resultado_valor) || 0; }
+  }
+  const resultados = {
+    chamados: ult30.length, mediveis: mediveis.length,
+    voltou: ult30.filter((c) => c.resultado === "voltou").length,
+    pagou: ult30.filter((c) => c.resultado === "pagou").length,
+    pagouValor: Math.round(ult30.reduce((t, c) => t + (c.resultado === "pagou" ? Number(c.resultado_valor) || 0 : 0), 0) * 100) / 100,
+    renovou: ult30.filter((c) => c.resultado === "renovou").length,
+    porPessoa: Object.values(porPessoa).map((p: any) => ({ ...p, valor: Math.round(p.valor * 100) / 100 })).sort((a: any, b: any) => b.resultados - a.resultados || b.chamados - a.chamados),
+  };
+  return { risco: risco.slice(0, 300), resultados };
 }
 
 // Diagnóstico: mostra só o formato das respostas (nomes dos campos e status), sem dados pessoais.
