@@ -442,3 +442,76 @@ end $$;
 
 revoke execute on function public.evo_salvar(uuid,text,text), public.evo_status(uuid), public.evo_remover(uuid) from anon, public;
 grant execute on function public.evo_salvar(uuid,text,text), public.evo_status(uuid), public.evo_remover(uuid) to authenticated;
+-- ===== EVO: dados prontos, contatos do dia e agendamento =====
+alter table public.integracoes_evo add column if not exists ultimas_consultas int;
+
+create table if not exists public.evo_dados(
+  academia_id uuid not null references public.academias on delete cascade,
+  chave text not null,
+  dados jsonb not null default '{}',
+  atualizado_em timestamptz not null default now(),
+  primary key (academia_id, chave)
+);
+alter table public.evo_dados enable row level security;
+revoke all on public.evo_dados from anon, authenticated, public;
+grant select on public.evo_dados to authenticated;
+drop policy if exists evo_dados_ver on public.evo_dados;
+create policy evo_dados_ver on public.evo_dados for select using (
+  case when chave = 'resumo' then public.meu_papel(academia_id) = 'admin'
+       else public.pode(academia_id,'placar') or public.pode(academia_id,'placar_gestao') end);
+
+create table if not exists public.evo_contatos(
+  id bigint generated always as identity primary key,
+  academia_id uuid not null references public.academias on delete cascade,
+  dia date not null default ((now() at time zone 'America/Sao_Paulo')::date),
+  lista text not null,
+  id_aluno text not null,
+  nome text,
+  por uuid default auth.uid(),
+  por_nome text,
+  quando timestamptz not null default now(),
+  unique (academia_id, dia, lista, id_aluno)
+);
+create index if not exists evo_contatos_idx on public.evo_contatos(academia_id, dia desc);
+alter table public.evo_contatos enable row level security;
+revoke all on public.evo_contatos from anon, authenticated, public;
+grant select, insert, delete on public.evo_contatos to authenticated;
+drop policy if exists evo_contatos_ver on public.evo_contatos;
+create policy evo_contatos_ver on public.evo_contatos for select using (public.pode(academia_id,'placar') or public.pode(academia_id,'placar_gestao'));
+drop policy if exists evo_contatos_criar on public.evo_contatos;
+create policy evo_contatos_criar on public.evo_contatos for insert with check (
+  (public.pode(academia_id,'placar') or public.pode(academia_id,'placar_gestao')) and por = auth.uid()
+  and dia = ((now() at time zone 'America/Sao_Paulo')::date));
+drop policy if exists evo_contatos_desfazer on public.evo_contatos;
+create policy evo_contatos_desfazer on public.evo_contatos for delete using (
+  (por = auth.uid() and dia = ((now() at time zone 'America/Sao_Paulo')::date)) or public.meu_papel(academia_id) = 'admin');
+
+create or replace function public.evo_contato_nome() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  select coalesce(nullif(nome,''), email) into new.por_nome from membros where academia_id = new.academia_id and user_id = auth.uid();
+  new.por := auth.uid(); new.quando := now();
+  return new;
+end $$;
+drop trigger if exists evo_contato_nome on public.evo_contatos;
+create trigger evo_contato_nome before insert on public.evo_contatos for each row execute function public.evo_contato_nome();
+
+-- Segredo do agendamento (só o servidor lê)
+create table if not exists public.sistema_segredos(nome text primary key, valor text not null);
+alter table public.sistema_segredos enable row level security;
+revoke all on public.sistema_segredos from anon, authenticated, public;
+insert into public.sistema_segredos(nome, valor) values ('cron', encode(gen_random_bytes(24),'hex')) on conflict (nome) do nothing;
+
+-- Agendamento: todo dia às 05:40 (Brasília) = 08:40 UTC
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+select cron.unschedule(jobid) from cron.job where jobname = 'evo-sync-diario';
+select cron.schedule('evo-sync-diario', '40 8 * * *', $job$
+  select net.http_post(
+    url := 'https://bmbcdqcjeignydehwmhg.supabase.co/functions/v1/evo-sync',
+    headers := jsonb_build_object('Content-Type','application/json','x-cron',(select valor from public.sistema_segredos where nome = 'cron')),
+    body := '{"todas":true}'::jsonb,
+    timeout_milliseconds := 150000);
+$job$);
+-- O servidor (service_role) precisa de acesso explícito nestas tabelas
+grant select, insert, update, delete on public.integracoes_evo, public.evo_dados, public.evo_contatos, public.sistema_segredos to service_role;
