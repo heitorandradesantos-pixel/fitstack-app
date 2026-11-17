@@ -52,7 +52,7 @@ label.f{display:grid;gap:4px;min-width:0}
 label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .form{display:grid;gap:12px;max-width:440px}
 .form2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border-radius:8px;cursor:pointer;min-height:42px;white-space:nowrap}
+.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border-radius:8px;cursor:pointer;min-height:42px;white-space:nowrap}
 .btn:hover{filter:brightness(1.08)}
 .btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
@@ -353,9 +353,10 @@ function render(){
   if(isAdmin())tabs.splice(1,0,['painel','Painel']);
   if(pode('placar')||pode('placar_gestao'))tabs.splice(isAdmin()?2:1,0,['contatos','Contatos do dia']);
   if(isAdmin())tabs.push(['integracoes','Integrações']);
+  tabs.push(['manual','Manual']);
   if(!tabs.some(function(t){return t[0]===S.tab;}))S.tab='inicio';
   document.getElementById('tabs').innerHTML=tabs.map(function(t){return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+t[1]+'</button>';}).join('');
-  var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe,integracoes:telaIntegracoes,painel:telaPainel,contatos:telaContatos}[S.tab];
+  var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe,integracoes:telaIntegracoes,painel:telaPainel,contatos:telaContatos,manual:telaManual}[S.tab];
   view.innerHTML=fn();
 }
 function telaSemAcademia(){
@@ -577,6 +578,21 @@ function marcar(k){var a=achar(k);if(!a.x)return;
   S.evoCont[k]=tmp;S.evoContLista=(S.evoContLista||[]).concat([tmp]);render();
   sb.from('evo_contatos').insert({academia_id:S.atual.academia_id,lista:a.L,id_aluno:String(a.x.id),nome:a.x.nome}).then(function(r){
     if(r.error&&!/duplicate|unique/i.test(r.error.message))toast(erroMsg(r.error));carregarContatos();});
+}
+// ================= MANUAL =================
+var MANUAIS={
+  recepcao:['Recepção e colaboradores','Entrar, chamar os alunos no WhatsApp, preencher o Placar do turno, comissão e avaliações anônimas.','manual/recepcao.html','manual/manual-recepcao-colaboradores.pdf'],
+  gerente:['Gerente','Conferir os turnos, cobrar com registro, mudar metas, acompanhar os contatos e cadastrar a equipe.','manual/gerente.html','manual/manual-gerente.pdf'],
+  dono:['Dono e sócios','Painel do EVO, equipe e permissões, comissão, histórico, avaliações e integração com o EVO.','manual/dono-socios.html','manual/manual-dono-socios.pdf']
+};
+function telaManual(){
+  var ks=isAdmin()?['dono','gerente','recepcao']:(S.atual.papel==='gerente'||pode('placar_gestao'))?['gerente','recepcao']:['recepcao'];
+  var h='<div><h1>Manual</h1><p class="lead">Passo a passo de cada tela. Leia uma vez inteiro e depois use para consultar.'+(isAdmin()?' Mande o PDF de cada cargo para a pessoa certa.':'')+'</p></div><div class="grid">';
+  ks.forEach(function(k){var m=MANUAIS[k];
+    h+='<section class="panel" style="display:grid;gap:10px;align-content:start"><span class="lbl">Manual</span><h2 class="h2">'+m[0]+'</h2><p class="muted" style="margin:0">'+m[1]+'</p>'+
+      '<div class="row"><a class="btn" href="'+m[2]+'" target="_blank" rel="noopener">Abrir</a><a class="btn ghost" href="'+m[3]+'" download>Baixar PDF</a>'+
+      (isAdmin()?'<button class="btn ghost" data-act="zapManual" data-k="'+k+'">WhatsApp</button>':'')+'</div></section>';});
+  return h+'</div>';
 }
 function telaPlacar(){
   return '<section class="panel"><span class="lbl">Em migração</span><h1 class="h2">Placar de Turnos</h1>'+
@@ -902,6 +918,7 @@ document.addEventListener('click',function(ev){
   if(d.desfaz){if(d.desfaz==='tmp')return;sb.from('evo_contatos').delete().eq('id',d.desfaz).then(function(r){if(r.error)toast(erroMsg(r.error));carregarContatos();});return;}
   var act=d.act;if(!act)return;
   if(act==='evoAtualizar'){evoAtualizar();return;}
+  if(act==='zapManual'){var m=MANUAIS[d.k];wa('Manual do FitStack · '+m[0]+':\n'+APP_URL+'/'+m[3]+'\n\nLeia com calma, é passo a passo.');return;}
   if(act==='mais'){S.mostrar=(S.mostrar||40)+40;render();return;}
   if(act==='sair'){sb.auth.signOut();return;}
   if(act==='novaAval'){S.sub='modelos';S.confirma=null;render();window.scrollTo(0,0);return;}
