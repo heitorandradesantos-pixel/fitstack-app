@@ -398,3 +398,47 @@ begin
 end $$;
 revoke execute on function public.aceitar_convites(text) from anon, public;
 grant execute on function public.aceitar_convites(text) to authenticated;
+
+-- ===== Integração EVO (W12): chave guardada só no servidor =====
+create table if not exists public.integracoes_evo(
+  academia_id uuid primary key references public.academias on delete cascade,
+  dns text not null,
+  token text not null,
+  atualizado_em timestamptz not null default now(),
+  atualizado_por uuid,
+  ultima_sync timestamptz,
+  ultimo_erro text
+);
+alter table public.integracoes_evo enable row level security;
+-- Nenhuma policy e nenhum grant: ninguém lê a tabela pela API. Só as funções abaixo e o servidor.
+revoke all on public.integracoes_evo from anon, authenticated, public;
+
+create or replace function public.evo_salvar(a uuid, p_dns text, p_token text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if public.meu_papel(a) is distinct from 'admin' then raise exception 'FS: Só o dono ou um sócio pode configurar a integração.'; end if;
+  if coalesce(trim(p_dns),'') = '' or coalesce(trim(p_token),'') = '' then raise exception 'FS: Preencha o DNS e o token.'; end if;
+  insert into integracoes_evo(academia_id, dns, token, atualizado_por) values (a, trim(p_dns), trim(p_token), auth.uid())
+  on conflict (academia_id) do update set dns = excluded.dns, token = excluded.token,
+    atualizado_em = now(), atualizado_por = auth.uid(), ultimo_erro = null;
+  return true;
+end $$;
+
+create or replace function public.evo_status(a uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select case when public.meu_papel(a) = 'admin' then
+    (select json_build_object('dns', dns, 'final', right(token, 4), 'atualizado_em', atualizado_em,
+                              'ultima_sync', ultima_sync, 'ultimo_erro', ultimo_erro)
+     from integracoes_evo where academia_id = a) end
+$$;
+
+create or replace function public.evo_remover(a uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if public.meu_papel(a) is distinct from 'admin' then raise exception 'FS: Só o dono ou um sócio pode desligar a integração.'; end if;
+  delete from integracoes_evo where academia_id = a;
+  return true;
+end $$;
+
+revoke execute on function public.evo_salvar(uuid,text,text), public.evo_status(uuid), public.evo_remover(uuid) from anon, public;
+grant execute on function public.evo_salvar(uuid,text,text), public.evo_status(uuid), public.evo_remover(uuid) to authenticated;
