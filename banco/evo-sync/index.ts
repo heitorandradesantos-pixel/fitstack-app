@@ -349,6 +349,53 @@ async function diagnostico(cfg: Cfg) {
   return out;
 }
 
+
+// Sondagem: quais endpoints financeiros o token consegue ler (só nomes de campos, contagens e somas).
+async function sondar(cfg: Cfg) {
+  const hoje = ymd(agoraBR()), ini = hoje.slice(0, 8) + "01";
+  const iniAnt = ymd(new Date(Date.parse(ini) - 20 * DIA)).slice(0, 8) + "01";
+  const testes: [string, string, Record<string, unknown>][] = [
+    ["payables_venc", "/api/v1/payables", { dueDateStart: iniAnt, dueDateEnd: hoje, take: 50 }],
+    ["payables_pag", "/api/v1/payables", { paymentDateStart: iniAnt, paymentDateEnd: hoje, take: 50 }],
+    ["payables", "/api/v1/payables", { take: 50 }],
+    ["costcenter", "/api/v1/costcenter", { take: 50 }],
+    ["cost-center", "/api/v1/cost-center", { take: 50 }],
+    ["receb_mes", "/api/v1/receivables", { receivingDateStart: ini, receivingDateEnd: hoje, take: 50 }],
+    ["receb_status2", "/api/v1/receivables", { dueDateStart: ini, dueDateEnd: hoje, accountStatus: "2", take: 50 }],
+    ["sales", "/api/v2/sales", { dateSaleStart: ini, dateSaleEnd: hoje, take: 25 }],
+    ["sales_v1", "/api/v1/sales", { dateSaleStart: ini, dateSaleEnd: hoje, take: 25 }],
+    ["bank", "/api/v1/bank-accounts", {}],
+    ["entries", "/api/v1/entries", { take: 25 }],
+  ];
+  const out: any = {};
+  for (const [nome, path, params] of testes) {
+    const u = new URL(EVO + path);
+    for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
+    try {
+      cfg.calls++;
+      const r = await fetch(u, { headers: { Authorization: "Basic " + btoa(cfg.dns + ":" + cfg.token), Accept: "application/json" } });
+      const txt = await r.text();
+      let j: any = null; try { j = JSON.parse(txt); } catch { /* texto */ }
+      const l = Array.isArray(j) ? j : (j?.list ?? j?.data ?? j?.items ?? null);
+      const o: any = { st: r.status };
+      if (Array.isArray(l)) {
+        o.qtd = l.length; o.campos = l[0] ? Object.keys(l[0]) : [];
+        const dist: any = {}, soma: any = {};
+        for (const x of l) for (const [k, v] of Object.entries(x || {})) {
+          if (typeof v === "number" && /amm|amount|value|valor|total/i.test(k)) soma[k] = Math.round(((soma[k] || 0) + v) * 100) / 100;
+          if (/cost|categ|plan|account|descr|supplier|forneced|status|type|form|payment/i.test(k)) {
+            const val = typeof v === "object" ? JSON.stringify(v).slice(0, 80) : String(v).slice(0, 60);
+            (dist[k] = dist[k] || new Set()).add(val);
+          }
+        }
+        o.soma = soma; o.valores = Object.fromEntries(Object.entries(dist).map(([k, v]: any) => [k, [...v].slice(0, 12)]));
+      } else o.resp = txt.slice(0, 300);
+      out[nome] = o;
+    } catch (e) { out[nome] = { erro: (e as Error).message }; }
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
@@ -372,12 +419,13 @@ Deno.serve(async (req) => {
     for (const a of alvos) {
       const { data: c } = await db.from("integracoes_evo").select("dns, token, ultima_sync").eq("academia_id", a).maybeSingle();
       if (!c) { saida.push({ academia_id: a, erro: "Chave do EVO não cadastrada." }); continue; }
-      if (!cron && body.modo !== "diag" && c.ultima_sync && Date.now() - Date.parse(c.ultima_sync) < 10 * 60000) {
+      if (!cron && !String(body.modo || "").startsWith("diag") && c.ultima_sync && Date.now() - Date.parse(c.ultima_sync) < 10 * 60000) {
         saida.push({ academia_id: a, erro: "Os dados foram atualizados há menos de 10 minutos. Espere um pouco." }); continue;
       }
       const cfg: Cfg = { academia_id: a, dns: c.dns, token: c.token, calls: 0 };
       try {
         if (body.modo === "diag") { saida.push({ academia_id: a, diag: await diagnostico(cfg) }); continue; }
+        if (body.modo === "diag-fin") { saida.push({ academia_id: a, diag: await sondar(cfg) }); continue; }
         const r = await sincronizar(cfg);
         await gravar(cfg, r);
         saida.push({ academia_id: a, ok: true, resumo: r.resumo, avisos: r.avisos, consultas: cfg.calls });
