@@ -123,7 +123,7 @@ async function sincronizar(cfg: Cfg) {
     const ms: any[] = (m.memberships || []).filter((x: any) => !x.cancelDate && !/cancel/i.test(x.membershipStatus || ""));
     const fimMax = ms.map((x) => soData(x.endDate)).filter(Boolean).sort().pop() as string | undefined;
     const atual = ms.find((x) => soData(x.endDate) === fimMax);
-    if (fimMax && !atual?.idMemberMembershipRenewed && !atual?.flRenewed) {
+    if (fimMax && !atual?.idMemberMembershipRenewed && !atual?.flRenewed && !/wellhub|gympass|totalpass|gurupass|recorrente/i.test(atual?.name || "")) {
       const d = diasEntre(hoje, fimMax);
       if (d >= 0 && d <= 15) vencendo.push({ id: m.idMember, nome, tel, dias: d, fim: fimMax, plano: atual?.name || "" });
     }
@@ -150,6 +150,14 @@ async function sincronizar(cfg: Cfg) {
     x.valor += falta; x.parcelas++; if (venc < x.desde) x.desde = venc;
     porDevedor.set(String(id), x);
   }
+  // Ex-alunos com dívida: busca o telefone deles (50 por consulta)
+  const faltam = [...porDevedor.values()].filter((x) => x.id && !x.ativo).map((x) => x.id);
+  for (let i = 0; i < faltam.length && i < 500; i += 50) {
+    try {
+      const ex = await evo(cfg, "/api/v2/members", { idsMembers: faltam.slice(i, i + 50).join(","), take: 50 });
+      for (const m of (Array.isArray(ex) ? ex : [])) { const x = porDevedor.get(String(m.idMember)); if (x) { x.tel = telDe(m); x.nome = nomeDe(m); } }
+    } catch (_e) { avisos.push("Não deu para buscar o telefone de alguns ex-alunos."); break; }
+  }
   const inadimplentes = [...porDevedor.values()].map((x) => ({ ...x, valor: Math.round(x.valor * 100) / 100, dias: diasEntre(x.desde, hoje) }))
     .sort((a, b) => a.dias - b.dias);
 
@@ -165,7 +173,7 @@ async function sincronizar(cfg: Cfg) {
   const cancelados = canc.map((c) => {
     const m = porId.get(c.idMember);
     return { id: c.idMember, nome: c.name || (m ? nomeDe(m) : "Sem nome"), tel: m ? telDe(m) : null, dia: soData(c.cancelDate),
-      plano: c.nameMembership || "", motivo: c.reasonCancellation || "", valor: Number(c.saleValue) || 0, ativo: !!m };
+      plano: c.nameMembership || "", motivo: String(c.reasonCancellation || "").replace(/inadimpl\?ncia/i, "inadimplência").replace(/\uFFFD/g, ""), valor: Number(c.saleValue) || 0, ativo: !!m };
   }).sort((a, b) => String(b.dia).localeCompare(String(a.dia)));
 
   // 4) Leads / visitas do mês
@@ -197,7 +205,6 @@ async function sincronizar(cfg: Cfg) {
     canais: Object.entries(leads.reduce((o: Record<string, number>, l) => { const k = l.canal || "Não informado"; o[k] = (o[k] || 0) + 1; return o; }, {}))
       .sort((a, b) => b[1] - a[1]).slice(0, 8),
     leadsMes: leads.length,
-    leadsConvertidos: leads.filter((l) => l.convertido).length,
   };
   return { hoje, resumo, aniversariantes, sumidos, vencendo, inadimplentes, cancelados, leads, avisos };
 }
