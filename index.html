@@ -250,6 +250,12 @@ function onForm(e){
   var fn=FORMS[f.dataset.form];if(fn)fn(d,f);
 }
 var FORMS={
+  finCentro:function(d,f){
+    var n=String(d.nome||'').trim();if(!n){toast('Escreva o nome do centro de custo.');return;}
+    if(finCentros().some(function(c){return c[0].toLowerCase()===n.toLowerCase();})){toast('Esse centro de custo já existe.');return;}
+    S.ocupado=true;render();
+    sb.from('fin_mapa').upsert({academia_id:S.atual.academia_id,centro:n,categoria:d.cat||'outros',proprio:true,atualizado_em:new Date().toISOString()}).then(function(q){S.ocupado=false;if(q.error){toast(erroMsg(q.error));render();return;}toast('Centro de custo criado. Já aparece em Contas a pagar.');S.fin.draft.centro=n;carregarFin();});
+  },
   finReceita:function(d,f){
     var v=finNum(d.valor);if(v==null||v<=0){toast('Informe o valor.');return;}
     S.ocupado=true;render();
@@ -1002,7 +1008,14 @@ function finCarregarMotor(){
   if(!finMotor)finMotor=import('./fin/motor.mjs');
   return finMotor;
 }
-function finNovo(){return {codigo:'',forn:'',valor:'',venc:'',cnpj:'',cat:'outros',desc:'',confirmou:false};}
+function finNovo(){return {codigo:'',forn:'',valor:'',venc:'',cnpj:'',cat:'outros',centro:'',desc:'',confirmou:false};}
+// Lista de centros de custo: os do EVO + os criados aqui (fin_mapa.proprio)
+function finCentros(){var F=S.fin,o={};
+  ((F.evo&&F.evo.centros)||[]).forEach(function(c){o[c]='evo';});
+  Object.keys((F.evo&&F.evo.meses)||{}).forEach(function(m){((F.evo.meses[m].despesas||{}).centros||[]).forEach(function(c){if(c[0]!=='Sem centro de custo')o[c[0]]='evo';});});
+  Object.keys(F.mapaP||{}).forEach(function(c){if(!o[c])o[c]='proprio';});
+  return Object.keys(o).sort(function(a,b){return a.localeCompare(b,'pt');}).map(function(c){return [c,o[c]];});}
+function finCentroSelect(attr,val){var l=finCentros();return '<select '+attr+'><option value="">Escolha o centro de custo…</option>'+l.map(function(c){return '<option value="'+esc(c[0])+'"'+(c[0]===val?' selected':'')+'>'+esc(c[0])+'</option>';}).join('')+'<option value="__novo">+ Criar centro de custo novo</option></select>';}
 function carregarFin(){
   var A=S.atual.academia_id;
   if(!S.fin||S.fin.acad!==A)S.fin={acad:A,sub:'contas',mes:finMesAtual(),draft:finNovo(),res:null,contas:null,receitas:null,mapa:null,evo:undefined,usarEvo:true,usarFs:true,usarTaxas:true};
@@ -1010,7 +1023,7 @@ function carregarFin(){
   sb.from('fin_contas').select('*').eq('academia_id',A).order('vencimento',{ascending:false}).limit(3000).then(function(r){
     if(r.error){F.erro=erroMsg(r.error);F.contas=[];}else{F.erro=null;F.contas=r.data||[];}if(S.tab==='financeiro')render();});
   sb.from('fin_receitas').select('*').eq('academia_id',A).order('criado_em',{ascending:true}).limit(2000).then(function(r){F.receitas=r.data||[];if(S.tab==='financeiro')render();});
-  sb.from('fin_mapa').select('centro,categoria').eq('academia_id',A).then(function(r){var m={};(r.data||[]).forEach(function(x){m[x.centro]=x.categoria;});F.mapa=m;if(S.tab==='financeiro')render();});
+  sb.from('fin_mapa').select('centro,categoria,proprio').eq('academia_id',A).then(function(r){var m={},pp={};(r.data||[]).forEach(function(x){m[x.centro]=x.categoria;if(x.proprio)pp[x.centro]=1;});F.mapa=m;F.mapaP=pp;if(S.tab==='financeiro')render();});
   sb.from('evo_dados').select('dados,atualizado_em').eq('academia_id',A).eq('chave','financeiro').maybeSingle().then(function(r){F.evo=r.data?r.data.dados:null;F.evoEm=r.data?r.data.atualizado_em:null;if(S.tab==='financeiro')render();});
 }
 function finStatus(c){
@@ -1088,7 +1101,7 @@ function finSalvar(pago,semCodigo){
   if(!semCodigo&&!r){toast('Toque em Conferir antes de salvar.');return;}
   if(r&&r.nivel==='vermelho'&&!d.confirmou){toast('Conta com alerta vermelho: confirme com o fornecedor por telefone e marque a caixinha antes de salvar.');return;}
   var dd=r?r.dados||{}:{},cod=String(d.codigo||'').trim();
-  var row={academia_id:S.atual.academia_id,descricao:d.desc||null,fornecedor:d.forn||(dd.recebedor||null),cnpj:finSo(d.cnpj)||null,categoria:d.cat||'outros',valor:v,
+  var row={academia_id:S.atual.academia_id,descricao:d.desc||null,fornecedor:d.forn||(dd.recebedor||null),cnpj:finSo(d.cnpj)||null,categoria:d.centro?finCentroCat(d.centro):(d.cat||'outros'),centro:d.centro||null,valor:v,
     vencimento:d.venc||hojeBR(),pago_em:pago?hojeBR():null,forma:r?(dd.tipo==='pix'?'pix':'boleto'):'outro',banco_codigo:dd.banco_codigo||null,pix_chave:dd.chave||null,
     codigo_hash:r?r.hash:null,codigo_fim:cod?finSo(cod).slice(-6)||cod.slice(-6):null,risco:r?r.nivel:null,motivos:r?r.motivos:null,confirmou_fornecedor:!!d.confirmou};
   S.ocupado=true;render();
@@ -1119,7 +1132,8 @@ function telaContas(){
     '<label class="f"><span>Valor impresso</span><input data-fd="valor" inputmode="decimal" value="'+esc(d.valor)+'" placeholder="0,00"></label>'+
     '<label class="f"><span>Vencimento impresso</span><input type="date" data-fd="venc" value="'+esc(d.venc)+'"></label>'+
     '<label class="f"><span>CNPJ de quem recebe (opcional)</span><input data-fd="cnpj" inputmode="numeric" value="'+esc(d.cnpj)+'" placeholder="00.000.000/0000-00"></label>'+
-    '<label class="f"><span>Linha da DRE</span>'+finCatSelect('data-fd="cat"',d.cat)+'</label>'+
+    '<label class="f"><span>Centro de custo</span>'+finCentroSelect('data-fd="centro"',d.centro)+(d.centro?'<small class="muted">Vai para a DRE em: '+esc(finCatNome(finCentroCat(d.centro)))+'</small>':'')+'</label>'+
+    (d.centro?'':'<label class="f"><span>Ou só a linha da DRE</span>'+finCatSelect('data-fd="cat"',d.cat)+'</label>')+
     '<label class="f"><span>Descrição (opcional)</span><input data-fd="desc" value="'+esc(d.desc)+'" placeholder="Ex.: parcela 7/12 equipamentos"></label></div>'+
     '<div class="row"><button class="btn" data-act="finConferir"'+(F.conferindo?' disabled':'')+'>'+(F.conferindo?'Conferindo…':'Conferir')+'</button>'+
     '<button class="btn ghost" data-act="finSemCodigo"'+(S.ocupado?' disabled':'')+'>Lançar sem código</button>'+
@@ -1146,7 +1160,7 @@ function telaContas(){
   if(!lista.length)h+='<p class="muted small" style="margin:0">Nenhuma conta lançada neste mês.</p>';
   else h+='<div class="lst">'+lista.map(function(c){var st=finStatus(c),conf=S.confirma==='fdel-'+c.id;
     return '<div class="it'+(c.pago_em?' feito':'')+'"><div><div class="n">'+(c.risco?({verde:'🟢',amarelo:'🟡',vermelho:'🔴'}[c.risco])+' ':'')+esc(c.fornecedor||c.descricao||'Sem nome')+' · '+brl(c.valor)+'</div>'+
-      '<div class="dt">'+esc(finCatNome(c.categoria))+(c.descricao&&c.fornecedor?' · '+esc(c.descricao):'')+(c.forma!=='outro'?' · '+(c.forma==='pix'?'Pix':'Boleto')+(c.codigo_fim?' final '+esc(c.codigo_fim):''):'')+'</div></div>'+
+      '<div class="dt">'+(c.centro?esc(c.centro)+' · ':'')+esc(finCatNome(c.centro?finCentroCat(c.centro):c.categoria))+(c.descricao&&c.fornecedor?' · '+esc(c.descricao):'')+(c.forma!=='outro'?' · '+(c.forma==='pix'?'Pix':'Boleto')+(c.codigo_fim?' final '+esc(c.codigo_fim):''):'')+'</div></div>'+
       '<div class="acts"><span class="chip '+st[0]+'">'+st[1]+'</span>'+
       (c.pago_em?'<button class="btn ghost sm" data-finpagar="'+c.id+'" data-v="0">Desfazer</button>':'<button class="btn sm" data-finpagar="'+c.id+'" data-v="1">Paguei</button>')+
       '<button class="btn '+(conf?'danger':'ghost')+' sm" data-findel="'+c.id+'">'+(conf?'Confirmar exclusão':'Excluir')+'</button></div></div>';}).join('')+'</div>';
@@ -1163,7 +1177,7 @@ function finDre(mes){
   var recMan=(F.receitas||[]).filter(function(r){return r.mes===mes;});
   var recManT=recMan.reduce(function(s,r){return s+Number(r.valor||0);},0);
   if(ev&&F.usarEvo)(ev.despesas.centros||[]).forEach(function(c){var k=finCentroCat(c[0]);cat[k]+=Number(c[1]||0);fontes[k].push(['EVO · '+c[0],Number(c[1]||0)]);});
-  if(F.usarFs)(F.contas||[]).forEach(function(c){if(c.pago_em&&c.pago_em.slice(0,7)===mes){var k=c.categoria||'outros';if(cat[k]==null)k='outros';cat[k]+=Number(c.valor||0);fontes[k].push(['FitStack · '+(c.fornecedor||c.descricao||'conta'),Number(c.valor||0)]);}});
+  if(F.usarFs)(F.contas||[]).forEach(function(c){if(c.pago_em&&c.pago_em.slice(0,7)===mes){var k=c.centro?finCentroCat(c.centro):(c.categoria||'outros');if(cat[k]==null)k='outros';cat[k]+=Number(c.valor||0);fontes[k].push(['FitStack · '+(c.centro?c.centro+' · ':'')+(c.fornecedor||c.descricao||'conta'),Number(c.valor||0)]);}});
   if(F.usarTaxas&&taxas>0){cat.taxas+=taxas;fontes.taxas.push(['EVO · taxas descontadas dos recebimentos',taxas]);}
   var bruta=recEvo+recManT,liq=bruta-cat.impostos;
   var op=FIN_CATS.filter(function(c){return c[2]==='op';}).reduce(function(s,c){return s+cat[c[0]];},0);
@@ -1234,11 +1248,14 @@ function telaDre(){
     return '<details style="margin:6px 0"><summary class="small" style="cursor:pointer"><b>'+esc(c[1])+'</b> · '+brl0(D.cat[c[0]])+' ('+finPct(D.cat[c[0]],b)+')</summary><div class="small muted" style="padding:6px 0 0 14px;display:grid;gap:3px">'+
       D.fontes[c[0]].sort(function(x,y){return y[1]-x[1];}).map(function(f){return '<div>'+esc(f[0])+' · '+brl(f[1])+'</div>';}).join('')+'</div></details>';}).join('')+
     (D.despesas+D.cat.prolabore+D.cat.equipamentos>0?'':'<p class="muted small" style="margin:0">Nenhuma despesa paga neste mês ainda.</p>')+'</section>';
-  // Centros de custo do EVO
-  var centros={};Object.keys((F.evo&&F.evo.meses)||{}).forEach(function(m){((F.evo.meses[m].despesas||{}).centros||[]).forEach(function(c){centros[c[0]]=1;});});
-  var cs=Object.keys(centros).sort();
-  if(cs.length)h+='<section class="panel"><span class="lbl">Centros de custo do EVO → linha da DRE</span><p class="small muted" style="margin:0 0 8px">O FitStack já escolheu uma linha para cada centro de custo. Se algum estiver errado, troque aqui: vale para todos os meses.</p>'+
-    '<div style="display:grid;gap:8px">'+cs.map(function(c){return '<label class="row small" style="justify-content:space-between;gap:10px;align-items:center"><span style="min-width:0;overflow-wrap:anywhere">'+esc(c)+'</span>'+finCatSelect('data-finmapa="'+esc(c)+'" style="max-width:260px"',finCentroCat(c))+'</label>';}).join('')+'</div></section>';
+  // Centros de custo (EVO + criados aqui)
+  var cs=finCentros();
+  h+='<section class="panel" id="finCentros"><span class="lbl">Centros de custo</span><p class="small muted" style="margin:0 0 8px">Cada centro de custo cai numa linha da DRE. Os do EVO vêm sozinhos; você também pode criar os seus para lançar contas aqui (ex.: Kikos, Royalties, Limpeza). Trocar a linha vale para todos os meses.</p>'+
+    '<div style="display:grid;gap:8px">'+(cs.length?cs.map(function(c){var conf=S.confirma==='cdel-'+c[0];return '<div class="row small" style="justify-content:space-between;gap:10px;align-items:center;flex-wrap:nowrap"><span style="min-width:0;overflow-wrap:anywhere">'+esc(c[0])+' <span class="chip">'+(c[1]==='evo'?'EVO':'criado aqui')+'</span></span><span class="row" style="gap:6px;flex-wrap:nowrap">'+finCatSelect('data-finmapa="'+esc(c[0])+'" style="max-width:230px"',finCentroCat(c[0]))+(c[1]==='proprio'?'<button class="btn '+(conf?'danger':'ghost')+' sm" data-fincdel="'+esc(c[0])+'">'+(conf?'Confirmar':'Excluir')+'</button>':'')+'</span></div>';}).join(''):'<p class="muted small" style="margin:0">Nenhum centro de custo ainda.</p>')+'</div>'+
+    '<form class="form" data-form="finCentro" style="margin-top:12px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">'+
+    '<label class="f"><span>Novo centro de custo</span><input name="nome" required maxlength="60" placeholder="Ex.: Kikos (equipamentos)"></label>'+
+    '<label class="f"><span>Vai para a linha da DRE</span>'+finCatSelect('name="cat"','outros')+'</label></div>'+
+    '<div class="row"><button class="btn sm"'+(S.ocupado?' disabled':'')+'>Adicionar centro de custo</button></div></form></section>';
   // Histórico
   var ms=[];for(var i=5;i>=0;i--)ms.push(finAddMes(mes,-i));
   h+='<section class="panel"><span class="lbl">Últimos 6 meses</span><div class="scrollx"><table class="tbl"><thead><tr><th>Mês</th><th style="text-align:right">Receita</th><th style="text-align:right">Despesas</th><th style="text-align:right">Resultado operacional</th><th style="text-align:right">Sobra de caixa</th></tr></thead><tbody>'+
@@ -1267,6 +1284,8 @@ function finClique(d,b){
   if(d.finpagar){sb.from('fin_contas').update({pago_em:d.v==='1'?hojeBR():null}).eq('id',d.finpagar).then(function(q){if(q.error)toast(erroMsg(q.error));else toast(d.v==='1'?'Marcada como paga.':'Pagamento desfeito.');carregarFin();});return true;}
   if(d.findel){if(S.confirma!=='fdel-'+d.findel){S.confirma='fdel-'+d.findel;render();return true;}
     sb.from('fin_contas').delete().eq('id',d.findel).then(function(q){S.confirma=null;if(q.error)toast(erroMsg(q.error));else toast('Conta excluída.');carregarFin();});return true;}
+  if(d.fincdel){var cn=d.fincdel;if(S.confirma!=='cdel-'+cn){S.confirma='cdel-'+cn;render();return true;}
+    sb.from('fin_mapa').delete().eq('academia_id',S.atual.academia_id).eq('centro',cn).then(function(q){S.confirma=null;if(q.error)toast(erroMsg(q.error));else toast('Centro de custo excluído.');carregarFin();});return true;}
   if(d.finrdel){if(S.confirma!=='rdel-'+d.finrdel){S.confirma='rdel-'+d.finrdel;render();return true;}
     sb.from('fin_receitas').delete().eq('id',d.finrdel).then(function(q){S.confirma=null;if(q.error)toast(erroMsg(q.error));carregarFin();});return true;}
   return false;
@@ -1278,6 +1297,7 @@ function finInput(t){
 function finChange(t){
   if(!S.fin)return false;
   if(t.id==='finArq'&&t.files&&t.files[0]){finLerArquivo(t.files[0]);return true;}
+  if(t.dataset.fd==='centro'){if(t.value==='__novo'){S.fin.draft.centro='';S.fin.sub='dre';render();setTimeout(function(){var e=document.getElementById('finCentros');if(e){e.scrollIntoView({behavior:'smooth'});var i=e.querySelector('input[name=nome]');if(i)i.focus();}},80);toast('Crie o centro de custo aqui embaixo e volte em Contas a pagar.');return true;}finInput(t);render();return true;}
   if(t.dataset.fd==='cat'||t.dataset.fd==='confirmou'||t.dataset.fd==='venc'){finInput(t);return true;}
   if(t.dataset.finop){S.fin[t.dataset.finop]=t.checked;render();return true;}
   if(t.dataset.finmapa!==undefined){var c=t.dataset.finmapa,v=t.value;S.fin.mapa[c]=v;render();
