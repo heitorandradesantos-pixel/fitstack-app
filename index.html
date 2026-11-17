@@ -1154,6 +1154,8 @@ function telaContas(){
   return h;
 }
 // ---- DRE ----
+var FIN_FORMAS={'credit card':'Cartão de crédito','debit card':'Cartão de débito','deposit':'Pix / depósito','cash':'Dinheiro','sales credit':'Crédito de venda','bank slip':'Boleto','boleto':'Boleto','pix':'Pix','check':'Cheque','recurring credit card':'Cartão recorrente'};
+function finForma(n){return FIN_FORMAS[String(n||'').toLowerCase()]||n;}
 function finCentroCat(nome){var m=(S.fin.mapa||{})[nome];return m||finCatDoCentro(nome);}
 function finDre(mes){
   var F=S.fin,ev=F.evo&&F.evo.meses&&F.evo.meses[mes],cat={},fontes={};FIN_CATS.forEach(function(c){cat[c[0]]=0;fontes[c[0]]=[];});
@@ -1218,7 +1220,7 @@ function telaDre(){
   // Receitas
   h+='<section class="panel"><span class="lbl">Entradas do mês</span>';
   if(D.ev){h+='<p class="small" style="margin:0 0 6px">Recebido no EVO: <b>'+brl(D.recEvo)+'</b> em '+D.ev.receita.qtd+' recebimentos'+(D.ev.receita.taxas?' · taxas descontadas '+brl(D.ev.receita.taxas):'')+'</p>';
-    if((D.ev.receita.formas||[]).length)h+=barras(D.ev.receita.formas.map(function(x){return [x[0],Math.round(x[1])];}),D.recEvo,'g-ok');}
+    if((D.ev.receita.formas||[]).length)h+=barras(D.ev.receita.formas.map(function(x){return [finForma(x[0]),Math.round(x[1])];}),D.recEvo,'g-ok');}
   else h+='<p class="small muted" style="margin:0 0 6px">Sem dados do EVO para este mês.</p>';
   h+='<div class="lst" style="margin-top:8px">'+D.recMan.map(function(r){var conf=S.confirma==='rdel-'+r.id;return '<div class="it"><div><div class="n">'+esc(r.descricao)+' · '+brl(r.valor)+'</div><div class="dt">'+esc((FIN_REC.filter(function(x){return x[0]===r.categoria;})[0]||['','Outras entradas'])[1])+'</div></div><div class="acts"><button class="btn '+(conf?'danger':'ghost')+' sm" data-finrdel="'+r.id+'">'+(conf?'Confirmar':'Excluir')+'</button></div></div>';}).join('')+'</div>';
   h+='<form class="form" data-form="finReceita" style="margin-top:10px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">'+

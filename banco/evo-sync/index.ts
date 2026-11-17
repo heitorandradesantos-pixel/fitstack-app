@@ -399,14 +399,19 @@ async function sincronizarFinanceiro(cfg: Cfg) {
   const anterior = ymd(new Date(Date.parse(atual + "-01") - DIA)).slice(0, 7);
   const fazer = [atual];
   if (Number(hoje.slice(8, 10)) <= 10 || !meses[anterior]) fazer.push(anterior);
-  // Primeira vez: busca também os 4 meses antes, para ter comparação
-  if (!ant) for (let i = 2; i <= 3; i++) fazer.push(ymd(new Date(Date.UTC(Number(atual.slice(0, 4)), Number(atual.slice(5, 7)) - 1 - i, 1))).slice(0, 7));
-  for (const m of fazer) {
-    try { meses[m] = await financeiroMes(cfg, m, avisos); }
-    catch (e) { avisos.push(`Financeiro de ${m}: ${(e as Error).message}`); }
+  // Completa o histórico aos poucos (1 mês antigo por vez, para não estourar o limite do EVO)
+  for (let i = 2; i <= 6; i++) {
+    const m = ymd(new Date(Date.UTC(Number(atual.slice(0, 4)), Number(atual.slice(5, 7)) - 1 - i, 1))).slice(0, 7);
+    if (!meses[m]) { fazer.push(m); break; }
   }
-  let centros: string[] = [];
-  try {
+  let limite = false;
+  for (const m of fazer) {
+    if (limite) break;
+    try { meses[m] = await financeiroMes(cfg, m, avisos); }
+    catch (e) { const msg = (e as Error).message; if (/esperar|limite/i.test(msg)) limite = true; avisos.push(`Financeiro de ${m}: ${msg}`); }
+  }
+  let centros: string[] = ((ant?.dados as any)?.centros) || [];
+  if (!limite) try {
     const cc = await todas(cfg, "/api/v1/costcenter", {}, 6);
     centros = cc.itens.filter((x: any) => x.active !== false).map((x: any) => String(x.description || "").trim()).filter(Boolean);
   } catch (_e) { /* sem lista de centros */ }
