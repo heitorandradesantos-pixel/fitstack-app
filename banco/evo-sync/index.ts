@@ -383,7 +383,7 @@ async function sondar(cfg: Cfg, extra?: any) {
         o.qtd = l.length; o.campos = l[0] ? Object.keys(l[0]) : [];
         const dist: any = {}, soma: any = {};
         for (const x of l) for (const [k, v] of Object.entries(x || {})) {
-          if (/date/i.test(k) && typeof v === "string") { o.min = o.min && o.min < v ? o.min : v; o.max = o.max && o.max > v ? o.max : v; }
+          if (/date/i.test(k) && typeof v === "string") { const d = (o.datas = o.datas || {}); const a = d[k] || [v, v]; d[k] = [a[0] < v ? a[0] : v.slice(0, 10), a[1] > v ? a[1] : v.slice(0, 10)]; }
           if (typeof v === "number" && /amm|amount|value|valor|total/i.test(k)) soma[k] = Math.round(((soma[k] || 0) + v) * 100) / 100;
           if (/cost|categ|plan|account|descr|supplier|forneced|status|type|form|payment/i.test(k)) {
             const val = typeof v === "object" ? JSON.stringify(v).slice(0, 80) : String(v).slice(0, 60);
