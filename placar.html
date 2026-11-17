@@ -389,7 +389,8 @@ const PADRAO={
   },
   prazos:{manha:'11:00',tarde:'17:00',noite:'23:00',gerente:'10:00'},
   gerenteNome:'Rafael',
-  unidade:'Paranavaí'
+  unidade:'Paranavaí',
+  extras:{}
 };
 const COM_PADRAO={pote:700,gatilho:70,teto:50,bonus:20};
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -435,9 +436,17 @@ function mergeCfg(d){
     if(d.prazos)Object.assign(c.prazos,d.prazos);
     if(d.gerenteNome)c.gerenteNome=String(d.gerenteNome);
     if(d.unidade)c.unidade=String(d.unidade);
+    if(d.extras&&typeof d.extras==='object')c.extras=clone(d.extras);
   }
   return c;
 }
+const CAMPOS_BASE=Object.keys(CAMPOS);
+function aplicarExtras(cfg){
+  Object.keys(CAMPOS).forEach(function(k){if(CAMPOS_BASE.indexOf(k)<0&&!(cfg.extras&&cfg.extras[k]))delete CAMPOS[k];});
+  ['manha','tarde','noite'].forEach(function(t){ORDEM[t]=ORDEM[t].filter(function(k){return CAMPOS_BASE.indexOf(k)>=0||(cfg.extras&&cfg.extras[k]);});});
+  Object.keys(cfg.extras||{}).forEach(function(k){const x=cfg.extras[k];CAMPOS[k]={label:x.label,curto:x.curto||x.label,ajuda:x.ajuda||''};['manha','tarde','noite'].forEach(function(t){if(ORDEM[t].indexOf(k)<0)ORDEM[t].push(k);});});
+}
+function rotuloCampo(k,cfgA,cfgB){if(CAMPOS[k])return CAMPOS[k].label;const x=(cfgA&&cfgA.extras&&cfgA.extras[k])||(cfgB&&cfgB.extras&&cfgB.extras[k]);return x?x.label:k;}
 function mergeCom(d){
   const c=Object.assign({},COM_PADRAO);
   if(d)['pote','gatilho','teto','bonus'].forEach(function(k){const n=Number(d[k]);if(isFinite(n)&&n>=0)c[k]=n;});
@@ -456,7 +465,7 @@ const S={
   tab:'recepcao',dataRec:hoje(),turnoRec:turnoAgora(),dataGer:hoje(),dataDono:hoje(),
   draft:null,draftKey:null,dirty:false,edits:0,saveTimer:null,chain:Promise.resolve(),savedAt:null,
   confirmFechar:false,confUI:{},prof:{},gerForm:{tipo:'feedback',motivo:''},confirmDel:null,metasDraft:null,open:{},
-  com:mergeCom(null),comDraft:null,mesCom:hoje().slice(0,7)
+  com:mergeCom(null),comDraft:null,mesCom:hoje().slice(0,7),xForm:{nome:'',ajuda:''},historico:[]
 };
 
 /* ---------- papéis e senhas ---------- */
@@ -731,9 +740,9 @@ async function removerGerencia(id){
 }
 async function salvarMetas(){
   const c=S.metasDraft||clone(S.cfg);
-  const metas={};TURNOS.forEach(function(T){metas[T.k]={};Object.keys(CAMPOS).forEach(function(k){const n=num(c.metas[T.k]&&c.metas[T.k][k]);if(n>0)metas[T.k][k]=n;});});
-  const body={metas:metas,prazos:Object.assign({},c.prazos),gerenteNome:String(c.gerenteNome||'Gerente').trim()||'Gerente',unidade:String(c.unidade||'').trim()||PADRAO.unidade,atualizadoEm:new Date().toISOString()};
-  try{await writeRetry(function(){return S.db.doc('config/metas').set(body);});S.metasDraft=null;toast('Metas salvas. Já valem para todos.');}
+  const metas={};TURNOS.forEach(function(T){metas[T.k]={};listaCampos(c).forEach(function(k){const n=num(c.metas[T.k]&&c.metas[T.k][k]);if(n>0)metas[T.k][k]=n;});});
+  const body={extras:clone(c.extras||{}),metas:metas,prazos:Object.assign({},c.prazos),gerenteNome:String(c.gerenteNome||'Gerente').trim()||'Gerente',unidade:String(c.unidade||'').trim()||PADRAO.unidade,atualizadoEm:new Date().toISOString()};
+  try{await writeRetry(function(){return S.db.doc('config/metas').set(body);});S.cfg=mergeCfg(body);aplicarExtras(S.cfg);S.metasDraft=null;toast(S.isOwner?'Metas salvas. Já valem para todos.':'Metas salvas. Já valem para todos, e a mudança ficou registrada para o dono.');carregarHistorico();}
   catch(e){writeErr(e);return;}
   render();
 }
@@ -741,7 +750,7 @@ async function salvarMetas(){
 async function salvarComissao(){
   const c=mergeCom(S.comDraft||S.com);
   if(c.teto<=0||c.teto>100||c.gatilho>100){toast('Confira os números: teto entre 1 e 100%, média mínima até 100%.');return;}
-  try{await writeRetry(function(){return S.db.doc('config/comissao').set(Object.assign({},c,{atualizadoEm:new Date().toISOString()}));});S.comDraft=null;toast('Regras salvas. O ranking já recalculou.');}
+  try{await writeRetry(function(){return S.db.doc('config/comissao').set(Object.assign({},c,{atualizadoEm:new Date().toISOString()}));});S.comDraft=null;toast('Regras salvas. O ranking já recalculou.');carregarHistorico();}
   catch(e){writeErr(e);return;}
   render();
 }
@@ -1049,6 +1058,7 @@ function viewGerente(){
     pend.map(function(p){return '<button class="chip t-'+(p.s==='falhou'?'bad':'warn')+'" data-act="ir-ger" data-d="'+p.day+'">'+dsem(p.day)+' '+fmtData(p.day)+' · '+TN[p.t]+'</button>';}).join('')+'</div></div>'
     :'<div class="banner ok">Nenhum turno pendente de conferência nos últimos 7 dias.</div>';
   h+='<div class="grid3">'+TURNOS.map(function(T){return cardTurno(D,T.k,souGerente?'gerente':'leitura');}).join('')+'</div>';
+  if(!S.isOwner&&pode('placar_gestao'))h+=metasHtml();
   h+='<p class="muted small">Regra: turno abaixo de 90% ou fechado fora do prazo exige cobrança registrada. Prazo de conferência: até '+esc(S.cfg.prazos.gerente)+' do dia seguinte. O dono acompanha cada conferência em tempo real.</p>';
   return h;
 }
@@ -1142,14 +1152,16 @@ function escadaHtml(){
 }
 
 function acessosHtml(){return '<section class="panel"><h2 class="h2">Equipe e acessos</h2><p class="muted" style="margin:8px 0 12px">Quem preenche, quem confere e quem vê a comissão é definido no cadastro de cada pessoa.</p><a class="btn" href="./#equipe">Abrir Equipe e acessos</a></section>';}
+function listaCampos(c){return CAMPOS_BASE.concat(Object.keys((c&&c.extras)||{}));}
 function metasHtml(){
   const c=S.metasDraft||S.cfg;
   const thRow='style="font-family:var(--body);text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;white-space:normal"';
   let h='<details class="panel fold" data-keep="metas"'+(S.open.metas?' open':'')+'><summary><span class="h2">Metas e prazos</span><span class="muted small">Dever de casa de cada turno</span></summary>'+
     '<div class="tablewrap"><table class="mt-table"><thead><tr><th scope="col">Atividade</th>'+TURNOS.map(function(T){return '<th scope="col">'+T.nome+'<br><span class="muted">'+T.horario+'</span></th>';}).join('')+'</tr></thead><tbody>';
-  Object.keys(CAMPOS).forEach(function(kk){
-    h+='<tr><th scope="row" '+thRow+'>'+esc(CAMPOS[kk].label)+(kk==='aniv'?' (%)':'')+'</th>'+
-      TURNOS.map(function(T){return '<td><input type="number" min="0" step="1" inputmode="numeric" id="m-'+T.k+'-'+kk+'" data-meta="'+T.k+'.'+kk+'" value="'+num(c.metas[T.k]&&c.metas[T.k][kk])+'" aria-label="'+esc(CAMPOS[kk].curto+' '+T.nome)+'"></td>';}).join('')+'</tr>';
+  listaCampos(c).forEach(function(kk){
+    const ex=c.extras&&c.extras[kk];
+    h+='<tr><th scope="row" '+thRow+'>'+esc(ex?ex.label:CAMPOS[kk].label)+(kk==='aniv'?' (%)':'')+(ex?' <button type="button" class="btn ghost sm" data-act="x-del" data-k="'+esc(kk)+'" style="margin-left:6px">Remover</button>':'')+'</th>'+
+      TURNOS.map(function(T){return '<td><input type="number" min="0" step="1" inputmode="numeric" id="m-'+T.k+'-'+kk+'" data-meta="'+T.k+'.'+kk+'" value="'+num(c.metas[T.k]&&c.metas[T.k][kk])+'" aria-label="'+esc((ex?ex.label:CAMPOS[kk].curto)+' '+T.nome)+'"></td>';}).join('')+'</tr>';
   });
   h+='<tr><th scope="row" '+thRow+'>Fechar o turno até</th>'+
     TURNOS.map(function(T){return '<td><input type="time" id="p-'+T.k+'" data-prazo="'+T.k+'" value="'+esc(c.prazos[T.k])+'" aria-label="Prazo '+T.nome+'"></td>';}).join('')+'</tr></tbody></table></div>';
@@ -1157,7 +1169,11 @@ function metasHtml(){
     '<div><label class="lbl" for="g-nome">Nome do gerente</label><input id="g-nome" data-gnome="1" value="'+esc(c.gerenteNome)+'"></div>'+
     '<div><label class="lbl" for="u-nome">Unidade</label><input id="u-nome" data-unidade="1" value="'+esc(c.unidade)+'"></div>'+
     '<button class="btn primary" data-act="metas-salvar"'+(S.dbState!=='on'?' disabled':'')+'>Salvar metas</button></div>'+
-    '<p class="muted small" style="margin:10px 0 0">O prazo do gerente vale para o dia seguinte ao turno. Meta 0 tira a atividade do turno. Mudanças valem na hora para todos.</p></details>';
+    '<div class="sep"></div><div class="lbl">Nova atividade</div><div class="metas-foot" style="margin-top:0">'+
+    '<div><label class="lbl" for="x-nome">Nome</label><input id="x-nome" maxlength="40" placeholder="Ex.: Avaliações físicas agendadas" value="'+esc(S.xForm.nome)+'"></div>'+
+    '<div style="grid-column:span 2"><label class="lbl" for="x-ajuda">Como fazer (aparece para a recepção)</label><input id="x-ajuda" maxlength="140" placeholder="Ex.: Ligar para quem fez matrícula há 30 dias e marcar a reavaliação." value="'+esc(S.xForm.ajuda)+'"></div>'+
+    '<button class="btn" data-act="x-add">Adicionar atividade</button></div>'+
+    '<p class="muted small" style="margin:10px 0 0">Depois de adicionar, coloque a meta em cada turno e clique em Salvar metas. Meta 0 tira a atividade do turno. O prazo do gerente vale para o dia seguinte. '+(S.isOwner?'Toda mudança feita pelo gerente fica no Histórico de alterações.':'Toda mudança fica registrada para o dono, com dia, hora e o que mudou.')+'</p></details>';
   return h;
 }
 
@@ -1193,8 +1209,55 @@ function viewDono(){
   if(!faltaSenha)h+=acessosHtml();
   h+='<details class="panel fold" data-keep="rel"'+(S.open.rel?' open':'')+'><summary><span class="h2">Texto do relatório</span><span class="muted small">O mesmo do botão Copiar, para colar no WhatsApp dos sócios</span></summary><textarea id="rel-txt" readonly rows="12">'+esc(relatorioTexto(D))+'</textarea></details>';
   h+=metasHtml();
+  h+=historicoHtml();
   return h;
 }
+
+function diffConfig(doc,a,b){
+  const L=[];a=a||(doc==='comissao'?COM_PADRAO:PADRAO);b=b||{};
+  if(doc==='comissao'){
+    const nm={pote:'Pote do mês (R$)',gatilho:'Média mínima (%)',teto:'Teto por pessoa (%)',bonus:'Bônus turno perfeito'};
+    Object.keys(nm).forEach(function(k){if(String(a[k])!==String(b[k]))L.push(nm[k]+': '+(a[k]==null?'—':a[k])+' → '+(b[k]==null?'—':b[k]));});
+    return L;
+  }
+  const ea=a.extras||{},eb=b.extras||{};
+  Object.keys(eb).forEach(function(k){if(!ea[k])L.push('Nova atividade criada: '+eb[k].label);});
+  Object.keys(ea).forEach(function(k){if(!eb[k])L.push('Atividade removida: '+ea[k].label);});
+  const ma=a.metas||{},mb=b.metas||{};
+  TURNOS.forEach(function(T){
+    const ks={};Object.keys(ma[T.k]||{}).concat(Object.keys(mb[T.k]||{})).forEach(function(k){ks[k]=1;});
+    Object.keys(ks).forEach(function(k){
+      const va=num((ma[T.k]||{})[k]),vb=num((mb[T.k]||{})[k]);
+      if(va!==vb)L.push(T.nome+' · '+rotuloCampo(k,b,a)+': '+(va||'sem meta')+' → '+(vb||'sem meta'));
+    });
+  });
+  const pa=a.prazos||{},pb=b.prazos||{};
+  ['manha','tarde','noite','gerente'].forEach(function(k){if((pa[k]||'')!==(pb[k]||'')&&(pa[k]||pb[k]))L.push((k==='gerente'?'Prazo do gerente':'Prazo '+TN[k])+': '+(pa[k]||'padrão')+' → '+(pb[k]||'padrão'));});
+  if((a.gerenteNome||'')!==(b.gerenteNome||'')&&a.gerenteNome!==undefined)L.push('Nome do gerente: '+(a.gerenteNome||'—')+' → '+(b.gerenteNome||'—'));
+  if((a.unidade||'')!==(b.unidade||'')&&a.unidade!==undefined)L.push('Unidade: '+(a.unidade||'—')+' → '+(b.unidade||'—'));
+  return L;
+}
+async function carregarHistorico(){
+  if(!S.isOwner)return;
+  try{
+    const r=await sb.from('placar_historico').select('quando,autor_nome,autor_papel,doc_id,antes,depois').eq('academia_id',FS.acad).order('quando',{ascending:false}).limit(60);
+    if(!r.error){S.historico=r.data||[];requestRender();}
+  }catch(e){}
+}
+function historicoHtml(){
+  const H=S.historico||[];
+  let h='<details class="panel fold" data-keep="hist"'+(S.open.hist?' open':'')+'><summary><span class="h2">Histórico de alterações</span><span class="muted small">Quem mudou metas, prazos ou comissão, quando e o quê. Só você vê.</span></summary>';
+  if(!H.length)return h+'<p class="muted" style="margin:12px 0 0">Nenhuma alteração ainda.</p></details>';
+  h+='<ul class="gl">'+H.map(function(x){
+    const L=diffConfig(x.doc_id,x.antes,x.depois);if(!L.length)return '';
+    const quem=(x.autor_nome||'Alguém')+(x.autor_papel&&x.autor_papel!=='admin'?' ('+x.autor_papel+')':x.autor_papel==='admin'?' (você)':'');
+    return '<li><div class="top"><b>'+esc(x.doc_id==='comissao'?'Comissão':'Metas e prazos')+'</b><span class="muted small">'+dataHora(x.quando)+'</span></div>'+
+      '<span class="muted small">'+esc(quem)+(x.autor_papel==='gerente'?' '+pill('warn','Gerente'):'')+'</span>'+
+      '<ul style="margin:4px 0 0;padding-left:18px">'+L.map(function(l){return '<li style="border:0;padding:0;display:list-item">'+esc(l)+'</li>';}).join('')+'</ul></li>';
+  }).join('')+'</ul>';
+  return h+'</details>';
+}
+
 
 /* ---------- render ---------- */
 let pointerDown=false,renderPending=false;
@@ -1259,6 +1322,8 @@ view.addEventListener('input',function(e){
   if(el.dataset.ui){const k=el.dataset.k;const ui=S.confUI[k]||(S.confUI[k]={modo:'cobranca',acao:'feedback',nota:''});ui.modo='cobranca';ui[el.dataset.ui]=el.value;return;}
   if(el.id==='eu-nome'){S.euNome=el.value;return;}
   if(el.dataset.senha){S.senhaForm[el.dataset.senha]=el.value;return;}
+  if(el.id==='x-nome'){S.xForm.nome=el.value;return;}
+  if(el.id==='x-ajuda'){S.xForm.ajuda=el.value;return;}
   if(el.id==='g-motivo'){S.gerForm.motivo=el.value;return;}
   if(el.id==='g-tipo'){S.gerForm.tipo=el.value;return;}
   if(el.dataset.com){if(!S.comDraft)S.comDraft=Object.assign({},S.com);S.comDraft[el.dataset.com]=Number(el.value)||0;return;}
@@ -1304,6 +1369,12 @@ view.addEventListener('click',function(e){
   else if(a==='g-salvar')registrarGerente();
   else if(a==='g-del'){if(S.confirmDel===b.dataset.id)removerGerencia(b.dataset.id);else{S.confirmDel=b.dataset.id;render();}}
   else if(a==='metas-salvar')salvarMetas();
+  else if(a==='x-add'){const nome=String(S.xForm.nome||'').trim();if(nome.length<3){toast('Dê um nome para a atividade.');return;}
+    if(!S.metasDraft)S.metasDraft=clone(S.cfg);const d=S.metasDraft;d.extras=d.extras||{};
+    const key='x_'+nome.normalize('NFD').replace(/[^a-zA-Z0-9]+/g,'_').toLowerCase().slice(0,20)+'_'+Date.now().toString(36).slice(-4);
+    d.extras[key]={label:nome,curto:nome.length>14?nome.slice(0,13)+'…':nome,ajuda:String(S.xForm.ajuda||'').trim()};
+    S.xForm={nome:'',ajuda:''};S.open.metas=true;render();toast('Atividade adicionada. Coloque a meta em cada turno e clique em Salvar metas.');}
+  else if(a==='x-del'){if(!S.metasDraft)S.metasDraft=clone(S.cfg);const d=S.metasDraft;const k=b.dataset.k;if(d.extras)delete d.extras[k];TURNOS.forEach(function(T){if(d.metas[T.k])delete d.metas[T.k][k];});S.open.metas=true;render();toast('Atividade removida. Clique em Salvar metas para confirmar.');}
   else if(a==='senha-salvar')salvarSenha(b.dataset.tipo);
   else if(a==='tirar-gerente')tirarGerente(b.dataset.id);
   else if(a==='eu-salvar')salvarEu();
@@ -1348,7 +1419,7 @@ function subscribe(){
   S.db.collection('registros').where('data','>=',desde).onSnapshot(function(snap){
     const m=new Map();snap.docs.forEach(function(d){if(d.exists)m.set(d.id,d.data());});S.registros=m;S.loaded.reg=true;onRemote();
   },dbErr);
-  S.db.doc('config/metas').onSnapshot(function(d){S.cfg=mergeCfg(d.exists?d.data():null);requestRender();},dbErr);
+  S.db.doc('config/metas').onSnapshot(function(d){S.cfg=mergeCfg(d.exists?d.data():null);aplicarExtras(S.cfg);requestRender();},dbErr);
   S.db.doc('config/comissao').onSnapshot(function(d){S.com=mergeCom(d.exists?d.data():null);requestRender();},dbErr);
   S.db.doc('config/acesso').onSnapshot(function(d){S.acesso={gerenteHash:d.exists?(d.data().gerenteHash||null):null,loaded:true};requestRender();},dbErr);
   if(S.isOwner){
@@ -1400,6 +1471,7 @@ async function boot(){
   if(S.isOwner&&!t)S.tab='dono';
   S.db=criarDb(FS.acad);S.dbState='on';
   subscribe();render();
+  carregarHistorico();setInterval(carregarHistorico,60000);
 }
 boot();
 })();

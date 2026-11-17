@@ -269,3 +269,56 @@ create policy placar_apagar on public.placar_docs for delete using (public.meu_p
 
 grant select, insert, update, delete on public.placar_docs to authenticated;
 grant execute on function public.placar_ler(uuid,text), public.placar_gravar(uuid,text,jsonb) to authenticated;
+-- FitStack · Placar: gerente edita metas + histórico de alterações (gravado pelo próprio banco)
+create or replace function public.placar_pode(a uuid, c text, d text, atual jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case c
+    when 'registros' then public.pode(a,'placar_gestao')
+      or (public.pode(a,'placar') and coalesce((atual->>'enviado')::boolean,false) = false
+                                  and coalesce((atual->>'conferido')::boolean,false) = false)
+    when 'conf'   then public.pode(a,'placar_gestao')
+    when 'config' then public.meu_papel(a) = 'admin' or (d = 'metas' and public.pode(a,'placar_gestao'))
+    else public.meu_papel(a) = 'admin' end
+$$;
+grant execute on function public.placar_pode(uuid,text,text,jsonb) to authenticated;
+
+drop policy if exists placar_criar on public.placar_docs;
+create policy placar_criar on public.placar_docs for insert with check (public.placar_pode(academia_id, colecao, doc_id, null));
+drop policy if exists placar_mudar on public.placar_docs;
+create policy placar_mudar on public.placar_docs for update
+  using (public.placar_pode(academia_id, colecao, doc_id, dados))
+  with check (public.placar_pode(academia_id, colecao, doc_id, null));
+
+create table if not exists public.placar_historico(
+  id bigint generated always as identity primary key,
+  academia_id uuid not null references public.academias on delete cascade,
+  quando timestamptz not null default now(),
+  autor uuid,
+  autor_nome text,
+  autor_papel text,
+  doc_id text,
+  antes jsonb,
+  depois jsonb
+);
+create index if not exists placar_historico_idx on public.placar_historico(academia_id, quando desc);
+alter table public.placar_historico enable row level security;
+drop policy if exists historico_ver on public.placar_historico;
+create policy historico_ver on public.placar_historico for select using (public.meu_papel(academia_id) = 'admin');
+grant select on public.placar_historico to authenticated;
+-- Ninguém grava no histórico pela API: só o gatilho abaixo. Ninguém apaga nem edita.
+
+create or replace function public.placar_log_config() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.colecao = 'config' and (tg_op = 'INSERT' or old.dados - 'atualizadoEm' is distinct from new.dados - 'atualizadoEm') then
+    insert into placar_historico(academia_id, autor, autor_nome, autor_papel, doc_id, antes, depois)
+    select new.academia_id, auth.uid(), m.nome, m.papel, new.doc_id,
+           case when tg_op = 'UPDATE' then old.dados end, new.dados
+    from (select 1) x
+    left join membros m on m.academia_id = new.academia_id and m.user_id = auth.uid();
+  end if;
+  return new;
+end $$;
+drop trigger if exists placar_log on public.placar_docs;
+create trigger placar_log after insert or update on public.placar_docs
+  for each row execute function public.placar_log_config();
