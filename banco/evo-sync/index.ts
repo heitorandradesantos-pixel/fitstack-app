@@ -210,23 +210,35 @@ async function gravar(cfg: Cfg, r: Awaited<ReturnType<typeof sincronizar>>) {
 // Diagnóstico: mostra só o formato das respostas (nomes dos campos e status), sem dados pessoais.
 async function diagnostico(cfg: Cfg) {
   const chaves = (x: any) => (x && typeof x === "object" ? Object.keys(x) : []);
-  const hoje = ymd(agoraBR());
-  const m = await evo(cfg, "/api/v2/members", { status: 1, take: 50 });
-  const lista = Array.isArray(m) ? m : [];
-  const comPlano = lista.filter((x: any) => (x.memberships || []).length).length;
-  const ex = lista.find((x: any) => (x.memberships || []).length);
-  const semStatus = await evo(cfg, "/api/v1/receivables", { dueDateStart: ymd(new Date(Date.parse(hoje) - 10 * DIA)), dueDateEnd: hoje, take: 50 });
-  const sts = (Array.isArray(semStatus) ? semStatus : []).map((x: any) => JSON.stringify(x.status) + (x.receivingDate ? " recebido" : " aberto"));
-  const cont: Record<string, number> = {}; for (const k of sts) cont[k] = (cont[k] || 0) + 1;
-  let ac: any = null;
-  try { const a = await evo(cfg, "/api/v1/managment/activeclients", {}); ac = { tipo: Array.isArray(a) ? "lista" : typeof a, qtd: Array.isArray(a) ? a.length : null, campos: chaves(Array.isArray(a) ? a[0] : a) }; }
-  catch (e) { ac = { erro: (e as Error).message }; }
-  return {
-    membros: { qtdPagina: lista.length, comPlano, campos: chaves(lista[0]), plano: chaves(ex?.memberships?.[0]), statusPlano: ex?.memberships?.map((x: any) => x.membershipStatus) },
-    contas10dias: { qtd: sts.length, campos: chaves((semStatus as any[])?.[0]), status: cont },
-    ativosExcel: ac,
-    consultas: cfg.calls,
-  };
+  const hoje = ymd(agoraBR()), d60 = ymd(new Date(Date.parse(hoje) - 60 * DIA)), ontem = ymd(new Date(Date.parse(hoje) - DIA));
+  const out: any = {};
+  for (const extra of [{ showMemberships: true }, { showActivityData: true }]) {
+    try {
+      const m = await evo(cfg, "/api/v2/members", { status: 1, take: 5, ...extra });
+      const l = Array.isArray(m) ? m : [];
+      const ex = l.find((x: any) => (x.memberships || []).length);
+      out["membros_" + Object.keys(extra)[0]] = { comPlano: l.filter((x: any) => (x.memberships || []).length).length, plano: chaves(ex?.memberships?.[0]), st: l.map((x: any) => x.membershipStatus) };
+    } catch (e) { out["membros_" + Object.keys(extra)[0]] = (e as Error).message; }
+  }
+  for (const st of ["1", "4", "5"]) {
+    try {
+      const r = await evo(cfg, "/api/v1/receivables", { dueDateStart: d60, dueDateEnd: ontem, accountStatus: st, take: 50 });
+      const l = Array.isArray(r) ? r : [];
+      const c: Record<string, number> = {};
+      for (const x of l) { const k = JSON.stringify(x.status) + (x.receivingDate ? " receb" : "") + (x.idMemberPayer ? " aluno" : ""); c[k] = (c[k] || 0) + 1; }
+      out["contas_status_" + st] = { qtd: l.length, status: c, descr: [...new Set(l.map((x: any) => String(x.description || "").replace(/[0-9]/g, "#").slice(0, 30)))].slice(0, 6) };
+    } catch (e) { out["contas_status_" + st] = (e as Error).message; }
+  }
+  try {
+    const c = await evo(cfg, "/api/v2/membermembership", { cancelDateStart: hoje.slice(0, 8) + "01", cancelDateEnd: hoje, take: 25 });
+    out.cancelamentos = { qtd: Array.isArray(c) ? c.length : typeof c, campos: chaves(Array.isArray(c) ? c[0] : c) };
+  } catch (e) { out.cancelamentos = (e as Error).message; }
+  try {
+    const p = await evo(cfg, "/api/v1/prospects", { registerDateStart: hoje.slice(0, 8) + "01", registerDateEnd: hoje, take: 50 });
+    out.leads = { qtd: Array.isArray(p) ? p.length : typeof p, campos: chaves(Array.isArray(p) ? p[0] : p) };
+  } catch (e) { out.leads = (e as Error).message; }
+  out.consultas = cfg.calls;
+  return out;
 }
 
 Deno.serve(async (req) => {
