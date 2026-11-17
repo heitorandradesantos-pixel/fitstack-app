@@ -399,13 +399,42 @@ pagina('gerente.html', 'Manual do Gerente',
 
 # =============== MANUAL DO DONO E DOS SÓCIOS ===============
 don = []
+don.append(('Comece por aqui', '''
+<p class="lead">Você recebeu da FitStack um e-mail cadastrado e um código. Siga esta ordem no primeiro dia. Leva uns 30 minutos.</p>
+''' + check([
+    '<b class="h">1</b> Fazer o <b>primeiro acesso</b> e criar sua senha (capítulo 2).',
+    '<b class="h">2</b> <b>Ligar o EVO</b> (capítulo 3). Sem isso, o Painel e os Contatos do dia ficam vazios.',
+    '<b class="h">3</b> Cadastrar o <b>gerente</b> e a <b>recepção</b> em Equipe e acessos (capítulo 9).',
+    '<b class="h">4</b> Conferir as <b>metas do Placar</b> de cada turno (capítulo 10).',
+    '<b class="h">5</b> Mandar os <b>manuais</b> para a equipe: aba <b>Manual</b> → botão WhatsApp em cada manual.',
+    '<b class="h">6</b> Tem outra unidade? <b>Cadastrar outra unidade</b> (capítulo 4).',
+]) + box('dica', 'Dúvida ou problema?', 'Fale com a FitStack pelo e-mail <b>contato@fitstack.com.br</b>. Se puder, mande um print da tela.')))
+
+don.append(('Primeiro acesso', passos(
+    ('Abra <b>app.fitstack.com.br</b> no computador ou no celular.', 'A tela do FitStack com Entrar e Primeiro acesso.'),
+    ('Toque em ' + B('Primeiro acesso') + '.', 'Um formulário com 4 campos.'),
+    ('Escreva <b>seu nome</b>.', ''),
+    ('Escreva o <b>e-mail</b> igualzinho ao da mensagem da FitStack.', ''),
+    ('Escreva o <b>código de acesso</b> (6 letras e números).', ''),
+    ('Crie uma <b>senha</b> com pelo menos 6 caracteres e anote num lugar seguro.', ''),
+    ('Toque em ' + B('Criar acesso', 'lar') + '.', 'Você entra como <b>Dono</b> da sua academia.'),
+) + fig('primeiro-acesso', 'Tela de Primeiro acesso', 'meio') +
+'<h3>Nos outros dias</h3><p>Abra o site, toque em <b>Entrar</b> e use e-mail e senha. Esqueceu? Toque em <b>Esqueci minha senha</b>: chega um e-mail para criar a senha nova.</p>'))
+
+don.append(('Várias unidades num login só', passos(
+    ('Na aba ' + B('Início') + ', role até <b>Minhas unidades</b>.', ''),
+    ('Toque em ' + B('+ Cadastrar outra unidade') + '.', 'Campos de nome e cidade.'),
+    ('Escreva o nome da unidade e a cidade e toque em ' + B('Criar unidade', 'lar') + '.', 'Você já entra na unidade nova, como dono.'),
+    ('Para trocar de unidade, use o <b>seletor ao lado de FITSTACK</b>, lá em cima.', 'A tela recarrega com os dados da unidade escolhida.'),
+) + box('atencao', 'Cada unidade é separada', 'Cada unidade tem o próprio Painel, Contatos, Placar, equipe e chave do EVO. Cadastre a equipe e ligue o EVO em cada uma.')))
+
 don.append(('Dono e sócio: o que cada um pode', tabela(['', 'Dono', 'Sócio'], [
     ['Ver e fazer tudo no sistema', '✓', '✓'],
     ['Painel do EVO, comissão, histórico, medidas do gerente', '✓', '✓'],
     ['Avaliações de gerente, coordenador e clima', '✓', '✓'],
     ['Cadastrar e remover <b>sócio</b>', '✓', '—'],
     ['Ser alterado ou removido por outra pessoa', 'Nunca', 'Só pelo dono'],
-]) + '<p>Este manual mostra as telas que só vocês veem. Para entrar no sistema, siga o Manual da Recepção, capítulos 3 e 4. Para conferir turnos e metas, veja o Manual do Gerente.</p>'))
+]) + '<p>Este manual mostra as telas que só vocês veem. Para conferir turnos e mudar metas no dia a dia, veja também o Manual do Gerente.</p>'))
 
 don.append(('Segurança (leia primeiro)', check([
     'Ative a <b>verificação em duas etapas (2FA)</b> no seu Gmail. Quem tem seu e-mail consegue trocar sua senha.',
@@ -497,7 +526,7 @@ don.append(('Avaliações anônimas', '''
 <p class="lead">Avaliação anônima por link, sem login para quem responde. Só a data da resposta fica guardada.</p>
 ''' + passos(
     ('Toque em ' + B('Avaliações') + ' e depois em ' + B('Nova avaliação', 'lar') + '.', 'Os modelos padrão e os seus modelos salvos.'),
-    ('Escolha um modelo. Para o gerente, use <b>Gerente</b> (o modelo usado na avaliação do Rafael). Para uma função que não está na lista, use <b>Do zero</b>.', 'A tela Montar avaliação.'),
+    ('Escolha um modelo. Para o gerente, use <b>Gerente</b> (liderança, comunicação, organização e conflitos). Para uma função que não está na lista, use <b>Do zero</b>.', 'A tela Montar avaliação.'),
     ('Preencha <b>Quem está sendo avaliado</b> e confira o <b>público</b> (equipe, alunos ou gestor).', ''),
     ('Tire, mude ou acrescente perguntas, blocos e perguntas abertas.', ''),
     ('Quer usar de novo depois? Toque em ' + B('Salvar como modelo') + '.', 'O modelo aparece em "Seus modelos".'),
@@ -512,21 +541,36 @@ don.append(('Avaliações anônimas', '''
     ['Alunos', 'Os alunos avaliam a academia (NPS).'],
 ]) + box('dica', 'Leia o resultado com cuidado', 'O resultado mostra médias por bloco, nota de 0 a 10 (NPS), pontos fortes e de atenção (com 6 ou mais perguntas) e as respostas abertas embaralhadas. Use <b>Baixar planilha</b> para guardar.')))
 
-don.append(('Integração com o EVO', '''
-<p class="lead">O FitStack lê o EVO (só lê, não altera nada) e monta o Painel e os Contatos do dia.</p>
-''' + tabela(['Como funciona', ''], [
-    ['Quando busca', 'Sozinho, todo dia às <b>5h40</b>. E quando você toca em Atualizar agora.'],
+don.append(('Ligar o EVO (passo a passo)', '''
+<p class="lead">Com o EVO ligado, o FitStack monta sozinho o Painel e as listas de Contatos do dia (aniversariantes, sumidos, inadimplentes, renovações). Ele <b>só lê</b> o EVO: nunca altera nada lá.</p>
+''' + box('atencao', 'Antes de começar', 'Sua academia precisa ter a <b>EVO API</b> liberada no contrato do EVO. Se no passo 4 o cartão da EVO API não aparecer, ou pedir contratação, fale com o suporte do EVO e peça "acesso à EVO API". Faça os passos no computador.') +
+'<h3>Parte 1: criar a chave no EVO</h3>' + passos(
+    ('Entre no EVO com o seu usuário de dono e escolha a unidade certa.', 'A tela inicial do EVO.'),
+    ('No menu da esquerda, toque em <b>Configurações</b>.', 'Abre a lista de configurações.'),
+    ('Toque em <b>Integrações</b>.', 'Uma tela com vários cartões de integração.'),
+    ('No campo <b>Pesquisar integração</b>, escreva <b>API</b> e toque no cartão <b>EVO</b> ("Utilize a API para acessar e manipular dados do EVO").', 'A tela EVO API, com as abas Consumo, Tokens e Webhook.'),
+    ('Toque na aba <b>Tokens</b>.', 'O EVO pode pedir para confirmar seu login e senha. Confirme.'),
+    ('Toque em <b>Novo token</b>.', 'Um formulário com o nome e as permissões.'),
+    ('No nome, escreva <b>FitStack</b>.', 'Assim você sabe para que serve esse token.'),
+    ('Nas permissões, marque <b>só o que for consultar, listar ou ver</b>. Deixe <b>desmarcado</b> tudo que for incluir, alterar, editar, cancelar ou excluir.', 'Se o EVO não separar, pode marcar tudo: o FitStack só lê.'),
+    ('Salve.', 'O token aparece na lista.'),
+    ('Copie o <b>token</b> (o código grande) e anote o <b>DNS</b>.', 'O DNS é o nome da sua conta no EVO. Ele aparece na tela da EVO API e também no endereço do EVO, logo depois de <b>/app/</b>. Exemplo: em evo5.w12app.com.br/#/app/<b>MINHAACADEMIA</b>/…, o DNS é MINHAACADEMIA.'),
+) + box('nunca', 'Não mexa nos outros tokens', 'Se já existir algum token na lista, ele é de outra integração (CRM, site, catraca). Se você apagar, aquela integração para de funcionar.') +
+'<h3>Parte 2: colar a chave no FitStack</h3>' + passos(
+    ('Abra <b>app.fitstack.com.br</b> e entre como dono.', ''),
+    ('Toque na aba ' + B('Integrações') + '.', 'O cartão "Conectar ao EVO".'),
+    ('No campo <b>DNS</b>, cole o DNS.', ''),
+    ('No campo <b>Token</b>, cole o token.', 'Ele aparece como bolinhas.'),
+    ('Toque em ' + B('Salvar chave', 'lar') + '.', '"✅ Chave do EVO salva", com o final do token.'),
+    ('Toque em ' + B('Atualizar agora', 'lar') + '.', 'Em uns 30 segundos aparece "Dados do EVO atualizados". Abra o Painel e confira os números.'),
+) + fig('integracoes', 'Integrações: chave do EVO salva') + tabela(['Como funciona depois', ''], [
+    ['Quando busca', 'Sozinho, todo dia às <b>5h40</b>. E quando você toca em Atualizar agora (no máximo a cada 10 minutos).'],
     ['O que busca', 'Alunos ativos (aniversário, último treino, celular, contrato), mensalidades vencidas, cancelamentos com motivo, matrículas e leads do mês.'],
-    ['Quanto gasta da API', 'Cerca de 30 consultas por busca, uns 900 por mês. Confira no EVO em Configurações → Integrações → EVO API → aba <b>Consumo</b>.'],
-    ['A chave', 'Token "FitStack", só de consulta. Fica guardado no servidor. Na tela aparecem só os 4 últimos caracteres.'],
-    ['Outras unidades', 'Cada unidade do EVO precisa do próprio token.'],
-]) + passos(
-    ('Toque na aba ' + B('Integrações') + '.', '"Chave do EVO salva", com o DNS e o final do token, a data e a última busca.'),
-    ('Para buscar agora: ' + B('Atualizar agora', 'lar') + '.', ''),
-    ('Para trocar o token: no EVO, crie um token novo (Configurações → Integrações → EVO API → aba Tokens, só permissões de consulta). No FitStack, toque em ' + B('Trocar a chave') + ', cole o DNS e o token e salve.', ''),
-    ('Para parar a integração: ' + B('Desligar integração') + ' (toque duas vezes para confirmar).', 'O FitStack apaga a chave e para de buscar.'),
-) + fig('integracoes', 'Integrações: chave do EVO salva') +
-box('nunca', 'Não mexa no token "Voxuy"', 'Na tela de tokens do EVO existe outro token chamado Voxuy. Ele é de outra integração. Se apagar, o Voxuy para.')))
+    ['Quanto gasta da API', 'Cerca de 30 consultas por busca, uns 900 por mês. Confira no EVO na aba <b>Consumo</b> da EVO API.'],
+    ['Segurança', 'A chave fica guardada só no servidor. Ninguém da equipe vê, nem você: na tela aparecem só os 4 últimos caracteres.'],
+    ['Várias unidades', 'Cada unidade do EVO tem o próprio token. Troque de unidade no FitStack e repita os passos.'],
+    ['Trocar ou desligar', 'Em Integrações: <b>Trocar a chave</b> ou <b>Desligar integração</b> (toque duas vezes).'],
+])))
 
 don.append(('Se der problema', tabela(['Problema', 'O que fazer'], [
     ['Painel com data velha', 'Toque em Atualizar agora. Se aparecer erro, veja a mensagem em Integrações.'],
@@ -537,7 +581,8 @@ don.append(('Se der problema', tabela(['Problema', 'O que fazer'], [
     ['Esqueci a senha', 'Na tela de entrar, "Esqueci minha senha".'],
 ])))
 
+_e=[x for x in don if x[0].startswith('Ligar o EVO')][0];don.remove(_e);don.insert(2,_e)
 pagina('dono-socios.html', 'Manual do Dono e dos Sócios',
-       'Painel do EVO, equipe e permissões, comissão, histórico, avaliações e a integração com o EVO.',
+       'Do primeiro acesso ao dia a dia: ligar o EVO, cadastrar a equipe e as unidades, ler o Painel, comissão, histórico e avaliações.',
        'Dono e sócios', don, 'manual-dono-socios.pdf')
 print('ok')
