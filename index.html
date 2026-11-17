@@ -1175,6 +1175,7 @@ function finPct(v,b){return b?((v/b)*100).toFixed(1).replace('.',',')+'%':'–';
 function finInsights(D){
   var a=[],b=D.bruta,p=function(k){return b?D.cat[k]/b*100:0;};
   if(!b)return '<div class="insight warn">Sem receita neste mês ainda. '+(S.fin.evo?'O EVO não mostrou recebimentos neste mês.':'Toque em <b>Atualizar do EVO</b> para puxar o que entrou.')+'</div>';
+  if(D.op+D.cat.impostos+D.fin+D.cat.prolabore+D.cat.equipamentos===0)return '<div class="insight warn"><b>Ainda não tem nenhuma despesa paga neste mês.</b> A receita já veio do EVO, mas o resultado só vale depois de lançar as contas pagas: no EVO (contas a pagar) ou aqui em <b>Contas a pagar</b>. Até lá, o lucro aparece maior do que é.</div>';
   if(D.ebitda<0)a.push(['bad','<b>A operação fechou no vermelho: '+brl0(D.ebitda)+'.</b> As despesas do dia a dia passaram a receita. Olhe primeiro as duas maiores linhas da DRE abaixo.']);
   else a.push(['ok','<b>Resultado operacional de '+brl0(D.ebitda)+' ('+finPct(D.ebitda,b)+' da receita).</b> É o que a academia gera antes de juros, retiradas e equipamentos.']);
   if(p('folha')>40)a.push(['bad','<b>Folha e encargos em '+finPct(D.cat.folha,b)+' da receita.</b> Em academias, o comum é ficar até uns 35% a 40%. Acima disso, a folha come o lucro: reveja escalas e horários vazios.']);
