@@ -184,6 +184,8 @@ rec.append(('Contatos do dia (WhatsApp)', '''
 ) + fig('contatos', 'Contatos do dia: escolha a lista, toque no WhatsApp') + '''
 <h3>As listas, uma por uma</h3>
 ''' + tabela(['Lista', 'Quem está nela', 'O que fazer'], [
+    ['<b>Salvar hoje</b>', 'Os 20 alunos com maior risco de cancelar. Cada um mostra a nota de risco e o motivo: dias sem treinar, dívida, plano vencendo, aluno novo.', '<b>Comece por esta lista, todo dia.</b> A mensagem já junta os motivos. Quem foi chamado nos últimos 7 dias sai da lista.'],
+    ['<b>Alertas</b>', 'Avisos que o EVO manda na hora: cartão recusado, boleto vencido, contrato vencendo, aluno que faltou, visita.', 'Chamar <b>no mesmo dia</b>. Cartão recusado resolvido hoje não vira atraso.'],
     ['<b>Aniversários</b>', 'Quem faz aniversário hoje (e nos próximos 7 dias).', 'Mandar parabéns <b>até as 10h</b>. Contar no Placar em "Parabéns".'],
     ['<b>Sumidos</b>', 'Alunos ativos que não treinam há 7 dias ou mais. Tem 4 filtros: 7 a 14 dias, 15 a 29, 30 ou mais, e quem nunca treinou.', '<b>Comece por 7 a 14 dias</b>: é quem volta mais fácil. Contar em "Alunos sumidos contatados".'],
     ['<b>Inadimplentes</b>', 'Quem tem mensalidade vencida. Filtro "Alunos ativos" e "Ex-alunos". Mostra o valor e há quantos dias está atrasado.', 'Cobrar com educação. Contar em "Inadimplentes cobrados". Se a pessoa pagar, some o valor em "R$ recuperado".'],
@@ -197,7 +199,8 @@ rec.append(('Contatos do dia (WhatsApp)', '''
     [B('Chamei'), 'Use quando você falou com a pessoa de outro jeito (ligação, pessoalmente). Só marca, não abre o WhatsApp.'],
     [B('Desfazer'), 'Aparece depois de marcar. Use se marcou errado. Só funciona no mesmo dia.'],
     ['<span class="botao">Sem celular</span>', 'O aluno não tem celular cadastrado no EVO. Peça o número quando ele vier e cadastre no EVO.'],
-]) + box('dica', 'Duas pessoas no mesmo turno?', 'Quando uma marca um nome, ele fica riscado para a outra também (atualiza a cada 30 segundos). Assim ninguém manda mensagem duas vezes para o mesmo aluno.') +
+]) + box('dica', 'O selo verde ✓', 'Quando aparece <b>✓ Voltou</b>, <b>✓ Pagou</b> ou <b>✓ Renovou</b> ao lado do nome, é porque o aluno que você chamou voltou a treinar, pagou ou renovou depois do contato. O sistema confere isso no EVO toda manhã, e o dono vê quantos resultados cada pessoa trouxe.') +
+box('dica', 'Duas pessoas no mesmo turno?', 'Quando uma marca um nome, ele fica riscado para a outra também (atualiza a cada 30 segundos). Assim ninguém manda mensagem duas vezes para o mesmo aluno.') +
 box('nunca', 'Nunca', 'Não prometa desconto, isenção ou brinde que o gerente não autorizou. Não cobre de forma grossa nem em tom de ameaça. Não marque "Chamei" se você não falou com a pessoa: o gerente confere.') +
 fig('contatos-celular', 'No celular a tela fica assim', 'cel')))
 
@@ -467,6 +470,7 @@ don.append(('Painel da academia (EVO)', '''
     ['<b>Sumidos 7+ dias</b>', 'Alunos ativos que não passam na catraca há 7 dias ou mais, e a % da base.', 'É o próximo cancelamento. Quem não treina não renova.'],
     ['<b>Em atraso</b>', 'Soma das mensalidades vencidas e não pagas nos últimos 120 dias.', 'Dinheiro a recuperar.'],
     ['<b>Renovam em 15 dias</b>', 'Planos que vencem em até 15 dias e não renovam sozinhos (sem recorrentes e sem Wellhub/Gympass/TotalPass).', 'Garantir a renovação antes de vencer.'],
+    ['<b>Risco alto de cancelar</b>', 'Alunos com nota de risco 60 ou mais (junta dias sem treinar, dívida, plano vencendo e tempo de casa).', 'É a lista "Salvar hoje" da recepção.'],
     ['<b>Leads no mês</b>', 'Pessoas cadastradas no EVO como interessadas neste mês.', 'Força da captação.'],
 ]) + '''
 <h3>Gráficos</h3>
@@ -474,6 +478,7 @@ don.append(('Painel da academia (EVO)', '''
     ['Alunos sumidos', 'Quantos estão sem treinar há 7–14, 15–29, 30+ dias e quantos nunca treinaram.'],
     ['Motivos de cancelamento', 'Os motivos do EVO no mês e o valor dos contratos cancelados. Atenção ao "cancelado automaticamente por inadimplência": é receita que dava para salvar com cobrança.'],
     ['De onde vieram os leads', 'O canal ("Como conheceu") de cada lead. "Não informado" alto = a recepção não está preenchendo no EVO.'],
+    ['Resultado dos contatos (30 dias)', 'Dos alunos chamados: quantos voltaram a treinar, quanto foi pago e quantos renovaram, com uma tabela por pessoa da equipe. É o dinheiro que a recepção recuperou.'],
     ['Contatos feitos hoje', 'Quantos contatos cada pessoa da recepção marcou hoje.'],
     ['Evolução dia a dia', 'Os últimos 14 dias: ativos, sumidos, atraso, matrículas e cancelamentos.'],
 ])))
@@ -570,7 +575,13 @@ don.append(('Ligar o EVO (passo a passo)', '''
     ['Segurança', 'A chave fica guardada só no servidor. Ninguém da equipe vê, nem você: na tela aparecem só os 4 últimos caracteres.'],
     ['Várias unidades', 'Cada unidade do EVO tem o próprio token. Troque de unidade no FitStack e repita os passos.'],
     ['Trocar ou desligar', 'Em Integrações: <b>Trocar a chave</b> ou <b>Desligar integração</b> (toque duas vezes).'],
-])))
+]) + '<h3>Parte 3: alertas em tempo real (opcional, recomendado)</h3>' +
+'<p>Com isso, cartão recusado, boleto vencido e aluno que faltou aparecem <b>na hora</b> na lista Alertas da recepção. Precisa do plano da EVO API que tem webhook (o EVO chama de API Pro).</p>' + passos(
+    ('No FitStack, aba ' + B('Integrações') + ', role até <b>Alertas em tempo real</b> e toque em ' + B('Copiar', 'lar') + '.', 'O endereço dos alertas fica copiado. Ele é só da sua academia: não mande para ninguém.'),
+    ('No EVO: <b>Configurações → Integrações → EVO API</b>, aba <b>Webhook</b>.', ''),
+    ('Cole o endereço e marque os avisos: cartão recusado na recorrência, saldo vencido, boleto vencido, cancelamento por inadimplência, vencimento de contrato, ausência, visita e aula experimental.', ''),
+    ('Salve.', 'Quando chegar o primeiro aviso, Integrações mostra "✅ Recebendo alertas".'),
+)))
 
 don.append(('Se der problema', tabela(['Problema', 'O que fazer'], [
     ['Painel com data velha', 'Toque em Atualizar agora. Se aparecer erro, veja a mensagem em Integrações.'],
