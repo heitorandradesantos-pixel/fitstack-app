@@ -113,7 +113,7 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 <main class="wrap" id="view"><p class="muted">Carregando…</p></main>
 <div id="toast" class="toast" role="status" hidden></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script src="modelos.js"></script>
 <script>
 (function(){
@@ -486,7 +486,7 @@ function telaResultado(){
   if(r.config.blocos.length){
     h+='<section class="panel"><span class="lbl">Média por bloco</span>'+r.config.blocos.map(function(b){return barra(esc(b.nome),c.blocos[b.nome]);}).join('')+'</section>';
     var ord=c.perg.filter(function(p){return p.v!=null;}).slice().sort(function(a,b){return b.v-a.v;});
-    if(ord.length>=4){
+    if(ord.length>=6){
       h+='<div class="form2"><section class="panel"><span class="lbl">Pontos fortes</span>'+ord.slice(0,3).map(function(p){return barra(esc(p.q),p.v);}).join('')+'</section>'+
         '<section class="panel"><span class="lbl">Pontos de atenção</span>'+ord.slice(-3).reverse().map(function(p){return barra(esc(p.q),p.v);}).join('')+'</section></div>';
     }
