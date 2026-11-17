@@ -577,7 +577,8 @@ function itensDe(lista){
 }
 var ALERTAS={recurring_debit_charge_declined:'Cartão recusado na cobrança',overdue_balance_expiry:'Saldo vencido',boleto_expiry:'Boleto vencido',automatic_cancellation_delinquency:'Cancelado por falta de pagamento',
   contract_due_date:'Contrato vencendo',no_attendance:'Faltou ao treino',prospect_visit:'Visita de interessado',prospect_trial_class_completed:'Fez aula experimental'};
-function rotuloAlerta(t){return ALERTAS[t]||ALERTAS[String(t).toLowerCase()]||String(t).replace(/_/g,' ');}
+function tipoBase(t){return String(t||'').toLowerCase().replace(/^.*\./,'');}
+function rotuloAlerta(t){return ALERTAS[tipoBase(t)]||String(t).replace(/^.*\./,'').replace(/_/g,' ');}
 var FILTROS={risco:[['','Prioridade de hoje'],['todos','Todos em risco']],aniversario:[['','Hoje'],['semana','Próximos 7 dias']],sumido:[['','7 a 14 dias'],['15','15 a 29 dias'],['30','30+ dias'],['nunca','Nunca treinaram']],inad:[['','Alunos ativos'],['ex','Ex-alunos']]};
 function detalhe(lista,x){
   if(lista==='risco')return 'Risco '+x.score+' · '+(x.motivos||[]).join(' · ');
@@ -599,7 +600,7 @@ function mensagem(lista,x){
     if(x.fim)return mensagem('renovacao',{nome:x.nome,dias:1,fim:x.fim});
     return mensagem('sumido',{nome:x.nome,dias:x.dias||7});
   }
-  if(lista==='alerta'){var t=String(x.tipo).toLowerCase();
+  if(lista==='alerta'){var t=tipoBase(x.tipo);
     if(t==='recurring_debit_charge_declined')return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. A cobrança do seu plano no cartão não passou (pode ser limite ou cartão vencido). Consegue atualizar o cartão aqui na recepção ou pagar por Pix? Qualquer dúvida estou à disposição!';
     if(/overdue|boleto|delinquency/.test(t))return mensagem('inad',{nome:x.nome,valor:x.valor||0,ativo:!/delinquency/.test(t)}).replace('de R$ 0,00 ','');
     if(t==='contract_due_date')return 'Oi '+n+'! Aqui é da '+ac+'. Seu plano está vencendo. Quer garantir a renovação e continuar treinando sem parar? Responde aqui ou passa na recepção que a gente resolve.';
