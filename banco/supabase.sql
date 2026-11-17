@@ -322,3 +322,44 @@ end $$;
 drop trigger if exists placar_log on public.placar_docs;
 create trigger placar_log after insert or update on public.placar_docs
   for each row execute function public.placar_log_config();
+-- FitStack · cargo Sócio (vê e faz tudo como o dono; só o dono cria/remove sócio; ninguém mexe no dono)
+alter table public.membros  drop constraint if exists membros_papel_check;
+alter table public.membros  add constraint membros_papel_check  check (papel in ('admin','socio','gerente','colaborador'));
+alter table public.convites drop constraint if exists convites_papel_check;
+alter table public.convites add constraint convites_papel_check check (papel in ('socio','gerente','colaborador'));
+
+-- Papel efetivo: sócio tem os mesmos poderes do dono
+create or replace function public.meu_papel(a uuid) returns text
+language sql stable security definer set search_path = public as $$
+  select case when papel = 'socio' then 'admin' else papel end
+  from membros where academia_id = a and user_id = auth.uid() and ativo
+$$;
+-- Papel de verdade (para separar dono de sócio)
+create or replace function public.papel_real(a uuid) returns text
+language sql stable security definer set search_path = public as $$
+  select papel from membros where academia_id = a and user_id = auth.uid() and ativo
+$$;
+grant execute on function public.papel_real(uuid) to authenticated;
+create or replace function public.pode(a uuid, p text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from membros where academia_id = a and user_id = auth.uid() and ativo
+                 and (papel in ('admin','socio') or p = any(permissoes)))
+$$;
+
+drop policy if exists membros_remover on public.membros;
+create policy membros_remover on public.membros for delete using (
+  user_id <> auth.uid() and public.meu_papel(academia_id) = 'admin' and papel <> 'admin'
+  and (papel <> 'socio' or public.papel_real(academia_id) = 'admin'));
+drop policy if exists membros_mudar on public.membros;
+create policy membros_mudar on public.membros for update
+  using (public.meu_papel(academia_id) = 'admin' and user_id <> auth.uid() and papel <> 'admin'
+         and (papel <> 'socio' or public.papel_real(academia_id) = 'admin'))
+  with check (public.meu_papel(academia_id) = 'admin' and papel in ('socio','gerente','colaborador')
+         and (papel <> 'socio' or public.papel_real(academia_id) = 'admin'));
+
+drop policy if exists convites_tudo on public.convites;
+create policy convites_tudo on public.convites for all
+  using ((public.meu_papel(academia_id) = 'admin' and (papel <> 'socio' or public.papel_real(academia_id) = 'admin'))
+         or (public.pode(academia_id,'equipe') and papel = 'colaborador'))
+  with check ((public.meu_papel(academia_id) = 'admin' and (papel <> 'socio' or public.papel_real(academia_id) = 'admin'))
+         or (public.pode(academia_id,'equipe') and papel = 'colaborador' and permissoes <@ array['placar','comissao']::text[]));

@@ -293,7 +293,7 @@ const SB_URL='https://bmbcdqcjeignydehwmhg.supabase.co';
 const SB_KEY='sb_publishable_4pSkdBQF_-Q16yeAVQoFHA_SjhoaXjf';
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const FS={acad:null,papel:null,perms:[],membros:[],nomeMembro:''};
-function pode(p){return FS.papel==='admin'||FS.perms.indexOf(p)>=0;}
+function pode(p){return FS.papel==='admin'||FS.papel==='socio'||FS.perms.indexOf(p)>=0;}
 
 function criarDb(acad){
   const listeners=[];let pollT=null;
@@ -1250,7 +1250,7 @@ function historicoHtml(){
   if(!H.length)return h+'<p class="muted" style="margin:12px 0 0">Nenhuma alteração ainda.</p></details>';
   h+='<ul class="gl">'+H.map(function(x){
     const L=diffConfig(x.doc_id,x.antes,x.depois);if(!L.length)return '';
-    const quem=(x.autor_nome||'Alguém')+(x.autor_papel&&x.autor_papel!=='admin'?' ('+x.autor_papel+')':x.autor_papel==='admin'?' (você)':'');
+    const quem=(x.autor_nome||'Alguém')+({admin:' (dono)',socio:' (sócio)',gerente:' (gerente)',colaborador:''}[x.autor_papel]||'');
     return '<li><div class="top"><b>'+esc(x.doc_id==='comissao'?'Comissão':'Metas e prazos')+'</b><span class="muted small">'+dataHora(x.quando)+'</span></div>'+
       '<span class="muted small">'+esc(quem)+(x.autor_papel==='gerente'?' '+pill('warn','Gerente'):'')+'</span>'+
       '<ul style="margin:4px 0 0;padding-left:18px">'+L.map(function(l){return '<li style="border:0;padding:0;display:list-item">'+esc(l)+'</li>';}).join('')+'</ul></li>';
@@ -1464,7 +1464,7 @@ async function boot(){
   PADRAO.unidade=eu.academias.nome;
   const g=FS.membros.find(function(x){return x.papel==='gerente';});if(g&&g.nome)PADRAO.gerenteNome=g.nome.split(' ')[0];
   S.cfg=mergeCfg(null);
-  S.meId=ses.user.id;S.meName=eu.nome||ses.user.email;S.isOwner=FS.papel==='admin';
+  S.meId=ses.user.id;S.meName=eu.nome||ses.user.email;S.isOwner=FS.papel==='admin'||FS.papel==='socio';
   S.minhaPessoa={nome:eu.nome||''};S.euLoaded=true;
   S.user={profiles:async function(ids){const o={};ids.forEach(function(i){const x=FS.membros.find(function(mm){return mm.user_id===i;});o[i]={name:x?(x.nome||x.email):''};});return o;}};
   S.dl={save:async function(o){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([o.data],{type:'text/csv;charset=utf-8'}));a.download=o.filename;a.click();}};

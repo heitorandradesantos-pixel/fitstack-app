@@ -131,9 +131,9 @@ var PERMS=[
   {k:'avaliacoes',t:'Criar avaliações e ver resultados (menos gerente, coordenador e clima)'},
   {k:'equipe',t:'Cadastrar colaboradores'}
 ];
-var PRESET={gerente:['placar','placar_gestao','comissao','avaliacoes','equipe'],colaborador:['placar','comissao']};
+var PRESET={socio:['placar','placar_gestao','comissao','avaliacoes','equipe'],gerente:['placar','placar_gestao','comissao','avaliacoes','equipe'],colaborador:['placar','comissao']};
 var PUBLICO={equipe:'A equipe (colegas)',alunos:'Os alunos',gestor:'O gestor / a direção'};
-var PAPEL={admin:'Admin',gerente:'Gerente',colaborador:'Colaborador'};
+var PAPEL={admin:'Dono',socio:'Sócio',gerente:'Gerente',colaborador:'Colaborador'};
 
 var S={sess:null,membros:[],atual:null,tab:'inicio',sub:'lista',authModo:'entrar',authMsg:'',authErro:'',ocupado:false,
   rodadas:[],modelosSalvos:[],ed:null,res:null,equipe:null,convites:[],novoAcesso:null,ultimoAcesso:null,confirma:null,edMembro:null};
@@ -145,8 +145,10 @@ if(NOVA)S.authModo='academia';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 var tT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(function(){t.hidden=true;},3800);}
 function clone(o){return JSON.parse(JSON.stringify(o));}
-function isAdmin(){return S.atual&&S.atual.papel==='admin';}
-function pode(p){return S.atual&&(S.atual.papel==='admin'||(S.atual.permissoes||[]).indexOf(p)>=0);}
+function isAdmin(){return S.atual&&(S.atual.papel==='admin'||S.atual.papel==='socio');}
+function isDono(){return S.atual&&S.atual.papel==='admin';}
+function cargos(){return isDono()?['colaborador','gerente','socio']:['colaborador','gerente'];}
+function pode(p){return S.atual&&(isAdmin()||(S.atual.permissoes||[]).indexOf(p)>=0);}
 function dataBR(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('pt-BR');}
 function gid(){var c='abcdefghjkmnpqrstuvwxyz23456789',s='';for(var i=0;i<7;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
 function erroMsg(e){var m=(e&&(e.message||e.error_description))||String(e);
@@ -230,6 +232,7 @@ var FORMS={
   },
   acesso:function(d,f){
     var perms=[].slice.call(f.querySelectorAll('input[name=perm]:checked')).map(function(i){return i.value;});
+    if(d.papel==='socio')perms=PRESET.socio.slice();
     var row={academia_id:S.atual.academia_id,email:d.email.toLowerCase(),nome:d.nome,papel:d.papel||'colaborador',permissoes:perms};
     S.ocupado=true;render();
     sb.from('convites').insert(row).then(function(r){S.ocupado=false;
@@ -529,7 +532,7 @@ function permChecks(sel,limite){
 }
 function telaEquipe(){
   var adm=isAdmin(),lim=adm?null:PRESET.colaborador;
-  var h='<div class="row between"><div><h1>Equipe e acessos</h1><p class="lead">'+(adm?'Você cadastra o gerente e os colaboradores e escolhe o que cada um pode ver e fazer.':'Você pode cadastrar colaboradores. As permissões de gerente só o admin muda.')+'</p></div>'+
+  var h='<div class="row between"><div><h1>Equipe e acessos</h1><p class="lead">'+(adm?'Você cadastra '+(isDono()?'os sócios, ':'')+'o gerente e os colaboradores e escolhe o que cada um pode ver e fazer.':'Você pode cadastrar colaboradores. As permissões de gerente só o admin muda.')+'</p></div>'+
     (S.novoAcesso?'':'<button class="btn" data-act="novoAcesso">+ Cadastrar acesso</button>')+'</div>';
   if(S.ultimoAcesso){
     var u=S.ultimoAcesso,txt='Oi, '+u.nome.split(' ')[0]+'! Seu acesso ao sistema da academia foi criado. Entre em '+APP_URL+' , toque em "Primeiro acesso" e use o e-mail '+u.email+' para criar a sua senha.';
@@ -542,20 +545,20 @@ function telaEquipe(){
     h+='<section class="panel"><span class="lbl">Novo acesso</span><form data-form="acesso" style="display:grid;gap:14px;margin-top:6px"><div class="form2">'+
       '<label class="f"><span>Nome</span><input name="nome" required placeholder="Ex.: Ana Souza"></label>'+
       '<label class="f"><span>E-mail da pessoa</span><input type="email" name="email" required placeholder="ana@gmail.com"></label>'+
-      (adm?'<label class="f"><span>Cargo</span><select name="papel" data-papel>'+['colaborador','gerente'].map(function(p){return '<option value="'+p+'"'+(na.papel===p?' selected':'')+'>'+PAPEL[p]+'</option>';}).join('')+'</select></label>':'<input type="hidden" name="papel" value="colaborador">')+
-      '</div><div><span class="lbl">O que essa pessoa pode ver e fazer</span>'+permChecks(PRESET[na.papel],lim)+'</div>'+
+      (adm?'<label class="f"><span>Cargo</span><select name="papel" data-papel>'+cargos().map(function(p){return '<option value="'+p+'"'+(na.papel===p?' selected':'')+'>'+PAPEL[p]+'</option>';}).join('')+'</select></label>':'<input type="hidden" name="papel" value="colaborador">')+
+      '</div>'+(na.papel==='socio'?'<div class="msg">Sócio vê e faz tudo o que o dono faz: metas, comissão, histórico de alterações, avaliações de liderança e equipe. Só não mexe no seu acesso, e só você cadastra ou remove sócios.</div>':'<div><span class="lbl">O que essa pessoa pode ver e fazer</span>'+permChecks(PRESET[na.papel],lim)+'</div>')+
       '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Cadastrar</button><button type="button" class="btn ghost" data-act="cancelAcesso">Cancelar</button></div></form></section>';
   }
   if(S.equipe===null)return h+'<p class="muted">Carregando…</p>';
   h+='<section class="panel"><span class="lbl">Quem já tem acesso</span><div class="list">'+S.equipe.map(function(m){
-    var eu=m.user_id===S.sess.user.id,editando=S.edMembro===m.user_id,podeEditar=!eu&&(adm||(m.papel==='colaborador'&&pode('equipe')));
+    var eu=m.user_id===S.sess.user.id,editando=S.edMembro===m.user_id,podeEditar=!eu&&m.papel!=='admin'&&((adm&&(m.papel!=='socio'||isDono()))||(m.papel==='colaborador'&&pode('equipe')));
     var h2='<div class="item"><div class="main"><span class="nm">'+esc(m.nome||m.email)+(eu?' <span class="muted small">(você)</span>':'')+'</span>'+
       '<span class="row small muted"><span class="chip acc">'+PAPEL[m.papel]+'</span>'+(m.ativo?'':'<span class="chip bad">Desativado</span>')+'<span>'+esc(m.email||'')+'</span></span>'+
-      (m.papel==='admin'?'<span class="small muted">Vê e faz tudo.</span>':'<span class="row">'+(m.permissoes||[]).map(function(k){var p=PERMS.filter(function(x){return x.k===k;})[0];return p?'<span class="chip">'+esc(p.t.split(' (')[0])+'</span>':'';}).join('')+'</span>')+'</div>';
+      (m.papel==='admin'?'<span class="small muted">Dono da academia. Vê e faz tudo.</span>':m.papel==='socio'?'<span class="small muted">Vê e faz tudo, como o dono.</span>':'<span class="row">'+(m.permissoes||[]).map(function(k){var p=PERMS.filter(function(x){return x.k===k;})[0];return p?'<span class="chip">'+esc(p.t.split(' (')[0])+'</span>':'';}).join('')+'</span>')+'</div>';
     if(podeEditar)h2+='<div class="row">'+(adm?'<button class="btn ghost sm" data-editm="'+m.user_id+'">'+(editando?'Fechar':'Permissões')+'</button>':'')+
       '<button class="btn ghost sm" data-ativo="'+m.user_id+'">'+(m.ativo?'Desativar':'Reativar')+'</button></div>';
     h2+='</div>';
-    if(editando)h2+='<form class="bloco" data-membro="'+m.user_id+'" style="margin-bottom:12px"><label class="f" style="max-width:240px"><span>Cargo</span><select name="papel">'+['colaborador','gerente'].map(function(p){return '<option value="'+p+'"'+(m.papel===p?' selected':'')+'>'+PAPEL[p]+'</option>';}).join('')+'</select></label>'+
+    if(editando)h2+='<form class="bloco" data-membro="'+m.user_id+'" style="margin-bottom:12px"><label class="f" style="max-width:240px"><span>Cargo</span><select name="papel">'+cargos().map(function(p){return '<option value="'+p+'"'+(m.papel===p?' selected':'')+'>'+PAPEL[p]+'</option>';}).join('')+'</select></label>'+
       permChecks(m.permissoes||[])+'<div><button class="btn sm" data-salvarm="'+m.user_id+'" type="button">Salvar permissões</button></div></form>';
     return h2;}).join('')+'</div></section>';
   if(S.convites.length){
@@ -580,8 +583,8 @@ view.addEventListener('input',function(ev){
 });
 view.addEventListener('change',function(ev){
   var t=ev.target;
-  if(t.matches('[data-papel]')&&S.novoAcesso){S.novoAcesso.papel=t.value;
-    var f=t.form;f.querySelectorAll('input[name=perm]').forEach(function(i){i.checked=PRESET[t.value].indexOf(i.value)>=0;});}
+  if(t.matches('[data-papel]')&&S.novoAcesso){var f=t.form;var keep={nome:f.nome.value,email:f.email.value};S.novoAcesso.papel=t.value;render();
+    var f2=view.querySelector('form[data-form=acesso]');if(f2){f2.nome.value=keep.nome;f2.email.value=keep.email;}}
 });
 function autoH(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,240)+'px';}
 document.addEventListener('click',function(ev){
@@ -613,6 +616,7 @@ document.addEventListener('click',function(ev){
   if(d.editm){S.edMembro=S.edMembro===d.editm?null:d.editm;render();return;}
   if(d.salvarm){var f=view.querySelector('form[data-membro="'+d.salvarm+'"]');
     var perms=[].slice.call(f.querySelectorAll('input[name=perm]:checked')).map(function(i){return i.value;});
+    if(f.papel.value==='socio')perms=PRESET.socio.slice();
     sb.from('membros').update({papel:f.papel.value,permissoes:perms}).eq('academia_id',S.atual.academia_id).eq('user_id',d.salvarm).then(function(q){
       if(q.error)toast(erroMsg(q.error));else{toast('Permissões salvas.');S.edMembro=null;}carregarEquipe();});return;}
   if(d.ativo){var mm=S.equipe.filter(function(x){return x.user_id===d.ativo;})[0];
