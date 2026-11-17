@@ -45,16 +45,17 @@ Deno.serve(async (req) => {
     const tipo = String(achar(ev, ["eventtype", "event_type", "event", "tipo", "type"]) || "evento").slice(0, 80);
     const idAluno = achar(ev, ["idmember", "id_member", "memberid", "idmemberpayer", "idcliente"]);
     const valor = Number(achar(ev, ["ammount", "amount", "value", "valor"])) || null;
-    let nome: string | null = String(achar(ev, ["membername", "name", "nome", "payername"]) || "") || null;
-    let tel: string | null = null;
-    if (idAluno) {
+    let nome: string | null = String(achar(ev, ["fullname", "membername", "nome", "payername"]) ||
+      [achar(ev, ["firstname"]), achar(ev, ["lastname"])].filter(Boolean).join(" ") || achar(ev, ["name"]) || "") || null;
+    let tel: string | null = telDe({ contacts: [{ contactType: "Celular", description: String(achar(ev, ["phone", "cellphone", "celular", "telefone"]) || "") }] });
+    if (idAluno && !tel) {
       try {
         const r = await fetch(`${EVO}/api/v2/members?idsMembers=${encodeURIComponent(String(idAluno))}&take=1`, {
           headers: { Authorization: "Basic " + btoa(integ.dns + ":" + integ.token), Accept: "application/json" },
         });
         if (r.ok) {
           const j = await r.json(); const m = Array.isArray(j) ? j[0] : null;
-          if (m) { nome = [m.firstName, m.lastName].filter(Boolean).join(" ") || nome; tel = telDe(m); }
+          if (m) { nome = [m.firstName, m.lastName].filter(Boolean).join(" ") || nome; tel = telDe(m) || tel; }
         }
       } catch (_e) { /* segue sem telefone */ }
     }
