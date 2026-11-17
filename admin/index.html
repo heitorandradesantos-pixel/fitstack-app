@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>FitStack · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#0d0c0b; --surface:#171513; --surface-2:#231f1c; --line:#322d29;
+  --fg:#f6f2ee; --muted:#a99f97; --accent:#E8530A; --accent-ink:#170a03; --accent-text:#ff7d40;
+  --ok:#45c381; --ok-bg:rgba(69,195,129,.14); --warn:#e7b03c; --warn-bg:rgba(231,176,60,.14); --bad:#f15b56; --bad-bg:rgba(241,91,86,.15); --idle-bg:rgba(169,159,151,.12);
+  --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);position:sticky;top:0;z-index:5}
+.top{display:flex;align-items:center;gap:14px;justify-content:space-between;padding-block:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.12em;min-width:0}
+.unid{appearance:none;background:var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a99f97'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid var(--line);color:var(--fg);font:600 14px var(--body);letter-spacing:.02em;padding:6px 28px 6px 10px;border-radius:8px;max-width:58vw;cursor:pointer;text-overflow:ellipsis}
+.brand .bu{color:var(--muted);font-weight:600;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mark{display:grid;grid-template-columns:repeat(2,8px);gap:2px;flex:none}
+.mark i{width:8px;height:8px;background:var(--accent)}
+.mark i:last-child{background:transparent;box-shadow:inset 0 0 0 2px var(--accent)}
+.who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+nav.tabs button{appearance:none;background:transparent;border:1px solid transparent;color:var(--muted);font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-current="page"]{color:var(--fg);background:var(--surface-2);border-color:var(--line)}
+main{padding-block:22px 80px;display:grid;gap:18px}
+h1,.h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,40px);line-height:1;text-transform:uppercase;margin:0}
+.h2{font-family:var(--display);font-weight:800;font-size:21px;text-transform:uppercase;letter-spacing:.04em;margin:0;line-height:1.1}
+.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.lead{margin:6px 0 0;color:var(--muted);max-width:68ch}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:8px;align-content:start;text-align:left;color:var(--fg);font:inherit;cursor:pointer;min-width:0}
+.card:hover{border-color:var(--muted)}
+.card .t{font-family:var(--display);font-weight:800;font-size:19px;text-transform:uppercase;letter-spacing:.03em;line-height:1.1}
+.card .d{color:var(--muted);font-size:14px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-height:42px}
+textarea{resize:vertical;line-height:1.45}
+label.f{display:grid;gap:4px;min-width:0}
+label.f>span{font-size:13px;color:var(--muted);font-weight:600}
+.form{display:grid;gap:12px;max-width:440px}
+.form2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border-radius:8px;cursor:pointer;min-height:42px;white-space:nowrap}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--muted)}
+.btn.sm{font-size:14px;padding:5px 10px;min-height:34px}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.link{appearance:none;background:none;border:0;color:var(--accent-text);font:inherit;cursor:pointer;padding:0;text-decoration:underline}
+.x{appearance:none;background:transparent;border:1px solid var(--line);color:var(--muted);width:36px;height:36px;border-radius:8px;cursor:pointer;flex:none;font-size:18px;line-height:1}
+.x:hover{color:var(--bad);border-color:var(--bad)}
+:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 9px;border-radius:999px;background:var(--idle-bg);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.acc{background:rgba(232,83,10,.16);color:var(--accent-text)}
+.msg{border-radius:8px;padding:10px 12px;font-size:14px;border:1px solid var(--line);background:var(--idle-bg)}
+.msg.erro{background:var(--bad-bg);border-color:var(--bad)} .msg.ok{background:var(--ok-bg);border-color:var(--ok)}
+.auth{max-width:440px;margin:6vh auto 0;display:grid;gap:16px}
+.seg{display:flex;gap:4px;background:var(--surface-2);border-radius:10px;padding:4px}
+.seg button{flex:1;appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);padding:8px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg)}
+.list{display:grid}
+.item{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.list .item:first-child{border-top:0}
+.item .main{min-width:0;flex:1 1 280px;display:grid;gap:4px}
+.item .nm{font-weight:700;font-size:16px}
+.bloco{border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px;background:var(--surface-2)}
+.pq{display:flex;gap:8px;align-items:flex-start}
+.pq textarea{min-height:42px}
+.checks{display:grid;gap:8px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
+.check input{width:20px;height:20px;min-height:0;margin:1px 0 0;accent-color:var(--accent);flex:none}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .v{font-family:var(--display);font-weight:800;font-size:36px;line-height:1}
+.kpi .s{font-size:13px;color:var(--muted);margin-top:4px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 140px 44px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.bar:first-child{border-top:0}
+.track{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.fill{height:100%;border-radius:5px}
+.num{font-family:var(--display);font-weight:700;font-size:18px;text-align:right}
+.g-ok{background:var(--ok)} .g-warn{background:var(--warn)} .g-bad{background:var(--bad)}
+.t-ok{color:var(--ok)} .t-warn{color:var(--warn)} .t-bad{color:var(--bad)}
+.coment{padding:10px 12px;border-radius:8px;background:var(--surface-2);font-size:14px;white-space:pre-wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;max-width:min(92vw,520px);z-index:20}
+.linkbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.linkbox input{flex:1 1 260px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+[hidden]{display:none!important}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills button{appearance:none;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 13px var(--body);padding:6px 11px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.pills button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.pills button b{font-weight:800}
+.lst{display:grid}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.it:first-child{border-top:0}
+.it .n{font-weight:700;overflow-wrap:anywhere}
+.it .dt{font-size:13px;color:var(--muted)}
+.it.feito .n{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.zap{appearance:none;border:0;background:#25D366;color:#06210f;font:700 14px var(--body);padding:8px 12px;border-radius:8px;cursor:pointer;min-height:38px;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+.zap:disabled{background:var(--surface-2);color:var(--muted);cursor:not-allowed}
+.feitoTag{font-size:12px;color:var(--ok);white-space:nowrap}
+.insight{padding:12px 14px;border-radius:8px;border-left:3px solid var(--warn);background:var(--surface-2);font-size:14px}
+.insight.bad{border-left-color:var(--bad)} .insight.ok{border-left-color:var(--ok)}
+.insight b{font-weight:700}
+.kpi .v.sm{font-size:28px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th,.tbl td{padding:7px 8px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl th{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;border-top:0}
+.scrollx{overflow-x:auto}
+@media (max-width:640px){.it{grid-template-columns:1fr}.acts{justify-content:flex-start}}
+@media (max-width:640px){.bar{grid-template-columns:minmax(0,1fr) 70px 40px}}
+</style>
+</head>
+<body>
+<header id="hdr" hidden><div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span><span class="bu">Admin</span></div>
+    <div class="who"><span id="quem" class="small muted"></span><button class="btn ghost sm" data-act="sair">Sair</button></div>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Seções"></nav>
+</div></header>
+<main class="wrap" id="view"><p class="muted">Carregando…</p></main>
+<div id="toast" class="toast" role="status" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var tT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(function(){t.hidden=true;},3800);}
+function erroMsg(e){var m=String((e&&(e.message||e.error_description||e.msg))||e||'');
+  var T=[
+    [/Invalid login/i,'E-mail ou senha incorretos.'],
+    [/Email not confirmed/i,'Este acesso ainda não foi liberado. Fale com o admin da academia.'],
+    [/already registered|already been registered|User already exists/i,'Esse e-mail já tem acesso. Toque em "Entrar" ou em "Esqueci minha senha".'],
+    [/Password should be|password.*(at least|characters)/i,'A senha precisa ter pelo menos 6 caracteres.'],
+    [/weak.?password|Password is known/i,'Essa senha é muito fácil. Use uma senha mais forte.'],
+    [/rate limit|too many|security purposes/i,'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.'],
+    [/sending.*(email|e-mail)|confirmation email|recovery email|SMTP/i,'Não conseguimos enviar o e-mail agora. Tente de novo em alguns minutos ou fale com o admin.'],
+    [/invalid format|Unable to validate email|invalid email|email address.*invalid/i,'Esse e-mail não parece válido. Confira se digitou certo.'],
+    [/Signups not allowed|signup.*disabled/i,'Cadastros estão fechados no momento. Fale com o admin.'],
+    [/expired|invalid.*(token|link)|otp/i,'Esse link expirou. Peça um novo em "Esqueci minha senha".'],
+    [/should be different|same.*password/i,'A senha nova precisa ser diferente da antiga.'],
+    [/Failed to fetch|NetworkError|network|Load failed|timeout/i,'Sem conexão com a internet. Confira e tente de novo.'],
+    [/duplicate|unique/i,'Esse cadastro já existe.'],
+    [/row-level security|permission denied|not allowed|42501/i,'Seu acesso não permite fazer isso. Fale com o admin da academia.'],
+    [/JWT|session|not authenticated|Auth session missing/i,'Sua sessão expirou. Saia e entre de novo.']
+  ];
+  if(/^FS: /.test(m))return m.slice(4);
+  for(var k=0;k<T.length;k++)if(T[k][0].test(m))return T[k][1];
+  return 'Algo deu errado. Tente de novo em instantes. Se continuar, fale com o admin da academia.';}
+function copiar(txt){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast('Link copiado.');},function(){prompt('Copie o link:',txt);});}
+function wa(txt){window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');}
+
+// ================= AUTENTICAÇÃO =================
+function telaAuth(){
+  var m=S.authModo,h='<div class="auth"><div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span><span class="bu">Gestão de academias</span></div>';
+  if(m==='nova-senha'){
+    h+='<section class="panel"><h1 class="h2">Criar nova senha</h1><form class="form" data-form="novaSenha" style="margin-top:14px">'+
+      '<label class="f"><span>Nova senha</span><input type="password" name="senha" minlength="6" autocomplete="new-password" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Salvar senha</button></form></section></div>';
+    return h;
+  }
+  h+='<div class="seg" role="group">'+
+    '<button type="button" data-auth="entrar" aria-pressed="'+(m==='entrar')+'">Entrar</button>'+
+    '<button type="button" data-auth="primeiro" aria-pressed="'+(m==='primeiro')+'">Primeiro acesso</button>'+
+    (NOVA?'<button type="button" data-auth="academia" aria-pressed="'+(m==='academia')+'">Cadastrar academia</button>':'')+'</div>';
+  h+='<section class="panel">';
+  if(m==='entrar'){
+    h+='<h1 class="h2">Entrar</h1><form class="form" data-form="entrar" style="margin-top:14px">'+
+      '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
+      '<label class="f"><span>Senha</span><input type="password" name="senha" autocomplete="current-password" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Entrar</button>'+
+      '<button type="button" class="link small" data-auth="esqueci">Esqueci minha senha</button></form>';
+  }else if(m==='esqueci'){
+    h+='<h1 class="h2">Recuperar senha</h1><p class="lead small">Digite seu e-mail. Vamos mandar um link para você criar uma senha nova.</p><form class="form" data-form="esqueci" style="margin-top:14px">'+
+      '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Enviar link</button>'+
+      '<button type="button" class="link small" data-auth="entrar">Voltar</button></form>';
+  }else{
+    var dono=m==='academia';
+    h+='<h1 class="h2">'+(dono?'Cadastrar minha academia':'Primeiro acesso')+'</h1><p class="lead small">'+
+      (dono?'Para quem vai cadastrar a academia. Depois você cria os acessos dos sócios, do gerente e da equipe.'
+           :'Use o e-mail e o código que o admin da academia te mandou. Aqui você cria a sua senha.')+'</p>'+
+      '<form class="form" data-form="cadastrar" data-dono="'+(dono?1:0)+'" style="margin-top:14px">'+
+      '<label class="f"><span>Seu nome</span><input name="nome" autocomplete="name" required></label>'+
+      '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
+      (dono?'':'<label class="f"><span>Código de acesso (6 letras e números)</span><input name="codigo" maxlength="6" autocomplete="off" autocapitalize="characters" required style="text-transform:uppercase;letter-spacing:.2em;font-weight:700" placeholder="Ex.: K7M2QX"></label>')+
+      '<label class="f"><span>Crie uma senha (mínimo 6 caracteres)</span><input type="password" name="senha" minlength="6" autocomplete="new-password" required></label>'+
+      msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Criar acesso</button></form>';
+  }
+  return h+'</section></div>';
+}
+// ================= FitStack · Painel admin (master) =================
+var SB_URL='https://bmbcdqcjeignydehwmhg.supabase.co',SB_KEY='sb_publishable_4pSkdBQF_-Q16yeAVQoFHA_SjhoaXjf',APP_URL='https://app.fitstack.com.br';
+var sb=supabase.createClient(SB_URL,SB_KEY,{auth:{storageKey:'fs-admin-auth',persistSession:true,autoRefreshToken:true}});
+var S={tab:'geral',modo:'entrar',P:undefined};
+var view=document.getElementById('view');
+var MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+var FORMAS={pix:'Pix',boleto:'Boleto',cartao:'Cartão',transferencia:'Transferência',dinheiro:'Dinheiro'};
+function brl(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function dBR(x){return x?String(x).slice(8,10)+'/'+String(x).slice(5,7)+'/'+String(x).slice(0,4):'';}
+function dCurta(x){return x?String(x).slice(8,10)+'/'+String(x).slice(5,7):'';}
+function mesNome(x){return x?MESES[+String(x).slice(5,7)-1]+'/'+String(x).slice(0,4):'';}
+function dias(a,b){return Math.round((Date.parse(b)-Date.parse(a))/864e5);}
+function wa(num,txt){window.open('https://wa.me/'+(num?(String(num).length<=11?'55'+num:num):'')+'?text='+encodeURIComponent(txt),'_blank','noopener');}
+
+// ---------- dados ----------
+function carregar(){
+  sb.auth.getSession().then(function(r){S.sess=r.data.session;
+    if(!S.sess){render();return;}
+    sb.rpc('sou_master').then(function(m){S.master=!!(m&&m.data);if(S.master)carregarPainel();else render();});
+  });
+}
+function carregarPainel(){sb.rpc('master_painel').then(function(r){S.P=r.error?{erro:erroMsg(r.error)}:r.data;render();});}
+function acad(id){return (S.P.academias||[]).filter(function(a){return a.id===id;})[0];}
+// situação financeira de cada academia
+function situacao(a){
+  var s=a.assinatura,hoje=S.P.hoje,cob=(S.P.cobrancas||[]).filter(function(c){return c.academia_id===a.id&&c.status==='aberta';});
+  var atras=cob.filter(function(c){return c.vencimento<hoje;}).sort(function(x,y){return x.vencimento<y.vencimento?-1:1;});
+  var r={abertas:cob,atrasadas:atras,valorAtraso:atras.reduce(function(t,c){return t+Number(c.valor);},0),diasAtraso:atras.length?dias(atras[0].vencimento,hoje):0};
+  if(!a.ativa){r.t='Suspensa';r.c='bad';}
+  else if(!s){r.t='Sem plano';r.c='';}
+  else if(s.status==='cancelada'){r.t='Plano cancelado';r.c='';}
+  else if(s.status==='teste'||(s.teste_ate&&s.teste_ate>=hoje)){r.t='Teste'+(s.teste_ate?' até '+dCurta(s.teste_ate):'');r.c='acc';}
+  else if(Number(s.valor)===0){r.t='Sem cobrança';r.c='';}
+  else if(atras.length){r.t='Atrasada '+r.diasAtraso+' dia'+(r.diasAtraso===1?'':'s');r.c='bad';}
+  else r={...r,t:'Em dia',c:'ok'};
+  r.sugerir=a.ativa&&atras.length&&r.diasAtraso>=((S.P.config&&S.P.config.dias_suspender)||10);
+  return r;
+}
+function msgCobranca(a,c){
+  var s=a.assinatura||{},cfg=S.P.config||{},nome=(s.cobranca_nome||((a.donos||[])[0]||{}).nome||'').split(' ')[0];
+  var atrasada=c.vencimento<S.P.hoje;
+  return 'Olá'+(nome?', '+nome:'')+'! Aqui é da FitStack. '+(atrasada?'A mensalidade do sistema da '+a.nome+' ('+mesNome(c.competencia)+') no valor de '+brl(c.valor)+' venceu em '+dBR(c.vencimento)+' e ainda está em aberto.'
+    :'Passando para lembrar da mensalidade do sistema da '+a.nome+' ('+mesNome(c.competencia)+'), no valor de '+brl(c.valor)+', com vencimento em '+dBR(c.vencimento)+'.')+
+    (cfg.pix_chave?'\n\nPix: '+cfg.pix_chave+(cfg.pix_nome?' ('+cfg.pix_nome+')':''):'')+'\n\nSe já pagou, pode desconsiderar e me mandar o comprovante. Obrigado!';
+}
+function msgDono(x){return 'Oi, '+(x.nome||'').split(' ')[0]+'! A '+x.academia+' já está no FitStack, o sistema de gestão da sua academia.\n\n1. Entre em '+APP_URL+'\n2. Toque em "Primeiro acesso"\n3. Use o e-mail: '+x.email+'\n4. Código de acesso: '+x.codigo+'\n5. Crie a sua senha\n\nVocê entra como dono e cadastra seus sócios, gerente e equipe. O manual está na aba Manual.';}
+
+// ---------- telas ----------
+function render(){
+  var hdr=document.getElementById('hdr');
+  if(!S.sess){hdr.hidden=true;view.innerHTML=telaAuth();return;}
+  if(S.master===undefined){hdr.hidden=true;view.innerHTML='<p class="muted">Carregando…</p>';return;}
+  if(!S.master){hdr.hidden=true;view.innerHTML='<div class="auth">'+marca()+'<section class="panel"><h1 class="h2">Este login não é de administrador</h1><p class="muted">Você entrou com '+esc(S.sess.user.email)+'. Para usar o painel do FitStack, entre com o login master. Se ainda não tem, use "Primeiro acesso master" com o código.</p><button class="btn" data-act="sair">Sair</button></section></div>';return;}
+  hdr.hidden=false;
+  document.getElementById('quem').textContent=S.sess.user.email;
+  var tabs=[['geral','Visão geral'],['academias','Academias'],['cobrancas','Cobranças'],['config','Configurações']];
+  document.getElementById('tabs').innerHTML=tabs.map(function(t){return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+t[1]+'</button>';}).join('');
+  if(S.P===undefined){view.innerHTML='<p class="muted">Carregando…</p>';return;}
+  if(S.P.erro){view.innerHTML='<div class="msg erro">'+esc(S.P.erro)+'</div>';return;}
+  view.innerHTML={geral:telaGeral,academias:telaAcademias,cobrancas:telaCobrancas,config:telaConfig}[S.tab]();
+}
+function marca(){return '<div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span><span class="bu">Admin</span></div>';}
+function telaAuth(){
+  var m=S.modo,h='<div class="auth">'+marca()+'<div class="seg" role="group"><button type="button" data-modo="entrar" aria-pressed="'+(m==='entrar')+'">Entrar</button><button type="button" data-modo="primeiro" aria-pressed="'+(m==='primeiro')+'">Primeiro acesso master</button></div><section class="panel">';
+  if(m==='primeiro')h+='<h1 class="h2">Primeiro acesso master</h1><p class="lead small">Use o código master de uso único. Aqui você cria o login do painel de administração do FitStack.</p>'+
+    '<form class="form" data-form="primeiro" style="margin-top:14px"><label class="f"><span>Seu nome</span><input name="nome" required autocomplete="name"></label>'+
+    '<label class="f"><span>E-mail do admin</span><input name="email" type="email" required autocomplete="username" placeholder="admin@fitstack.com.br"></label>'+
+    '<label class="f"><span>Código master</span><input name="codigo" required autocomplete="off" style="text-transform:uppercase;letter-spacing:.15em"></label>'+
+    '<label class="f"><span>Crie uma senha (mínimo 8 caracteres)</span><input name="senha" type="password" minlength="8" required autocomplete="new-password"></label>'+msgs()+
+    '<button class="btn"'+(S.ocupado?' disabled':'')+'>Criar acesso master</button></form>';
+  else if(m==='esqueci')h+='<h1 class="h2">Esqueci a senha</h1><p class="lead small">Chega um e-mail com o link para criar a senha nova. Depois volte aqui e entre.</p>'+
+    '<form class="form" data-form="esqueci" style="margin-top:14px"><label class="f"><span>E-mail</span><input name="email" type="email" required></label>'+msgs()+
+    '<button class="btn"'+(S.ocupado?' disabled':'')+'>Mandar o link</button><button type="button" class="link" data-modo="entrar">Voltar</button></form>';
+  else h+='<h1 class="h2">Painel do FitStack</h1><p class="lead small">Área de administração da plataforma: academias clientes, planos e cobranças.</p>'+
+    '<form class="form" data-form="entrar" style="margin-top:14px"><label class="f"><span>E-mail</span><input name="email" type="email" required autocomplete="username"></label>'+
+    '<label class="f"><span>Senha</span><input name="senha" type="password" required autocomplete="current-password"></label>'+msgs()+
+    '<button class="btn"'+(S.ocupado?' disabled':'')+'>Entrar</button><button type="button" class="link" data-modo="esqueci">Esqueci minha senha</button></form>';
+  return h+'</section></div>';
+}
+function msgs(){return (S.erro?'<div class="msg erro">'+esc(S.erro)+'</div>':'')+(S.aviso?'<div class="msg ok">'+esc(S.aviso)+'</div>':'');}
+
+function kpis(){
+  var A=S.P.academias,hoje=S.P.hoje,mes=hoje.slice(0,8)+'01';
+  var pag=A.filter(function(a){var s=a.assinatura;return a.ativa&&s&&s.status==='ativa'&&Number(s.valor)>0&&!(s.teste_ate&&s.teste_ate>=hoje);});
+  var mrr=pag.reduce(function(t,a){return t+Number(a.assinatura.valor);},0);
+  var teste=A.filter(function(a){var s=a.assinatura;return a.ativa&&s&&(s.status==='teste'||(s.teste_ate&&s.teste_ate>=hoje));}).length;
+  var C=S.P.cobrancas||[],doMes=C.filter(function(c){return c.competencia===mes&&c.status!=='cancelada';});
+  var receb=C.filter(function(c){return c.status==='paga'&&c.pago_em&&c.pago_em.slice(0,7)===hoje.slice(0,7);}).reduce(function(t,c){return t+Number(c.valor);},0);
+  var aReceber=doMes.filter(function(c){return c.status==='aberta'&&c.vencimento>=hoje;}).reduce(function(t,c){return t+Number(c.valor);},0);
+  var atras=C.filter(function(c){return c.status==='aberta'&&c.vencimento<hoje;});
+  var atrasV=atras.reduce(function(t,c){return t+Number(c.valor);},0),atrasA={};atras.forEach(function(c){atrasA[c.academia_id]=1;});
+  return {mrr:mrr,pagantes:pag.length,teste:teste,suspensas:A.filter(function(a){return !a.ativa;}).length,receb:receb,aReceber:aReceber,atrasV:atrasV,atrasN:Object.keys(atrasA).length,total:A.length};
+}
+function telaGeral(){
+  var k=kpis(),A=S.P.academias;
+  var h='<div><h1>Visão geral</h1><p class="lead">Hoje, '+dBR(S.P.hoje)+'.</p></div>';
+  h+='<div class="kpis">'+
+    '<div class="kpi"><span class="lbl">Receita mensal (MRR)</span><div class="v sm">'+brl(k.mrr)+'</div><div class="s">'+k.pagantes+' academia'+(k.pagantes===1?'':'s')+' pagante'+(k.pagantes===1?'':'s')+'</div></div>'+
+    '<div class="kpi"><span class="lbl">Recebido no mês</span><div class="v sm t-ok">'+brl(k.receb)+'</div><div class="s">a receber '+brl(k.aReceber)+'</div></div>'+
+    '<div class="kpi"><span class="lbl">Em atraso</span><div class="v sm '+(k.atrasV?'t-bad':'')+'">'+brl(k.atrasV)+'</div><div class="s">'+k.atrasN+' academia'+(k.atrasN===1?'':'s')+'</div></div>'+
+    '<div class="kpi"><span class="lbl">Academias</span><div class="v">'+k.total+'</div><div class="s">'+k.teste+' em teste · '+k.suspensas+' suspensa'+(k.suspensas===1?'':'s')+'</div></div></div>';
+  var atras=A.map(function(a){return [a,situacao(a)];}).filter(function(x){return x[1].atrasadas.length;}).sort(function(x,y){return y[1].diasAtraso-x[1].diasAtraso;});
+  h+='<section class="panel"><span class="lbl">Quem não pagou</span>';
+  if(!atras.length)h+='<p class="muted" style="margin:0">Ninguém atrasado. 👏</p>';
+  else h+='<div class="lst">'+atras.map(function(x){var a=x[0],s=x[1],c=s.atrasadas[0];
+    return '<div class="it"><div><div class="n">'+esc(a.nome)+' <span class="chip '+s.c+'">'+s.t+'</span>'+(s.sugerir?' <span class="chip bad">Sugestão: suspender</span>':'')+'</div>'+
+      '<div class="dt">'+brl(s.valorAtraso)+' em '+s.atrasadas.length+' cobrança'+(s.atrasadas.length>1?'s':'')+' · mais antiga venceu '+dBR(c.vencimento)+'</div></div>'+
+      '<div class="acts"><button class="zap" data-cobrar="'+c.id+'">Cobrar</button><button class="btn sm" data-pagar="'+c.id+'">Recebi</button>'+
+      (a.ativa?'<button class="btn danger sm" data-ativar="'+a.id+'">'+(S.confirma==='at'+a.id?'Toque de novo':'Suspender')+'</button>':'')+'</div></div>'+formPag(c.id);}).join('')+'</div>';
+  h+='</section>';
+  var hoje=S.P.hoje,em7=new Date(Date.parse(hoje)+7*864e5).toISOString().slice(0,10);
+  var prox=(S.P.cobrancas||[]).filter(function(c){return c.status==='aberta'&&c.vencimento>=hoje&&c.vencimento<=em7;}).sort(function(x,y){return x.vencimento<y.vencimento?-1:1;});
+  h+='<section class="panel"><span class="lbl">Vencem nos próximos 7 dias</span>'+(prox.length?'<div class="lst">'+prox.map(function(c){var a=acad(c.academia_id)||{nome:'?'};
+    return '<div class="it"><div><div class="n">'+esc(a.nome)+'</div><div class="dt">'+brl(c.valor)+' · vence '+dBR(c.vencimento)+'</div></div><div class="acts"><button class="zap" data-cobrar="'+c.id+'">Lembrar</button><button class="btn sm" data-pagar="'+c.id+'">Recebi</button></div></div>'+formPag(c.id);}).join('')+'</div>'
+    :'<p class="muted" style="margin:0">Nada vencendo nesta semana.</p>')+'</section>';
+  var semPlano=A.filter(function(a){return !a.assinatura;});
+  if(semPlano.length)h+='<div class="msg">'+semPlano.length+' academia'+(semPlano.length>1?'s':'')+' sem plano cadastrado: '+semPlano.map(function(a){return esc(a.nome);}).join(', ')+'. Cadastre em Academias → Plano.</div>';
+  return h;
+}
+function formPag(id){
+  if(S.pagando!==id)return '';
+  var hoje=S.P.hoje;
+  return '<form class="form panel" data-form="pagar" data-id="'+id+'" style="max-width:none;margin:0 0 12px;background:var(--surface-2)"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">'+
+    '<label class="f"><span>Pago em</span><input name="data" type="date" value="'+hoje+'" required></label>'+
+    '<label class="f"><span>Forma</span><select name="forma">'+Object.keys(FORMAS).map(function(k){return '<option value="'+k+'">'+FORMAS[k]+'</option>';}).join('')+'</select></label>'+
+    '<label class="f"><span>Observação</span><input name="obs" placeholder="Opcional"></label></div>'+
+    '<div class="row"><button class="btn sm">Confirmar pagamento</button><button type="button" class="btn ghost sm" data-act="cancelPag">Cancelar</button></div></form>';
+}
+function telaAcademias(){
+  var A=S.P.academias;
+  var h='<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h1>Academias</h1><p class="lead" style="margin:6px 0 0">Clientes do FitStack. Unidade nova de um dono que já é cliente, ele cria pelo app dele.</p></div>'+
+    (S.nova?'':'<button class="btn" data-act="nova">+ Novo cliente</button>')+'</div>';
+  if(S.feito){var f=S.feito;
+    h+='<section class="panel" style="border-color:var(--ok)"><span class="lbl">Cliente criado</span><h2 class="h2">'+esc(f.academia)+'</h2><p style="margin:8px 0">Mande para <b>'+esc(f.nome)+'</b>. Ele entra em <b>app.fitstack.com.br</b>, toca em <b>Primeiro acesso</b> e usa o e-mail <b>'+esc(f.email)+'</b> com o código:</p>'+
+      '<div class="kpi" style="display:inline-block"><div class="v" style="letter-spacing:.2em">'+esc(f.codigo)+'</div></div><div class="row" style="margin-top:12px"><button class="btn" data-act="zapFeito">Mandar no WhatsApp</button><button class="btn ghost" data-act="okFeito">Pronto</button></div></section>';}
+  if(S.nova)h+='<section class="panel"><span class="lbl">Novo cliente (academia + dono)</span><form class="form" data-form="nova" style="max-width:none;margin-top:6px">'+
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">'+
+    '<label class="f"><span>Nome da academia</span><input name="nome" required placeholder="Ex.: Academia Força Total"></label>'+
+    '<label class="f"><span>Cidade</span><input name="cidade" placeholder="Ex.: Maringá"></label>'+
+    '<label class="f"><span>Nome do dono</span><input name="dono" required></label>'+
+    '<label class="f"><span>E-mail do dono</span><input name="email" type="email" required></label>'+
+    '<label class="f"><span>WhatsApp para cobrança</span><input name="cobranca_whats" inputmode="tel" placeholder="44999990000"></label></div>'+
+    camposPlano({})+
+    '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Criar cliente</button><button type="button" class="btn ghost" data-act="cancelNova">Cancelar</button></div></form></section>';
+  h+='<section class="panel"><div class="lst">'+A.map(function(a){var s=situacao(a),as=a.assinatura,conv=(a.convite_dono||[])[0];
+    var donos=(a.donos||[]).map(function(d){return esc(d.nome||d.email)+' <span class="muted">'+esc(d.email||'')+'</span>';}).join(', ');
+    var uso=[a.pessoas+' pessoa'+(a.pessoas===1?'':'s'),a.evo?'EVO ligado':'Sem EVO',a.ultimo_placar?'Placar usado '+dCurta(a.ultimo_placar):'Placar sem uso','cliente desde '+dBR((as&&as.inicio)||a.criado_em)].join(' · ');
+    var r='<div class="it"><div><div class="n">'+esc(a.nome)+(a.cidade?' <span class="muted" style="font-weight:400">· '+esc(a.cidade)+'</span>':'')+' <span class="chip '+s.c+'">'+s.t+'</span></div>'+
+      '<div class="dt">'+(as?esc(as.plano)+' · '+(Number(as.valor)?brl(as.valor)+'/mês · vence dia '+as.dia_venc:'sem cobrança'):'Sem plano')+'</div>'+
+      '<div class="dt">'+(donos?'Dono: '+donos:(conv?'Dono ainda não entrou: '+esc(conv.nome||conv.email)+' · código <b>'+esc(conv.codigo)+'</b>':'Sem dono'))+'</div>'+
+      '<div class="dt">'+uso+'</div></div><div class="acts">'+
+      '<button class="btn ghost sm" data-plano="'+a.id+'">Plano</button>'+
+      (conv?'<button class="btn ghost sm" data-reenviar="'+a.id+'">Reenviar ao dono</button>':'')+
+      '<button class="btn '+(a.ativa?'danger':'')+' sm" data-ativar="'+a.id+'">'+(S.confirma==='at'+a.id?'Toque de novo':(a.ativa?'Suspender':'Reativar'))+'</button></div></div>';
+    if(S.editPlano===a.id)r+='<form class="form panel" data-form="plano" data-id="'+a.id+'" style="max-width:none;margin:0 0 12px;background:var(--surface-2)">'+camposPlano(as||{})+
+      '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"><label class="f"><span>Nome para cobrança</span><input name="cobranca_nome" value="'+esc((as&&as.cobranca_nome)||'')+'"></label>'+
+      '<label class="f"><span>WhatsApp para cobrança</span><input name="cobranca_whats" inputmode="tel" value="'+esc((as&&as.cobranca_whats)||'')+'"></label>'+
+      '<label class="f"><span>Observação</span><input name="obs" value="'+esc((as&&as.obs)||'')+'"></label></div>'+
+      '<div class="row"><button class="btn sm">Salvar plano</button><button type="button" class="btn ghost sm" data-act="cancelPlano">Cancelar</button></div></form>';
+    return r;}).join('')+'</div></section>';
+  h+='<p class="small muted">Suspender tira o acesso de todo mundo daquela academia na hora; os dados ficam guardados. Reativar devolve tudo.</p>';
+  return h;
+}
+function camposPlano(s){
+  return '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">'+
+    '<label class="f"><span>Plano</span><input name="plano" value="'+esc(s.plano||'Mensal')+'"></label>'+
+    '<label class="f"><span>Valor por mês (R$)</span><input name="valor" inputmode="decimal" value="'+(s.valor!=null?String(s.valor).replace('.',','):'')+'" placeholder="Ex.: 297,00"></label>'+
+    '<label class="f"><span>Dia do vencimento</span><input name="dia_venc" type="number" min="1" max="28" value="'+(s.dia_venc||10)+'"></label>'+
+    '<label class="f"><span>Cliente desde</span><input name="inicio" type="date" value="'+(s.inicio||S.P.hoje)+'"></label>'+
+    '<label class="f"><span>Teste grátis até</span><input name="teste_ate" type="date" value="'+(s.teste_ate||'')+'"></label>'+
+    '<label class="f"><span>Situação do plano</span><select name="status">'+[['ativa','Ativo'],['teste','Em teste'],['cancelada','Cancelado']].map(function(o){return '<option value="'+o[0]+'"'+((s.status||'ativa')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></label></div>';
+}
+function telaCobrancas(){
+  var C=S.P.cobrancas||[],hoje=S.P.hoje;
+  var meses=Array.from(new Set(C.map(function(c){return c.competencia;}).concat([hoje.slice(0,8)+'01']))).sort().reverse();
+  var mes=S.mes||meses[0];
+  var lista=C.filter(function(c){return c.competencia===mes;}).sort(function(a,b){return (acad(a.academia_id)||{nome:''}).nome.localeCompare((acad(b.academia_id)||{nome:''}).nome);});
+  var tot=function(f){return lista.filter(f).reduce(function(t,c){return t+Number(c.valor);},0);};
+  var h='<div><h1>Cobranças</h1><p class="lead">As cobranças do mês são criadas sozinhas todo dia 1º, para cada academia com plano ativo.</p></div>';
+  h+='<div class="row"><label class="f" style="max-width:220px"><span>Mês</span><select id="selMes">'+meses.map(function(m){return '<option value="'+m+'"'+(m===mes?' selected':'')+'>'+mesNome(m)+'</option>';}).join('')+'</select></label>'+
+    '<button class="btn ghost sm" data-act="gerar" style="align-self:flex-end">Gerar cobranças do mês agora</button>'+
+    '<button class="btn ghost sm" data-act="avulsa" style="align-self:flex-end">+ Cobrança avulsa</button></div>';
+  if(S.avulsa)h+='<form class="form panel" data-form="avulsa" style="max-width:none"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">'+
+    '<label class="f"><span>Academia</span><select name="academia">'+S.P.academias.map(function(a){return '<option value="'+a.id+'">'+esc(a.nome)+'</option>';}).join('')+'</select></label>'+
+    '<label class="f"><span>Vencimento</span><input name="venc" type="date" required value="'+hoje+'"></label>'+
+    '<label class="f"><span>Valor (R$)</span><input name="valor" inputmode="decimal" required></label>'+
+    '<label class="f"><span>Descrição</span><input name="obs" placeholder="Ex.: implantação"></label></div>'+
+    '<p class="small muted" style="margin:0">Uma cobrança por academia por mês: se já existir no mês, ela é trocada por esta.</p>'+
+    '<div class="row"><button class="btn sm">Criar cobrança</button><button type="button" class="btn ghost sm" data-act="cancelAvulsa">Cancelar</button></div></form>';
+  h+='<div class="kpis"><div class="kpi"><span class="lbl">Total do mês</span><div class="v sm">'+brl(tot(function(c){return c.status!=='cancelada';}))+'</div></div>'+
+    '<div class="kpi"><span class="lbl">Recebido</span><div class="v sm t-ok">'+brl(tot(function(c){return c.status==='paga';}))+'</div></div>'+
+    '<div class="kpi"><span class="lbl">Em aberto</span><div class="v sm">'+brl(tot(function(c){return c.status==='aberta'&&c.vencimento>=hoje;}))+'</div></div>'+
+    '<div class="kpi"><span class="lbl">Atrasado</span><div class="v sm t-bad">'+brl(tot(function(c){return c.status==='aberta'&&c.vencimento<hoje;}))+'</div></div></div>';
+  h+='<section class="panel">'+(lista.length?'<div class="lst">'+lista.map(function(c){var a=acad(c.academia_id)||{nome:'?'};
+    var st=c.status==='paga'?'<span class="chip ok">Paga '+dCurta(c.pago_em)+(c.forma?' · '+(FORMAS[c.forma]||c.forma):'')+'</span>':c.status==='cancelada'?'<span class="chip">Cancelada</span>':
+      c.vencimento<hoje?'<span class="chip bad">Atrasada '+dias(c.vencimento,hoje)+' dias</span>':'<span class="chip acc">Em aberto</span>';
+    var acts=c.status==='aberta'?'<button class="zap" data-cobrar="'+c.id+'">'+(c.vencimento<hoje?'Cobrar':'Lembrar')+'</button><button class="btn sm" data-pagar="'+c.id+'">Recebi</button><button class="btn ghost sm" data-cancelar="'+c.id+'">'+(S.confirma==='cc'+c.id?'Toque de novo':'Cancelar')+'</button>'
+      :c.status==='paga'?'<button class="btn ghost sm" data-desfazer="'+c.id+'">Desfazer</button>':'';
+    return '<div class="it"><div><div class="n">'+esc(a.nome)+' '+st+'</div><div class="dt">'+brl(c.valor)+' · vence '+dBR(c.vencimento)+(c.obs?' · '+esc(c.obs):'')+'</div></div><div class="acts">'+acts+'</div></div>'+formPag(c.id);}).join('')+'</div>'
+    :'<p class="muted" style="margin:0">Nenhuma cobrança neste mês. Cadastre o plano das academias em Academias → Plano.</p>')+'</section>';
+  return h;
+}
+function telaConfig(){
+  var c=S.P.config||{};
+  return '<div><h1>Configurações</h1><p class="lead">Dados usados nas mensagens de cobrança.</p></div>'+
+    '<section class="panel"><form class="form" data-form="config">'+
+    '<label class="f"><span>Chave Pix para receber</span><input name="pix_chave" value="'+esc(c.pix_chave||'')+'" placeholder="CNPJ, e-mail, celular ou chave aleatória"></label>'+
+    '<label class="f"><span>Nome de quem recebe</span><input name="pix_nome" value="'+esc(c.pix_nome||'')+'" placeholder="Ex.: FitStack Tecnologia"></label>'+
+    '<label class="f"><span>Sugerir suspensão depois de quantos dias de atraso</span><input name="dias_suspender" type="number" min="1" max="90" value="'+(c.dias_suspender||10)+'"></label>'+
+    '<button class="btn">Salvar</button></form></section>'+
+    '<section class="panel"><span class="lbl">Como funciona</span><ul class="small" style="margin:0;padding-left:18px;line-height:1.7">'+
+    '<li>Todo dia 1º, às 06:10, o sistema cria a cobrança do mês de cada academia com plano ativo e valor acima de zero.</li>'+
+    '<li>Academia em teste grátis não é cobrada até o fim do teste.</li>'+
+    '<li>Quando o cliente pagar, toque em <b>Recebi</b> e marque a forma de pagamento.</li>'+
+    '<li>O botão <b>Cobrar</b> abre o WhatsApp do contato de cobrança com a mensagem pronta e a sua chave Pix.</li>'+
+    '<li>Suspender é sempre você que decide. O painel só sugere quando passa do número de dias acima.</li></ul></section>';
+}
+
+// ---------- ações ----------
+var FORMS={
+  entrar:function(d){busy(sb.auth.signInWithPassword({email:d.email,password:d.senha}),function(r){S.sess=r.data.session;S.master=undefined;carregar();});},
+  esqueci:function(d){busy(sb.auth.resetPasswordForEmail(d.email,{redirectTo:APP_URL}),function(){S.aviso='Pronto. Abra o e-mail, crie a senha nova pelo link e depois volte aqui para entrar.';});},
+  primeiro:function(d){
+    S.ocupado=true;S.erro='';render();
+    var entrar=function(){return sb.auth.signInWithPassword({email:d.email,password:d.senha});};
+    sb.auth.signUp({email:d.email,password:d.senha,options:{data:{nome:d.nome}}}).then(function(r){
+      if(r.error&&/already|registered/i.test(r.error.message))return entrar();return r;
+    }).then(function(r){
+      if(r.error)throw r.error;
+      return sb.rpc('master_aceitar',{p_codigo:d.codigo}).then(function(x){if(x.error)throw x.error;});
+    }).then(function(){S.ocupado=false;carregar();},function(e){S.ocupado=false;S.erro=erroMsg(e);render();});
+  },
+  nova:function(d,f){
+    S.ocupado=true;render();
+    sb.rpc('master_criar',{p_nome:d.nome,p_cidade:d.cidade,p_dono_nome:d.dono,p_dono_email:d.email}).then(function(r){
+      if(r.error)throw r.error;var id=r.data.academia_id,cod=r.data.codigo;
+      return sb.rpc('master_salvar_assinatura',{a:id,p:planoDe(d,{cobranca_nome:d.dono,cobranca_whats:d.cobranca_whats})}).then(function(x){if(x.error)throw x.error;return cod;});
+    }).then(function(cod){S.ocupado=false;S.nova=false;S.feito={academia:d.nome,nome:d.dono,email:d.email.toLowerCase(),codigo:cod};carregarPainel();},
+      function(e){S.ocupado=false;toast(erroMsg(e));render();});
+  },
+  plano:function(d,f){
+    sb.rpc('master_salvar_assinatura',{a:f.dataset.id,p:planoDe(d,{cobranca_nome:d.cobranca_nome,cobranca_whats:d.cobranca_whats,obs:d.obs})}).then(function(r){
+      if(r.error){toast(erroMsg(r.error));return;}S.editPlano=null;toast('Plano salvo.');carregarPainel();});
+  },
+  pagar:function(d,f){
+    sb.rpc('master_pagamento',{p_id:+f.dataset.id,p_pago:true,p_data:d.data,p_forma:d.forma,p_obs:d.obs}).then(function(r){
+      if(r.error){toast(erroMsg(r.error));return;}S.pagando=null;toast('Pagamento registrado.');carregarPainel();});
+  },
+  avulsa:function(d){
+    sb.rpc('master_cobranca_avulsa',{a:d.academia,p_venc:d.venc,p_valor:num(d.valor),p_obs:d.obs}).then(function(r){
+      if(r.error){toast(erroMsg(r.error));return;}S.avulsa=false;S.mes=d.venc.slice(0,8)+'01';toast('Cobrança criada.');carregarPainel();});
+  },
+  config:function(d){
+    sb.rpc('master_config',{p:{pix_chave:d.pix_chave,pix_nome:d.pix_nome,dias_suspender:+d.dias_suspender||10}}).then(function(r){
+      if(r.error){toast(erroMsg(r.error));return;}toast('Configurações salvas.');carregarPainel();});
+  }
+};
+function num(v){return Number(String(v||'0').replace(/\./g,'').replace(',','.'))||0;}
+function planoDe(d,extra){return Object.assign({plano:d.plano,valor:num(d.valor),dia_venc:+d.dia_venc||10,inicio:d.inicio,teste_ate:d.teste_ate||'',status:d.status||'ativa'},extra||{});}
+function busy(p,ok){S.ocupado=true;S.erro='';S.aviso='';render();
+  p.then(function(r){S.ocupado=false;if(r.error)S.erro=erroMsg(r.error);else ok(r);render();},function(e){S.ocupado=false;S.erro=erroMsg(e);render();});}
+function cob(id){return (S.P.cobrancas||[]).filter(function(c){return c.id===+id;})[0];}
+
+document.addEventListener('submit',function(ev){var f=ev.target;if(!f.dataset.form)return;ev.preventDefault();
+  var d={};new FormData(f).forEach(function(v,k){d[k]=String(v).trim();});FORMS[f.dataset.form](d,f);});
+document.addEventListener('change',function(ev){if(ev.target.id==='selMes'){S.mes=ev.target.value;render();}});
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('button');if(!b)return;var d=b.dataset;
+  if(d.modo){S.modo=d.modo;S.erro='';S.aviso='';render();return;}
+  if(d.tab){S.tab=d.tab;S.confirma=null;S.pagando=null;render();return;}
+  if(d.pagar){S.pagando=+d.pagar;render();return;}
+  if(d.cobrar){var c=cob(d.cobrar),a=acad(c.academia_id);wa((a.assinatura||{}).cobranca_whats,msgCobranca(a,c));return;}
+  if(d.desfazer){sb.rpc('master_pagamento',{p_id:+d.desfazer,p_pago:false,p_data:null,p_forma:null,p_obs:null}).then(function(r){if(r.error)toast(erroMsg(r.error));carregarPainel();});return;}
+  if(d.cancelar){if(S.confirma!=='cc'+d.cancelar){S.confirma='cc'+d.cancelar;render();return;}S.confirma=null;
+    sb.rpc('master_cobranca_cancelar',{p_id:+d.cancelar}).then(function(r){if(r.error)toast(erroMsg(r.error));else toast('Cobrança cancelada.');carregarPainel();});return;}
+  if(d.plano){S.editPlano=S.editPlano===d.plano?null:d.plano;render();return;}
+  if(d.reenviar){var a2=acad(d.reenviar),cv=(a2.convite_dono||[])[0];var w=(a2.assinatura||{}).cobranca_whats;
+    window.open('https://wa.me/'+(w?(w.length<=11?'55'+w:w):'')+'?text='+encodeURIComponent(msgDono({academia:a2.nome,nome:cv.nome,email:cv.email,codigo:cv.codigo})),'_blank','noopener');return;}
+  if(d.ativar){var a3=acad(d.ativar);if(S.confirma!=='at'+a3.id){S.confirma='at'+a3.id;render();return;}S.confirma=null;
+    sb.rpc('master_ativar',{a:a3.id,p_ativa:!a3.ativa}).then(function(r){if(r.error)toast(erroMsg(r.error));else toast(a3.ativa?'Academia suspensa. Ninguém dela entra mais.':'Academia reativada.');carregarPainel();});return;}
+  var act=d.act;if(!act)return;
+  if(act==='sair'){sb.auth.signOut().then(function(){S.sess=null;S.master=undefined;S.P=undefined;render();});return;}
+  if(act==='nova'){S.nova=true;S.feito=null;render();return;}
+  if(act==='cancelNova'){S.nova=false;render();return;}
+  if(act==='okFeito'){S.feito=null;render();return;}
+  if(act==='zapFeito'){var x=S.feito;window.open('https://wa.me/?text='+encodeURIComponent(msgDono(x)),'_blank','noopener');return;}
+  if(act==='cancelPlano'){S.editPlano=null;render();return;}
+  if(act==='cancelPag'){S.pagando=null;render();return;}
+  if(act==='avulsa'){S.avulsa=true;render();return;}
+  if(act==='cancelAvulsa'){S.avulsa=false;render();return;}
+  if(act==='gerar'){sb.rpc('master_gerar').then(function(r){if(r.error)toast(erroMsg(r.error));else toast(r.data?r.data+' cobrança(s) criada(s).':'Nenhuma cobrança nova: o mês já estava gerado.');carregarPainel();});return;}
+});
+sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){S.sess=null;render();}});
+carregar();
+
+</script>
+</body>
+</html>

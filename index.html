@@ -293,12 +293,6 @@ var FORMS={
       if(r.error){toast(erroMsg(r.error));render();return;}
       S.evoTrocar=false;toast('Chave do EVO salva.');carregarEvo();},function(e){S.ocupado=false;toast(erroMsg(e));render();});
   },
-  masterCriar:function(d){
-    S.ocupado=true;render();
-    sb.rpc('master_criar',{p_nome:d.nome,p_cidade:d.cidade,p_dono_nome:d.dono,p_dono_email:d.email}).then(function(r){S.ocupado=false;
-      if(r.error){toast(erroMsg(r.error));render();return;}
-      S.mNova=false;S.mFeito={academia:d.nome,nome:d.dono,email:d.email.toLowerCase(),codigo:r.data.codigo};carregarMaster();},function(e){S.ocupado=false;toast(erroMsg(e));render();});
-  },
   novaUnidade:function(d){
     S.ocupado=true;render();
     sb.rpc('criar_academia',{p_nome:d.nome,p_cidade:d.cidade}).then(function(r){S.ocupado=false;
@@ -334,7 +328,6 @@ function carregar(){
     S.sess=r.data.session;
     if(!S.sess){render();return;}
     Promise.resolve().then(function(){
-      sb.rpc('sou_master').then(function(r){S.master=!!(r&&r.data);if(S.atual)render();});
       sb.from('membros').select('academia_id,papel,permissoes,ativo,nome,academias(nome,cidade,ativa)').eq('user_id',S.sess.user.id).then(function(m){
         S.membros=(m.data||[]).filter(function(x){return x.ativo&&x.academias;});
         var salvo=null;try{salvo=localStorage.getItem('fs-acad');}catch(e){}
@@ -356,9 +349,9 @@ sb.auth.onAuthStateChange(function(ev,sess){
 function render(){
   var hdr=document.getElementById('hdr');
   if(!S.sess||S.authModo==='nova-senha'){hdr.hidden=true;view.innerHTML=telaAuth();return;}
-  if(!S.atual){hdr.hidden=true;view.innerHTML=S.master?telaMasterSolo():telaSemAcademia();return;}
+  if(!S.atual){hdr.hidden=true;view.innerHTML=telaSemAcademia();return;}
   hdr.hidden=false;
-  if(S.atual.academias.ativa===false&&!S.master){view.innerHTML='<section class="panel"><span class="lbl">Acesso suspenso</span><h1 class="h2">'+esc(S.atual.academias.nome)+' está com o acesso suspenso</h1><p class="muted" style="margin:8px 0 0">Fale com a FitStack pelo contato@fitstack.com.br para reativar.'+(S.membros.length>1?' Você pode trocar de unidade no seletor lá em cima.':'')+'</p></section>';document.getElementById('tabs').innerHTML='';
+  if(S.atual.academias.ativa===false){view.innerHTML='<section class="panel"><span class="lbl">Acesso suspenso</span><h1 class="h2">'+esc(S.atual.academias.nome)+' está com o acesso suspenso</h1><p class="muted" style="margin:8px 0 0">Fale com a FitStack pelo contato@fitstack.com.br para reativar.'+(S.membros.length>1?' Você pode trocar de unidade no seletor lá em cima.':'')+'</p></section>';document.getElementById('tabs').innerHTML='';
     document.getElementById('acadNome').textContent=S.atual.academias.nome;return;}
   var an=document.getElementById('acadNome');
   if(S.membros.length>1)an.innerHTML='<select class="unid" id="trocaUnidade" aria-label="Unidade">'+S.membros.slice().sort(function(a,b){return a.academias.nome.localeCompare(b.academias.nome);}).map(function(m){
@@ -374,10 +367,9 @@ function render(){
   if(pode('placar')||pode('placar_gestao'))tabs.splice(isAdmin()?2:1,0,['contatos','Contatos do dia']);
   if(isAdmin())tabs.push(['integracoes','Integrações']);
   tabs.push(['manual','Manual']);
-  if(S.master)tabs.push(['master','Master']);
   if(!tabs.some(function(t){return t[0]===S.tab;}))S.tab='inicio';
   document.getElementById('tabs').innerHTML=tabs.map(function(t){return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+t[1]+'</button>';}).join('');
-  var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe,integracoes:telaIntegracoes,painel:telaPainel,contatos:telaContatos,manual:telaManual,master:telaMaster}[S.tab];
+  var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe,integracoes:telaIntegracoes,painel:telaPainel,contatos:telaContatos,manual:telaManual}[S.tab];
   view.innerHTML=fn();
 }
 function telaSemAcademia(){
@@ -626,49 +618,6 @@ function telaManual(){
       '<div class="row"><a class="btn" href="'+m[2]+'" target="_blank" rel="noopener">Abrir</a><a class="btn ghost" href="'+m[3]+'" download>Baixar PDF</a>'+
       (isAdmin()?'<button class="btn ghost" data-act="zapManual" data-k="'+k+'">WhatsApp</button>':'')+'</div></section>';});
   return h+'</div>';
-}
-// ================= MASTER (dono da plataforma) =================
-function carregarMaster(){S.mAcads=undefined;sb.rpc('master_academias').then(function(r){S.mAcads=r.error?{erro:erroMsg(r.error)}:(r.data||[]);if(S.tab==='master'||!S.atual)render();});}
-function telaMasterSolo(){if(S.mAcads===undefined&&!S.mCarregou){S.mCarregou=true;carregarMaster();}
-  return '<div class="auth" style="max-width:1100px"><div class="row" style="justify-content:space-between"><div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span></div><button class="btn ghost sm" data-act="sair">Sair</button></div>'+telaMaster()+'</div>';}
-function msgDono(x){return 'Oi, '+(x.nome||'').split(' ')[0]+'! A '+x.academia+' já está no FitStack, o sistema de gestão da sua academia.\n\n1. Entre em '+APP_URL+'\n2. Toque em "Primeiro acesso"\n3. Use o e-mail: '+x.email+'\n4. Código de acesso: '+x.codigo+'\n5. Crie a sua senha\n\nVocê entra como dono e cadastra seus sócios, gerente e equipe. O manual está na aba Manual.';}
-function telaMaster(){
-  var A=S.mAcads,h='<div><h1>Master</h1><p class="lead">Só você vê esta área. Aqui ficam todas as academias que usam o FitStack.</p></div>';
-  if(S.mFeito){var f=S.mFeito;
-    h+='<section class="panel" style="border-color:var(--ok)"><span class="lbl">Academia criada</span><h2 class="h2">'+esc(f.academia)+'</h2>'+
-      '<p style="margin:8px 0">Mande para <b>'+esc(f.nome||f.email)+'</b>. Ele entra em <b>app.fitstack.com.br</b>, toca em <b>Primeiro acesso</b> e usa o e-mail <b>'+esc(f.email)+'</b> com o código:</p>'+
-      '<div class="kpi" style="display:inline-block"><div class="v" style="letter-spacing:.2em">'+esc(f.codigo)+'</div></div>'+
-      '<div class="row" style="margin-top:12px"><button class="btn" data-act="mZap" data-i="feito">Mandar no WhatsApp</button><button class="btn ghost" data-act="mOk">Pronto</button></div></section>';
-  }
-  if(S.mNova)h+='<section class="panel"><span class="lbl">Nova academia (cliente novo)</span><form class="form" data-form="masterCriar" style="margin-top:6px">'+
-      '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">'+
-      '<label class="f"><span>Nome da academia</span><input name="nome" required placeholder="Ex.: Academia Força Total"></label>'+
-      '<label class="f"><span>Cidade</span><input name="cidade" placeholder="Ex.: Maringá"></label>'+
-      '<label class="f"><span>Nome do dono</span><input name="dono" required placeholder="Ex.: João Silva"></label>'+
-      '<label class="f"><span>E-mail do dono</span><input name="email" type="email" required placeholder="joao@gmail.com"></label></div>'+
-      '<p class="small muted" style="margin:0">O sistema cria a academia e gera o código. O dono cria a própria senha e cadastra a equipe dele. Para abrir mais uma unidade sua, use "Cadastrar outra unidade" no Início.</p>'+
-      '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Criar academia</button><button type="button" class="btn ghost" data-act="mCancel">Cancelar</button></div></form></section>';
-  else if(!S.mFeito)h+='<div class="row"><button class="btn" data-act="mNova">+ Nova academia</button></div>';
-  if(A===undefined)return h+'<p class="muted">Carregando…</p>';
-  if(A.erro)return h+'<div class="msg erro">'+esc(A.erro)+'</div>';
-  var ativas=A.filter(function(a){return a.ativa;}).length,pessoas=A.reduce(function(s,a){return s+(a.pessoas||0);},0),evo=A.filter(function(a){return a.evo;}).length;
-  h+='<div class="kpis"><div class="kpi"><span class="lbl">Academias ativas</span><div class="v">'+ativas+'</div><div class="s">'+(A.length-ativas)+' suspensa'+(A.length-ativas===1?'':'s')+'</div></div>'+
-    '<div class="kpi"><span class="lbl">Pessoas usando</span><div class="v">'+pessoas+'</div><div class="s">donos, sócios e equipe</div></div>'+
-    '<div class="kpi"><span class="lbl">Com EVO ligado</span><div class="v">'+evo+'</div><div class="s">de '+A.length+' academias</div></div></div>';
-  h+='<section class="panel"><span class="lbl">Academias</span><div class="lst">'+A.map(function(a,i){
-    var donos=(a.donos||[]).map(function(d){return esc(d.nome||d.email)+' <span class="muted">'+esc(d.email||'')+'</span>';}).join(', ');
-    var conv=(a.convite_dono||[])[0];
-    var st=a.ativa?'<span class="chip ok">Ativa</span>':'<span class="chip bad">Suspensa</span>';
-    var linha2=[a.pessoas+' pessoa'+(a.pessoas===1?'':'s'),a.evo?('EVO ligado'+(a.ultima_sync?' · busca '+dataHora(a.ultima_sync):'')):'Sem EVO',a.ultimo_placar?'Placar usado '+dataBR(a.ultimo_placar):'Placar sem uso','criada '+dataBR(a.criado_em)].join(' · ');
-    var conf=S.confirma==='m'+i;
-    return '<div class="it"><div><div class="n">'+esc(a.nome)+(a.cidade?' <span class="muted" style="font-weight:400">· '+esc(a.cidade)+'</span>':'')+' '+st+'</div>'+
-      '<div class="dt">'+(donos?'Dono: '+donos:(conv?'Dono ainda não entrou: '+esc(conv.nome||conv.email)+' · código <b>'+esc(conv.codigo)+'</b>':'<span class="t-bad">Sem dono</span>'))+'</div>'+
-      '<div class="dt">'+linha2+'</div></div><div class="acts">'+
-      (conv?'<button class="btn ghost sm" data-act="mZap" data-i="'+i+'">Reenviar ao dono</button>':'')+
-      '<button class="btn '+(a.ativa?'danger':'')+' sm" data-act="mAtivar" data-i="'+i+'">'+(conf?(a.ativa?'Toque de novo para suspender':'Toque de novo para reativar'):(a.ativa?'Suspender':'Reativar'))+'</button></div></div>';
-  }).join('')+'</div></section>';
-  h+='<p class="small muted">Suspender tira o acesso de todo mundo daquela academia na hora (os dados ficam guardados). Reativar devolve tudo como estava.</p>';
-  return h;
 }
 function telaPlacar(){
   return '<section class="panel"><span class="lbl">Em migração</span><h1 class="h2">Placar de Turnos</h1>'+
@@ -960,7 +909,6 @@ document.addEventListener('click',function(ev){
     if(d.tab==='equipe'){S.novoAcesso=null;carregarEquipe();}
     if(d.tab==='integracoes'){S.evoTrocar=false;carregarEvo();}
     if(d.tab==='painel'){carregarEvoDados();carregarContatos();}
-    if(d.tab==='master'){S.mNova=false;S.mFeito=null;carregarMaster();}
     if(d.tab==='contatos'){S.mostrar=40;carregarEvoDados();carregarContatos();}
     render();window.scrollTo(0,0);return;}
   if(d.acad){try{localStorage.setItem('fs-acad',d.acad);}catch(e){}location.reload();return;}
@@ -999,12 +947,6 @@ document.addEventListener('click',function(ev){
   var act=d.act;if(!act)return;
   if(act==='evoAtualizar'){evoAtualizar();return;}
   if(act==='novaUnidade'){S.novaUnidade=true;render();return;}
-  if(act==='mNova'){S.mNova=true;S.mFeito=null;render();return;}
-  if(act==='mCancel'){S.mNova=false;render();return;}
-  if(act==='mOk'){S.mFeito=null;render();return;}
-  if(act==='mZap'){var x;if(d.i==='feito')x=S.mFeito;else{var a=S.mAcads[+d.i],c=(a.convite_dono||[])[0];x={academia:a.nome,nome:c.nome,email:c.email,codigo:c.codigo};}wa(msgDono(x));return;}
-  if(act==='mAtivar'){var a2=S.mAcads[+d.i];if(S.confirma!=='m'+d.i){S.confirma='m'+d.i;render();return;}S.confirma=null;
-    sb.rpc('master_ativar',{a:a2.id,p_ativa:!a2.ativa}).then(function(r){if(r.error)toast(erroMsg(r.error));else toast(a2.ativa?'Academia suspensa.':'Academia reativada.');carregarMaster();});return;}
   if(act==='cancelUnidade'){S.novaUnidade=false;render();return;}
   if(act==='zapManual'){var m=MANUAIS[d.k];wa('Manual do FitStack · '+m[0]+':\n'+APP_URL+'/'+m[3]+'\n\nLeia com calma, é passo a passo.');return;}
   if(act==='mais'){S.mostrar=(S.mostrar||40)+40;render();return;}
