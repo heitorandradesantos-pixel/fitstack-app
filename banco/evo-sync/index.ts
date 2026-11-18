@@ -43,6 +43,8 @@ async function evo(cfg: Cfg, path: string, params: Record<string, unknown> = {})
     r = await fetch(u, { headers: { Authorization: "Basic " + btoa(cfg.dns + ":" + cfg.token), Accept: "application/json" } });
     txt = await r.text();
     // Limite de consultas: espera o que o EVO pedir (até 25 s) e tenta de novo, no máximo 3 esperas por busca
+    // Erro passageiro do EVO (500/502/503): tenta mais uma vez depois de 3 s
+    if (r.status >= 500 && tent < 1) { await dormir(3000); continue; }
     if (r.status === 429 && tent < 2 && (cfg.esperas || 0) < 3) {
       cfg.esperas = (cfg.esperas || 0) + 1;
       const ra = Number(r.headers.get("retry-after")) || 15;
@@ -53,7 +55,7 @@ async function evo(cfg: Cfg, path: string, params: Record<string, unknown> = {})
   }
   if (r.status === 401 || r.status === 403) throw new Error("O EVO recusou a chave. Confira o DNS e o token em Integrações.");
   if (r.status === 429) throw new Error("O EVO pediu para esperar (limite de consultas). Tente mais tarde.");
-  if (!r.ok) throw new Error(`O EVO respondeu com erro ${r.status} em ${path}.`);
+  if (!r.ok) throw new Error(`O EVO respondeu com erro ${r.status} em ${path}${params.skip ? " (a partir do " + params.skip + "º)" : ""}.`);
   let j: any;
   try { j = JSON.parse(txt); } catch { throw new Error(`Resposta inesperada do EVO em ${path}.`); }
   return Array.isArray(j) ? j : (j?.list ?? j?.data ?? j?.items ?? j?.result ?? j);
@@ -172,7 +174,9 @@ async function sincronizar(cfg: Cfg) {
     .sort((a, b) => a.dias - b.dias);
 
   // 3) Movimento do mês: matrículas (convertidos) e cancelamentos
-  const novos = await todas(cfg, "/api/v2/members", { conversionDateStart: iniMes, conversionDateEnd: hoje }, 10);
+  let novos: { itens: any[]; truncado: boolean } = { itens: [], truncado: false };
+  try { novos = await todas(cfg, "/api/v2/members", { conversionDateStart: iniMes, conversionDateEnd: hoje }, 10); }
+  catch (e) { avisos.push("Não deu para contar as matrículas do mês: " + (e as Error).message); }
   const canc: any[] = [];
   for (let p = 0; p < 12; p++) {
     const pag = await evo(cfg, "/api/v2/membermembership", { cancelDateStart: iniMes, cancelDateEnd: hoje, take: 25, skip: p * 25 });
