@@ -453,7 +453,7 @@ async function sondar(cfg: Cfg, extra?: any) {
     ["entries", "/api/v1/entries", { take: 25 }],
   ];
   const out: any = {};
-  const lista = Array.isArray(extra) ? extra.filter((x: any) => Array.isArray(x) && /^\/api\/v[12]\/(payables|receivables|costcenter|sales|bank-accounts)$/.test(String(x[1]))).slice(0, 12) : testes;
+  const lista = Array.isArray(extra) ? extra.filter((x: any) => Array.isArray(x) && /^\/api\/v[12]\/(payables|receivables|costcenter|sales|bank-accounts|members|configuration\/api-usage)$/.test(String(x[1]))).slice(0, 12) : testes;
   for (const [nome, path, params] of lista) {
     const u = new URL(EVO + path);
     for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
