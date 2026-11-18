@@ -164,9 +164,9 @@ async function sincronizar(cfg: Cfg) {
   }
   // Ex-alunos com dívida: busca o telefone deles (50 por consulta)
   const faltam = [...porDevedor.values()].filter((x) => x.id && !x.ativo).map((x) => x.id);
-  for (let i = 0; i < faltam.length && i < 500; i += 100) {
+  for (let i = 0; i < faltam.length && i < 500; i += 50) {
     try {
-      const ex = await evo(cfg, "/api/v2/members", { idsMembers: faltam.slice(i, i + 100).join(","), take: 100 });
+      const ex = await evo(cfg, "/api/v2/members", { idsMembers: faltam.slice(i, i + 50).join(","), take: 50 });
       for (const m of (Array.isArray(ex) ? ex : [])) { const x = porDevedor.get(String(m.idMember)); if (x) { x.tel = telDe(m); x.nome = nomeDe(m); } }
     } catch (_e) { avisos.push("Não deu para buscar o telefone de alguns ex-alunos."); break; }
   }
@@ -175,7 +175,7 @@ async function sincronizar(cfg: Cfg) {
 
   // 3) Movimento do mês: matrículas (convertidos) e cancelamentos
   let novos: { itens: any[]; truncado: boolean } = { itens: [], truncado: false };
-  try { novos = await todas(cfg, "/api/v2/members", { conversionDateStart: iniMes, conversionDateEnd: hoje }, 5, 100); }
+  try { novos = await todas(cfg, "/api/v2/members", { conversionDateStart: iniMes, conversionDateEnd: hoje }, 10); }
   catch (e) { avisos.push("Não deu para contar as matrículas do mês: " + (e as Error).message); }
   const canc: any[] = [];
   for (let p = 0; p < 12; p++) {
