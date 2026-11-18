@@ -447,7 +447,8 @@ function telaIntegracoes(){
   if(ev&&!trocando){
     h+='<h2 class="h2" style="margin-top:4px">✅ Chave do EVO salva</h2>'+
       '<p class="small" style="margin:8px 0 0">DNS: <b>'+esc(ev.dns)+'</b> · token terminando em <b>••••'+esc(ev.final||'')+'</b></p>'+
-      '<p class="small muted" style="margin:4px 0 0">Salva em '+dataHora(ev.atualizado_em)+'. '+(ev.ultima_sync?'Última busca no EVO: '+dataHora(ev.ultima_sync)+'. A busca automática roda todo dia às 05:40.':'A primeira busca ainda não rodou.')+'</p>'+
+      '<p class="small muted" style="margin:4px 0 0">Salva em '+dataHora(ev.atualizado_em)+'. '+(ev.ultima_sync?'Última busca no EVO: '+dataHora(ev.ultima_sync)+'. A busca automática roda 1 vez por dia, de madrugada; o financeiro, toda segunda.':'A primeira busca ainda não rodou.')+'</p>'+
+      (ev.consultas_mes!=null?'<p class="small" style="margin:8px 0 0">Consultas à API do EVO (conta '+esc(ev.dns)+', todas as unidades): <b>'+ev.consultas_hoje+' hoje</b> · <b>'+ev.consultas_mes+' neste mês</b>.</p>':'')+
       (ev.ultimo_erro?'<div class="msg erro" style="margin-top:10px">'+esc(ev.ultimo_erro)+'</div>':'')+
       '<p class="small muted" style="margin:10px 0 0">Por segurança, ninguém consegue ver a chave inteira de novo, nem você. Só o servidor usa ela.</p>'+
       '<div class="row" style="margin-top:14px"><button class="btn sm" data-act="evoAtualizar"'+(S.evoBuscando?' disabled':'')+'>'+(S.evoBuscando?'Buscando no EVO…':'Atualizar agora')+'</button><button class="btn ghost sm" data-act="evoTrocar">Trocar a chave</button>'+
@@ -1209,7 +1210,7 @@ function telaDre(){
   if(F.evo===undefined||F.receitas===null||F.mapa===null)return '<p class="muted">Carregando…</p>';
   var D=finDre(mes),P=finDre(finAddMes(mes,-1)),b=D.bruta;
   var h='<div class="row" style="justify-content:space-between;align-items:center;margin-top:4px"><p class="small muted" style="margin:0">'+
-    (F.evo?'Receita e contas do EVO atualizadas em '+dataHora(F.evoEm)+(D.ev&&D.ev.ate?' (até '+dBR(D.ev.ate)+')':'')+'. A busca roda sozinha todo dia de manhã cedo.':'Ainda não puxamos o financeiro do EVO.')+'</p>'+
+    (F.evo?'Receita e contas do EVO atualizadas em '+dataHora(F.evoEm)+(D.ev&&D.ev.ate?' (até '+dBR(D.ev.ate)+')':'')+'. A busca roda sozinha toda segunda de manhã.':'Ainda não puxamos o financeiro do EVO.')+'</p>'+
     '<button class="btn ghost sm" data-act="finEvo"'+(F.buscando?' disabled':'')+'>'+(F.buscando?'Buscando no EVO…':'Atualizar do EVO')+'</button></div>';
   h+='<div class="kpis"><div class="kpi"><span class="lbl">Receita do mês</span><div class="v sm">'+brl0(b)+'</div><div class="s">'+(P.bruta?((b>=P.bruta?'+':'')+finPct(b-P.bruta,P.bruta)+' vs. mês anterior'):'recebido no mês')+'</div></div>'+
     '<div class="kpi"><span class="lbl">Despesas</span><div class="v sm t-bad">'+brl0(D.despesas)+'</div><div class="s">'+finPct(D.despesas,b)+' da receita</div></div>'+

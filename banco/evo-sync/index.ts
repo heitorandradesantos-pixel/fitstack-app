@@ -412,7 +412,7 @@ async function sincronizarFinanceiro(cfg: Cfg) {
   const hoje = ymd(agoraBR()), atual = hoje.slice(0, 7);
   const anterior = ymd(new Date(Date.parse(atual + "-01") - DIA)).slice(0, 7);
   const fazer = [atual];
-  if (Number(hoje.slice(8, 10)) <= 10 || !meses[anterior]) fazer.push(anterior);
+  if (Number(hoje.slice(8, 10)) <= 7 || !meses[anterior]) fazer.push(anterior);
   // Completa o histórico aos poucos (1 mês antigo por vez, para não estourar o limite do EVO)
   for (let i = 2; i <= 6; i++) {
     const m = ymd(new Date(Date.UTC(Number(atual.slice(0, 4)), Number(atual.slice(5, 7)) - 1 - i, 1))).slice(0, 7);
@@ -517,8 +517,8 @@ Deno.serve(async (req) => {
     for (const a of alvos) {
       const { data: c } = await db.from("integracoes_evo").select("dns, token, ultima_sync").eq("academia_id", a).maybeSingle();
       if (!c) { saida.push({ academia_id: a, erro: "Chave do EVO não cadastrada." }); continue; }
-      if (!cron && !String(body.modo || "").startsWith("diag") && body.modo !== "fin" && c.ultima_sync && Date.now() - Date.parse(c.ultima_sync) < 10 * 60000) {
-        saida.push({ academia_id: a, erro: "Os dados foram atualizados há menos de 10 minutos. Espere um pouco." }); continue;
+      if (!cron && !String(body.modo || "").startsWith("diag") && body.modo !== "fin" && c.ultima_sync && Date.now() - Date.parse(c.ultima_sync) < 30 * 60000) {
+        saida.push({ academia_id: a, erro: "Os dados foram atualizados há menos de 30 minutos. Para economizar as consultas do EVO, espere um pouco." }); continue;
       }
       const cfg: Cfg = { academia_id: a, dns: c.dns, token: c.token, calls: 0 };
       try {
@@ -532,6 +532,8 @@ Deno.serve(async (req) => {
         const msg = (e as Error).message || "Erro desconhecido.";
         await db.from("integracoes_evo").update({ ultimo_erro: msg }).eq("academia_id", a);
         saida.push({ academia_id: a, erro: msg, consultas: cfg.calls });
+      } finally {
+        if (cfg.calls) await db.rpc("evo_somar", { p_dns: cfg.dns, p_n: cfg.calls });
       }
     }
     return resp({ resultado: saida });

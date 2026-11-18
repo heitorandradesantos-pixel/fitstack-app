@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
         const r = await fetch(`${EVO}/api/v2/members?idsMembers=${encodeURIComponent(String(idAluno))}&take=1`, {
           headers: { Authorization: "Basic " + btoa(integ.dns + ":" + integ.token), Accept: "application/json" },
         });
+        await db.rpc("evo_somar", { p_dns: integ.dns, p_n: 1 });
         if (r.ok) {
           const j = await r.json(); const m = Array.isArray(j) ? j[0] : null;
           if (m) { nome = [m.firstName, m.lastName].filter(Boolean).join(" ") || nome; tel = telDe(m) || tel; }
