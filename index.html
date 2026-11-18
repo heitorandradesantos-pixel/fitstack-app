@@ -128,6 +128,7 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .fincheck input[type=checkbox]{width:20px;height:20px;min-height:0;margin:0;flex:none;accent-color:var(--accent)}
 .fincheck label{display:flex;gap:8px;align-items:center}
 @media(max-width:600px){.tbl.dre th:nth-child(4),.tbl.dre td:nth-child(4){display:none}.tbl.dre td:first-child{white-space:normal}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
 <body>
@@ -1160,15 +1161,29 @@ function telaContas(){
   h+='</section>';
   // Lista
   var lista=aPagar.slice().sort(function(a,b){return String(a.vencimento).localeCompare(String(b.vencimento));}).concat(pagas.slice().sort(function(a,b){return String(b.pago_em).localeCompare(String(a.pago_em));}));
-  h+='<section class="panel"><span class="lbl">Contas de '+finMesNome(mes)+'</span>';
-  if(!lista.length)h+='<p class="muted small" style="margin:0">Nenhuma conta lançada neste mês.</p>';
-  else h+='<div class="lst">'+lista.map(function(c){var st=finStatus(c),conf=S.confirma==='fdel-'+c.id;
-    return '<div class="it'+(c.pago_em?' feito':'')+'"><div><div class="n">'+(c.risco?({verde:'🟢',amarelo:'🟡',vermelho:'🔴'}[c.risco])+' ':'')+esc(c.fornecedor||c.descricao||'Sem nome')+' · '+brl(c.valor)+'</div>'+
-      '<div class="dt">'+(c.centro?esc(c.centro)+' · ':'')+esc(finCatNome(c.centro?finCentroCat(c.centro):c.categoria))+(c.descricao&&c.fornecedor?' · '+esc(c.descricao):'')+(c.forma!=='outro'?' · '+(c.forma==='pix'?'Pix':'Boleto')+(c.codigo_fim?' final '+esc(c.codigo_fim):''):'')+'</div></div>'+
+  var semC=lista.filter(function(c){return !c.centro;}).length;
+  if(F.filtro==='sem')lista=lista.filter(function(c){return !c.centro;});
+  h+='<section class="panel"><span class="lbl">Contas de '+finMesNome(mes)+'</span>'+
+    '<div class="pills" style="margin:0 0 10px"><button data-finfiltro="todas" aria-pressed="'+(F.filtro!=='sem')+'">Todas</button><button data-finfiltro="sem" aria-pressed="'+(F.filtro==='sem')+'">Sem centro de custo ('+semC+')</button></div>';
+  if(!lista.length)h+='<p class="muted small" style="margin:0">'+(F.filtro==='sem'?'Todas as contas deste mês já têm centro de custo. 👍':'Nenhuma conta lançada neste mês.')+'</p>';
+  else h+='<div class="lst">'+lista.map(function(c){var st=finStatus(c),conf=S.confirma==='fdel-'+c.id,ed=F.edit===c.id,E=F.editD||{};
+    var linha='<div class="it'+(c.pago_em?' feito':'')+'" style="flex-wrap:wrap"><div style="min-width:0;flex:1 1 240px"><div class="n">'+(c.risco?({verde:'🟢',amarelo:'🟡',vermelho:'🔴'}[c.risco])+' ':'')+esc(c.fornecedor||c.descricao||'Sem nome')+' · '+brl(c.valor)+'</div>'+
+      '<div class="dt">'+esc(finCatNome(c.centro?finCentroCat(c.centro):c.categoria))+(c.descricao&&c.fornecedor?' · '+esc(c.descricao):'')+(c.forma!=='outro'?' · '+(c.forma==='pix'?'Pix':'Boleto')+(c.codigo_fim?' final '+esc(c.codigo_fim):''):'')+'</div>'+
+      '<label class="f" style="margin-top:6px;max-width:320px"><span class="sr">Centro de custo</span>'+finCentroSelect('data-fincentro="'+c.id+'" aria-label="Centro de custo"'+(c.centro?'':' style="border-color:var(--warn,#e7b03c)"'),c.centro||'')+'</label></div>'+
       '<div class="acts"><span class="chip '+st[0]+'">'+st[1]+'</span>'+
       (c.pago_em?'<button class="btn ghost sm" data-finpagar="'+c.id+'" data-v="0">Desfazer</button>':'<button class="btn sm" data-finpagar="'+c.id+'" data-v="1">Paguei</button>')+
       (c.comprovante?'<button class="btn ghost sm" data-fincomp="'+c.id+'">Comprovante</button>':'')+
-      '<button class="btn '+(conf?'danger':'ghost')+' sm" data-findel="'+c.id+'">'+(conf?'Confirmar exclusão':'Excluir')+'</button></div></div>';}).join('')+'</div>';
+      '<button class="btn ghost sm" data-finedit="'+c.id+'">'+(ed?'Fechar':'Editar')+'</button>'+
+      '<button class="btn '+(conf?'danger':'ghost')+' sm" data-findel="'+c.id+'">'+(conf?'Confirmar exclusão':'Excluir')+'</button></div>';
+    if(ed)linha+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;width:100%;margin-top:10px">'+
+      '<label class="f"><span>Fornecedor / quem recebeu</span><input data-fe="fornecedor" value="'+esc(E.fornecedor)+'"></label>'+
+      '<label class="f"><span>Valor</span><input data-fe="valor" inputmode="decimal" value="'+esc(E.valor)+'"></label>'+
+      '<label class="f"><span>Vencimento</span><input type="date" data-fe="vencimento" value="'+esc(E.vencimento)+'"></label>'+
+      '<label class="f"><span>Pago em (vazio = a pagar)</span><input type="date" data-fe="pago_em" value="'+esc(E.pago_em)+'"></label>'+
+      '<label class="f"><span>Descrição</span><input data-fe="descricao" value="'+esc(E.descricao)+'"></label>'+
+      '<label class="f"><span>Sem centro de custo: linha da DRE</span>'+finCatSelect('data-fe="categoria"',E.categoria)+'</label>'+
+      '</div><div class="row" style="width:100%;margin-top:10px"><button class="btn sm" data-act="finEditSalvar"'+(S.ocupado?' disabled':'')+'>Salvar alterações</button><button class="btn ghost sm" data-finedit="'+c.id+'">Cancelar</button></div>';
+    return linha+'</div>';}).join('')+'</div>';
   h+='</section>';
   return h;
 }
@@ -1405,6 +1420,15 @@ function finClique(d,b){
   if(d.act==='finImpLancar'){finImpLancar();return true;}
   if(d.act==='finImpLimpar'){if(F.imp)F.imp.itens=[];render();return true;}
   if(d.fincomp){finVerComp(d.fincomp);return true;}
+  if(d.finfiltro){F.filtro=d.finfiltro;render();return true;}
+  if(d.finedit){if(F.edit===d.finedit){F.edit=null;render();return true;}
+    var ce=(F.contas||[]).filter(function(x){return x.id===d.finedit;})[0];if(!ce)return true;
+    F.edit=ce.id;F.editD={fornecedor:ce.fornecedor||'',valor:String(Number(ce.valor).toFixed(2)).replace('.',','),vencimento:ce.vencimento||'',pago_em:ce.pago_em||'',descricao:ce.descricao||'',categoria:ce.categoria||'outros'};render();return true;}
+  if(d.act==='finEditSalvar'){var E=F.editD||{},v=finNum(E.valor);if(!(v>0)){toast('Informe o valor.');return true;}
+    var up={fornecedor:E.fornecedor||null,valor:v,vencimento:E.vencimento||E.pago_em||null,pago_em:E.pago_em||null,descricao:E.descricao||null};
+    var cc=(F.contas||[]).filter(function(x){return x.id===F.edit;})[0];if(cc&&!cc.centro)up.categoria=E.categoria||'outros';
+    S.ocupado=true;render();
+    sb.from('fin_contas').update(up).eq('id',F.edit).then(function(q){S.ocupado=false;if(q.error){toast(erroMsg(q.error));render();return;}toast('Lançamento atualizado.');F.edit=null;carregarFin();});return true;}
   if(d.finpagar){sb.from('fin_contas').update({pago_em:d.v==='1'?hojeBR():null}).eq('id',d.finpagar).then(function(q){if(q.error)toast(erroMsg(q.error));else toast(d.v==='1'?'Marcada como paga.':'Pagamento desfeito.');carregarFin();});return true;}
   if(d.findel){if(S.confirma!=='fdel-'+d.findel){S.confirma='fdel-'+d.findel;render();return true;}
     var cx=(F.contas||[]).filter(function(x){return x.id===d.findel;})[0];
@@ -1425,6 +1449,13 @@ function finChange(t){
   if(t.id==='finArq'&&t.files&&t.files[0]){finLerArquivo(t.files[0]);return true;}
   if(t.id==='finComp'&&t.files&&t.files.length){finImpLer(t.files);t.value='';return true;}
   if(t.dataset&&t.dataset.imp){return finImpCampo(t);}
+  if(t.dataset&&t.dataset.fe){S.fin.editD[t.dataset.fe]=t.value;return true;}
+  if(t.dataset&&t.dataset.fincentro){var id=t.dataset.fincentro,v=t.value;
+    if(v==='__novo'){S.fin.sub='dre';render();setTimeout(function(){var e=document.getElementById('finCentros');if(e)e.scrollIntoView({behavior:'smooth'});},80);toast('Crie o centro de custo aqui e volte em Contas a pagar.');return true;}
+    var c=(S.fin.contas||[]).filter(function(x){return x.id===id;})[0];if(!c)return true;
+    var up={centro:v||null};if(v)up.categoria=finCentroCat(v);
+    c.centro=v||null;if(v)c.categoria=up.categoria;render();
+    sb.from('fin_contas').update(up).eq('id',id).then(function(q){if(q.error){toast(erroMsg(q.error));carregarFin();}else toast(v?'Centro de custo: '+v+'.':'Centro de custo removido.');});return true;}
   if(t.dataset.fd==='centro'){if(t.value==='__novo'){S.fin.draft.centro='';S.fin.sub='dre';render();setTimeout(function(){var e=document.getElementById('finCentros');if(e){e.scrollIntoView({behavior:'smooth'});var i=e.querySelector('input[name=nome]');if(i)i.focus();}},80);toast('Crie o centro de custo aqui embaixo e volte em Contas a pagar.');return true;}finInput(t);render();return true;}
   if(t.dataset.fd==='cat'||t.dataset.fd==='confirmou'||t.dataset.fd==='venc'){finInput(t);return true;}
   if(t.dataset.finop){S.fin[t.dataset.finop]=t.checked;render();return true;}
@@ -1443,6 +1474,7 @@ view.addEventListener('input',function(ev){
   if(t.matches('textarea'))autoH(t);
   if(t.dataset&&t.dataset.fd!==undefined){finInput(t);return;}
   if(t.dataset&&t.dataset.imp&&t.dataset.k!=='incluir'&&t.dataset.k!=='centro'){finImpCampo(t);return;}
+  if(t.dataset&&t.dataset.fe&&S.fin&&S.fin.editD){S.fin.editD[t.dataset.fe]=t.value;return;}
   if(!e)return;
   if(t.dataset.ed){var k=t.dataset.ed;if(t.type==='checkbox'){e[k]=t.checked;render();}else{e[k]=t.value;if(k==='mod')render();}}
   else if(t.dataset.bnome!==undefined)e.blocos[+t.dataset.bnome].nome=t.value;
