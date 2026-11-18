@@ -1039,11 +1039,11 @@ function finStatus(c){
 function telaFinanceiro(){
   var F=S.fin;
   var h='<div><h1>Financeiro</h1><p class="lead" style="margin:6px 0 0">Confira boletos e Pix antes de pagar e veja a DRE da academia. Só dono e sócios veem esta aba.</p></div>';
-  h+='<div class="pills"><button data-finsub="contas" aria-pressed="'+(F.sub==='contas')+'">Contas a pagar</button><button data-finsub="dre" aria-pressed="'+(F.sub==='dre')+'">DRE</button></div>';
+  h+='<div class="pills"><button data-finsub="contas" aria-pressed="'+(F.sub==='contas')+'">Contas a pagar</button><button data-finsub="comp" aria-pressed="'+(F.sub==='comp')+'">Comprovantes</button><button data-finsub="dre" aria-pressed="'+(F.sub==='dre')+'">DRE</button></div>';
   h+='<div class="row" style="align-items:center;gap:10px"><button class="btn ghost sm" data-finmes="-1" aria-label="Mês anterior">‹</button><b style="min-width:170px;text-align:center">'+finMesNome(F.mes)+'</b><button class="btn ghost sm" data-finmes="1" aria-label="Próximo mês">›</button></div>';
   if(F.contas===null)return h+'<p class="muted">Carregando…</p>';
   if(F.erro)return h+'<div class="msg erro">O financeiro ainda está sendo ligado no servidor. Tente de novo mais tarde. ('+esc(F.erro)+')</div>';
-  return h+(F.sub==='dre'?telaDre():telaContas());
+  return h+(F.sub==='dre'?telaDre():F.sub==='comp'?telaComprovantes():telaContas());
 }
 // ---- Contas a pagar ----
 function finFornecedor(d){
@@ -1167,9 +1167,126 @@ function telaContas(){
       '<div class="dt">'+(c.centro?esc(c.centro)+' · ':'')+esc(finCatNome(c.centro?finCentroCat(c.centro):c.categoria))+(c.descricao&&c.fornecedor?' · '+esc(c.descricao):'')+(c.forma!=='outro'?' · '+(c.forma==='pix'?'Pix':'Boleto')+(c.codigo_fim?' final '+esc(c.codigo_fim):''):'')+'</div></div>'+
       '<div class="acts"><span class="chip '+st[0]+'">'+st[1]+'</span>'+
       (c.pago_em?'<button class="btn ghost sm" data-finpagar="'+c.id+'" data-v="0">Desfazer</button>':'<button class="btn sm" data-finpagar="'+c.id+'" data-v="1">Paguei</button>')+
+      (c.comprovante?'<button class="btn ghost sm" data-fincomp="'+c.id+'">Comprovante</button>':'')+
       '<button class="btn '+(conf?'danger':'ghost')+' sm" data-findel="'+c.id+'">'+(conf?'Confirmar exclusão':'Excluir')+'</button></div></div>';}).join('')+'</div>';
   h+='</section>';
   return h;
+}
+// ---- Comprovantes: importar PDFs do banco e lançar como contas pagas ----
+var FIN_REGRAS=[
+  [/copel|energia|eletric|celesc|cemig|enel|light\b|equatorial|neoenergia|cpfl/,['luz','energia'],'consumo'],
+  [/sanepar|saneamento|sabesp|casan|aguas? |\bagua\b|samae/,['água','agua'],'consumo'],
+  [/vivo|claro|\btim\b|\boi\b|internet|telecom|fibra|net\b|algar/,['internet','telefone'],'consumo'],
+  [/imobili|aluguel|locac|condomin/,['aluguel','condomínio','condominio'],'ocupacao'],
+  [/contab|contador|escritorio cont/,['contabilidade'],'sistemas'],
+  [/panobianco|franquia|royalt/,['royalties','royalty'],'royalties'],
+  [/kikos|equipament|fitness eq|movement|technogym/,['kikos','equipamentos'],'equipamentos'],
+  [/receita federal|simples nacional|\bdas\b|darf|prefeitura|iss\b/,['das','simples','impostos'],'impostos'],
+  [/fgts|caixa economica/,['fgts'],'folha'],
+  [/inss|previd|\bgps\b/,['inss'],'folha'],
+  [/w12|evo\b|abc evo/,['sistema','evo'],'sistemas'],
+  [/meta platforms|facebook|google|instagram|tiktok/,['propaganda e marketing','marketing'],'marketing']
+];
+function finSugerir(forn,doc){
+  var F=S.fin,cn=finSo(doc),nm=finNorm(forn),cs=finCentros().map(function(c){return c[0];});
+  var ant=(F.contas||[]).filter(function(c){return (cn.length>=11&&finSo(c.cnpj)===cn)||(nm&&finNorm(c.fornecedor)===nm);})[0];
+  if(ant)return {centro:ant.centro||'',cat:ant.categoria||'outros',de:'pagamentos anteriores'};
+  if(nm&&F.evo&&F.evo.meses){var achou=null;Object.keys(F.evo.meses).forEach(function(m){((F.evo.meses[m].despesas||{}).itens||[]).forEach(function(x){if(!achou&&x.forn&&finNorm(x.forn)&&(finNorm(x.forn)===nm||nm.indexOf(finNorm(x.forn))===0||finNorm(x.forn).indexOf(nm)===0))achou=x;});});
+    if(achou)return {centro:achou.centro,cat:finCentroCat(achou.centro),de:'contas do EVO'};}
+  for(var i=0;i<FIN_REGRAS.length;i++){var r=FIN_REGRAS[i];if(r[0].test(nm)){
+    var c=cs.filter(function(x){var n=finNorm(x);return r[1].some(function(k){return n===finNorm(k)||n.indexOf(finNorm(k))===0;});})[0];
+    return {centro:c||'',cat:c?finCentroCat(c):r[2],de:'nome do recebedor'};}}
+  return {centro:'',cat:'outros',de:''};
+}
+function finImpLer(files){
+  var F=S.fin;F.imp=F.imp||{itens:[]};var I=F.imp;var lista=[].slice.call(files).filter(function(f){return /pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);});
+  if(!lista.length){toast('Escolha arquivos em PDF.');return;}
+  I.lendo=(I.lendo||0)+lista.length;render();
+  import('./fin/comprovantes.mjs').then(function(M){
+    return lista.reduce(function(p,arq,ix){return p.then(function(){
+      return M.lerPdf(arq).then(function(res){
+        res.forEach(function(r){var c=r.campos||{};var sg=finSugerir(c.recebedor,c.documento);
+          var chave=c.codigo||c.linha||((c.valor||'')+'|'+(c.data||'')+'|'+finSo(c.documento)+'|'+finNorm(c.recebedor));
+          I.itens.push({id:'i'+Date.now()+Math.random().toString(36).slice(2,6),arq:arq,nomeArq:arq.name,pagina:r.pagina,paginas:r.paginas,tipo:c.tipo,
+            forn:c.recebedor||'',doc:c.documento||'',valor:c.valor!=null?String(c.valor.toFixed(2)).replace('.',','):'',data:c.data||'',centro:sg.centro,cat:sg.cat,de:sg.de,
+            chave:chave,fim:(c.codigo||c.linha||'').slice(-6),legivel:c.legivel,incluir:!!c.legivel});});
+      },function(){I.itens.push({id:'e'+ix+Date.now(),arq:arq,nomeArq:arq.name,erro:true,incluir:false,forn:'',valor:'',data:'',centro:'',cat:'outros'});})
+      .then(function(){I.lendo--;render();});});},Promise.resolve());
+  }).then(function(){return finImpHashes();}).then(function(){render();},function(e){I.lendo=0;toast('Não deu para ler os arquivos: '+(e&&e.message||e));render();});
+}
+function finImpHashes(){
+  var I=S.fin.imp,vistos={};
+  return Promise.all(I.itens.map(function(x){if(x.hash||x.erro)return null;return finHash('comp|'+x.chave).then(function(h){x.hash=h;});})).then(function(){
+    var exist={};(S.fin.contas||[]).forEach(function(c){if(c.codigo_hash)exist[c.codigo_hash]=c;});
+    I.itens.forEach(function(x){if(!x.hash)return;x.dup=exist[x.hash]?'já lançado em '+dBR(exist[x.hash].pago_em||exist[x.hash].vencimento):(vistos[x.hash]?'repetido nesta importação':'');vistos[x.hash]=1;if(x.dup)x.incluir=false;});
+  });
+}
+function finImpLancar(){
+  var F=S.fin,I=F.imp,A=S.atual.academia_id,sel=I.itens.filter(function(x){return x.incluir&&!x.erro;});
+  if(!sel.length){toast('Marque pelo menos um comprovante.');return;}
+  var ruim=sel.filter(function(x){return !(finNum(x.valor)>0)||!/^\d{4}-\d{2}-\d{2}$/.test(x.data);});
+  if(ruim.length){toast('Confira valor e data de '+ruim.length+' comprovante'+(ruim.length===1?'':'s')+' marcado'+(ruim.length===1?'':'s')+'.');return;}
+  S.ocupado=true;I.enviando=true;render();
+  var subidos=new Map();
+  function subir(arq,mes){if(subidos.has(arq))return subidos.get(arq);
+    var path=A+'/'+mes+'/'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2))+'.pdf';
+    var p=sb.storage.from('comprovantes').upload(path,arq,{contentType:'application/pdf',upsert:false}).then(function(r){return r.error?null:path;},function(){return null;});
+    subidos.set(arq,p);return p;}
+  Promise.all(sel.map(function(x){return subir(x.arq,x.data.slice(0,7)).then(function(path){
+    return {academia_id:A,descricao:'Comprovante '+({pix:'Pix',boleto:'boleto',transferencia:'transferência',conta:'conta de consumo/tributo'}[x.tipo]||'de pagamento')+(x.paginas>1?' (pág. '+x.pagina+')':''),
+      fornecedor:x.forn||null,cnpj:finSo(x.doc).length>=11&&finSo(x.doc).length<=14&&!/[*•]/.test(x.doc)?finSo(x.doc):null,categoria:x.centro?finCentroCat(x.centro):(x.cat||'outros'),centro:x.centro||null,
+      valor:finNum(x.valor),vencimento:x.data,pago_em:x.data,forma:x.tipo==='pix'?'pix':(x.tipo==='boleto'?'boleto':'outro'),codigo_hash:x.hash||null,codigo_fim:x.fim||null,
+      comprovante:path,comprovante_nome:x.nomeArq};});})).then(function(rows){
+    return sb.from('fin_contas').insert(rows).then(function(q){S.ocupado=false;I.enviando=false;
+      if(q.error){toast(erroMsg(q.error));render();return;}
+      var semArq=rows.filter(function(r){return !r.comprovante;}).length;
+      toast(rows.length+' pagamento'+(rows.length===1?'':'s')+' lançado'+(rows.length===1?'':'s')+'.'+(semArq?' '+semArq+' PDF não foi guardado.':''));
+      I.itens=I.itens.filter(function(x){return sel.indexOf(x)<0;});F.mes=rows[0].pago_em.slice(0,7);carregarFin();});
+  });
+}
+function telaComprovantes(){
+  var F=S.fin,I=F.imp||{itens:[]},it=I.itens;
+  var h='<section class="panel"><span class="lbl">Importar comprovantes de pagamento</span>'+
+    '<p class="small muted" style="margin:0 0 12px">Selecione os PDFs dos comprovantes do banco (Pix, boleto pago, transferência), vários de uma vez. O FitStack lê valor, data e quem recebeu, sugere o centro de custo e você confere antes de lançar. O PDF fica guardado junto com o lançamento.</p>'+
+    '<label class="btn" style="cursor:pointer">Escolher PDFs<input type="file" id="finComp" accept="application/pdf,.pdf" multiple style="display:none"></label>'+
+    (I.lendo?'<p class="small muted" style="margin:10px 0 0">Lendo '+I.lendo+' arquivo'+(I.lendo===1?'':'s')+'…</p>':'')+
+    '<p class="small muted" style="margin:10px 0 0">Comprovante em foto ou PDF escaneado não tem texto para ler: lance esses em Contas a pagar → Lançar sem código.</p></section>';
+  if(!it.length)return h;
+  var marc=it.filter(function(x){return x.incluir;}),soma=marc.reduce(function(s,x){return s+(finNum(x.valor)||0);},0);
+  h+='<section class="panel"><div class="row" style="justify-content:space-between;align-items:center"><span class="lbl" style="margin:0">Confira antes de lançar ('+it.length+')</span>'+
+    '<button class="btn ghost sm" data-act="finImpLimpar">Limpar lista</button></div>'+
+    '<div style="display:grid;gap:12px;margin-top:12px">'+it.map(function(x){
+      if(x.erro)return '<div class="it"><div><div class="n">⚠️ '+esc(x.nomeArq)+'</div><div class="dt">Não deu para abrir este PDF.</div></div></div>';
+      var alerta=x.dup?'<div class="small t-bad">Já existe: '+esc(x.dup)+'. Não vai ser lançado de novo.</div>':(!x.legivel?'<div class="small t-bad">Não achamos valor nem data neste PDF. Preencha à mão.</div>':'');
+      return '<div class="panel" style="margin:0;padding:12px;'+(x.incluir?'':'opacity:.65')+'">'+
+        '<label class="row small fincheck" style="gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:8px"><input type="checkbox" data-imp="'+x.id+'" data-k="incluir"'+(x.incluir?' checked':'')+(x.dup?' disabled':'')+'> <b style="overflow-wrap:anywhere">'+esc(x.nomeArq)+(x.paginas>1?' · pág. '+x.pagina:'')+'</b> <span class="chip">'+esc({pix:'Pix',boleto:'Boleto',transferencia:'Transferência',conta:'Conta/tributo'}[x.tipo]||'Pagamento')+'</span></label>'+alerta+
+        '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">'+
+        '<label class="f"><span>Quem recebeu</span><input data-imp="'+x.id+'" data-k="forn" value="'+esc(x.forn)+'"></label>'+
+        '<label class="f"><span>Valor</span><input data-imp="'+x.id+'" data-k="valor" inputmode="decimal" value="'+esc(x.valor)+'"></label>'+
+        '<label class="f"><span>Data do pagamento</span><input type="date" data-imp="'+x.id+'" data-k="data" value="'+esc(x.data)+'"></label>'+
+        '<label class="f"><span>Centro de custo</span>'+finCentroSelect('data-imp="'+x.id+'" data-k="centro"',x.centro)+'<small class="muted">'+(x.centro?'Vai para: '+esc(finCatNome(finCentroCat(x.centro))):'Sem centro: vai para '+esc(finCatNome(x.cat)))+(x.de?' · sugerido pelo '+esc(x.de):'')+'</small></label>'+
+        '</div></div>';}).join('')+'</div>'+
+    '<div class="row" style="margin-top:14px;align-items:center;justify-content:space-between"><span class="small"><b>'+marc.length+'</b> marcado'+(marc.length===1?'':'s')+' · <b>'+brl(soma)+'</b></span>'+
+    '<button class="btn" data-act="finImpLancar"'+(S.ocupado||I.lendo?' disabled':'')+'>'+(I.enviando?'Lançando…':'Lançar como pagos')+'</button></div></section>';
+  return h;
+}
+function finImpCampo(t){
+  var I=S.fin&&S.fin.imp;if(!I)return false;var x=I.itens.filter(function(i){return i.id===t.dataset.imp;})[0];if(!x)return false;
+  var k=t.dataset.k;
+  if(k==='incluir'){x.incluir=t.checked;render();return true;}
+  if(k==='centro'){if(t.value==='__novo'){S.fin.sub='dre';render();setTimeout(function(){var e=document.getElementById('finCentros');if(e)e.scrollIntoView({behavior:'smooth'});},80);toast('Crie o centro de custo aqui e volte em Comprovantes.');return true;}
+    x.centro=t.value;x.de='';
+    // mesmo recebedor na lista: aplica o mesmo centro
+    I.itens.forEach(function(o){if(o!==x&&!o.centro&&finNorm(o.forn)&&finNorm(o.forn)===finNorm(x.forn))o.centro=x.centro;});
+    render();return true;}
+  x[k]=t.value;return true;
+}
+function finVerComp(id){
+  var c=(S.fin.contas||[]).filter(function(x){return x.id===id;})[0];if(!c||!c.comprovante)return;
+  var w=window.open('','_blank');
+  sb.storage.from('comprovantes').createSignedUrl(c.comprovante,120).then(function(r){
+    if(r.error||!r.data){if(w)w.close();toast('Não deu para abrir o comprovante.');return;}
+    if(w)w.location=r.data.signedUrl;else location.href=r.data.signedUrl;});
 }
 // ---- DRE ----
 var FIN_FORMAS={'credit card':'Cartão de crédito','debit card':'Cartão de débito','deposit':'Pix / depósito','cash':'Dinheiro','sales credit':'Crédito de venda','bank slip':'Boleto','boleto':'Boleto','pix':'Pix','check':'Cheque','recurring credit card':'Cartão recorrente'};
@@ -1285,9 +1402,14 @@ function finClique(d,b){
   if(d.act==='finLimpar'){F.draft=finNovo();F.res=null;render();return true;}
   if(d.act==='finSalvar'){finSalvar(d.pago==='1',false);return true;}
   if(d.act==='finEvo'){finEvo();return true;}
+  if(d.act==='finImpLancar'){finImpLancar();return true;}
+  if(d.act==='finImpLimpar'){if(F.imp)F.imp.itens=[];render();return true;}
+  if(d.fincomp){finVerComp(d.fincomp);return true;}
   if(d.finpagar){sb.from('fin_contas').update({pago_em:d.v==='1'?hojeBR():null}).eq('id',d.finpagar).then(function(q){if(q.error)toast(erroMsg(q.error));else toast(d.v==='1'?'Marcada como paga.':'Pagamento desfeito.');carregarFin();});return true;}
   if(d.findel){if(S.confirma!=='fdel-'+d.findel){S.confirma='fdel-'+d.findel;render();return true;}
-    sb.from('fin_contas').delete().eq('id',d.findel).then(function(q){S.confirma=null;if(q.error)toast(erroMsg(q.error));else toast('Conta excluída.');carregarFin();});return true;}
+    var cx=(F.contas||[]).filter(function(x){return x.id===d.findel;})[0];
+    sb.from('fin_contas').delete().eq('id',d.findel).then(function(q){S.confirma=null;if(q.error)toast(erroMsg(q.error));else{toast('Conta excluída.');
+      if(cx&&cx.comprovante&&!(F.contas||[]).some(function(o){return o.id!==cx.id&&o.comprovante===cx.comprovante;}))sb.storage.from('comprovantes').remove([cx.comprovante]);}carregarFin();});return true;}
   if(d.fincdel){var cn=d.fincdel;if(S.confirma!=='cdel-'+cn){S.confirma='cdel-'+cn;render();return true;}
     sb.from('fin_mapa').delete().eq('academia_id',S.atual.academia_id).eq('centro',cn).then(function(q){S.confirma=null;if(q.error)toast(erroMsg(q.error));else toast('Centro de custo excluído.');carregarFin();});return true;}
   if(d.finrdel){if(S.confirma!=='rdel-'+d.finrdel){S.confirma='rdel-'+d.finrdel;render();return true;}
@@ -1301,6 +1423,8 @@ function finInput(t){
 function finChange(t){
   if(!S.fin)return false;
   if(t.id==='finArq'&&t.files&&t.files[0]){finLerArquivo(t.files[0]);return true;}
+  if(t.id==='finComp'&&t.files&&t.files.length){finImpLer(t.files);t.value='';return true;}
+  if(t.dataset&&t.dataset.imp){return finImpCampo(t);}
   if(t.dataset.fd==='centro'){if(t.value==='__novo'){S.fin.draft.centro='';S.fin.sub='dre';render();setTimeout(function(){var e=document.getElementById('finCentros');if(e){e.scrollIntoView({behavior:'smooth'});var i=e.querySelector('input[name=nome]');if(i)i.focus();}},80);toast('Crie o centro de custo aqui embaixo e volte em Contas a pagar.');return true;}finInput(t);render();return true;}
   if(t.dataset.fd==='cat'||t.dataset.fd==='confirmou'||t.dataset.fd==='venc'){finInput(t);return true;}
   if(t.dataset.finop){S.fin[t.dataset.finop]=t.checked;render();return true;}
@@ -1318,6 +1442,7 @@ view.addEventListener('input',function(ev){
   var t=ev.target,e=S.ed;
   if(t.matches('textarea'))autoH(t);
   if(t.dataset&&t.dataset.fd!==undefined){finInput(t);return;}
+  if(t.dataset&&t.dataset.imp&&t.dataset.k!=='incluir'&&t.dataset.k!=='centro'){finImpCampo(t);return;}
   if(!e)return;
   if(t.dataset.ed){var k=t.dataset.ed;if(t.type==='checkbox'){e[k]=t.checked;render();}else{e[k]=t.value;if(k==='mod')render();}}
   else if(t.dataset.bnome!==undefined)e.blocos[+t.dataset.bnome].nome=t.value;
