@@ -564,7 +564,7 @@ function telaPainel(){
   if(hist.length>1){
     h+='<section class="panel"><span class="lbl">Evolução dia a dia</span><div class="scrollx"><table class="tbl"><thead><tr><th>Dia</th><th>Ativos</th><th>Sumidos 7+</th><th>Em atraso</th><th>Matrículas mês</th><th>Cancel. mês</th></tr></thead><tbody>'+
       hist.map(function(x){return '<tr><td>'+dBR(x.dia)+'</td><td>'+x.ativos+'</td><td>'+(x.sumidos7+x.sumidos15+x.sumidos30)+'</td><td>'+brl0(x.inadValor)+'</td><td>'+x.matriculasMes+'</td><td>'+x.canceladosMes+'</td></tr>';}).join('')+'</tbody></table></div></section>';
-  }else h+='<p class="small muted">A partir de amanhã aparece aqui a evolução dia a dia (a busca roda todo dia às 05:40).</p>';
+  }else h+='<p class="small muted">A partir de amanhã aparece aqui a evolução dia a dia (a busca roda todo dia de madrugada).</p>';
   if(r.avisos&&r.avisos.length)h+='<div class="msg">'+r.avisos.map(esc).join('<br>')+'</div>';
   return h;
 }
