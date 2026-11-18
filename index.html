@@ -1209,7 +1209,7 @@ function telaDre(){
   if(F.evo===undefined||F.receitas===null||F.mapa===null)return '<p class="muted">Carregando…</p>';
   var D=finDre(mes),P=finDre(finAddMes(mes,-1)),b=D.bruta;
   var h='<div class="row" style="justify-content:space-between;align-items:center;margin-top:4px"><p class="small muted" style="margin:0">'+
-    (F.evo?'Receita e contas do EVO atualizadas em '+dataHora(F.evoEm)+(D.ev&&D.ev.ate?' (até '+dBR(D.ev.ate)+')':'')+'. A busca roda sozinha todo dia às 06:10.':'Ainda não puxamos o financeiro do EVO.')+'</p>'+
+    (F.evo?'Receita e contas do EVO atualizadas em '+dataHora(F.evoEm)+(D.ev&&D.ev.ate?' (até '+dBR(D.ev.ate)+')':'')+'. A busca roda sozinha todo dia de manhã cedo.':'Ainda não puxamos o financeiro do EVO.')+'</p>'+
     '<button class="btn ghost sm" data-act="finEvo"'+(F.buscando?' disabled':'')+'>'+(F.buscando?'Buscando no EVO…':'Atualizar do EVO')+'</button></div>';
   h+='<div class="kpis"><div class="kpi"><span class="lbl">Receita do mês</span><div class="v sm">'+brl0(b)+'</div><div class="s">'+(P.bruta?((b>=P.bruta?'+':'')+finPct(b-P.bruta,P.bruta)+' vs. mês anterior'):'recebido no mês')+'</div></div>'+
     '<div class="kpi"><span class="lbl">Despesas</span><div class="v sm t-bad">'+brl0(D.despesas)+'</div><div class="s">'+finPct(D.despesas,b)+' da receita</div></div>'+

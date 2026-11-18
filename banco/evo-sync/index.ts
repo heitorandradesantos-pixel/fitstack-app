@@ -32,15 +32,25 @@ const soData = (v: unknown): string | null => {
 const diasEntre = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / DIA);
 
 // ---------- EVO ----------
-type Cfg = { academia_id: string; dns: string; token: string; calls: number };
+type Cfg = { academia_id: string; dns: string; token: string; calls: number; esperas?: number };
+const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function evo(cfg: Cfg, path: string, params: Record<string, unknown> = {}) {
   const u = new URL(EVO + path);
   for (const [k, v] of Object.entries(params)) if (v !== null && v !== undefined && v !== "") u.searchParams.set(k, String(v));
-  cfg.calls++;
-  const r = await fetch(u, {
-    headers: { Authorization: "Basic " + btoa(cfg.dns + ":" + cfg.token), Accept: "application/json" },
-  });
-  const txt = await r.text();
+  let r: Response, txt = "";
+  for (let tent = 0; ; tent++) {
+    cfg.calls++;
+    r = await fetch(u, { headers: { Authorization: "Basic " + btoa(cfg.dns + ":" + cfg.token), Accept: "application/json" } });
+    txt = await r.text();
+    // Limite de consultas: espera o que o EVO pedir (até 25 s) e tenta de novo, no máximo 3 esperas por busca
+    if (r.status === 429 && tent < 2 && (cfg.esperas || 0) < 3) {
+      cfg.esperas = (cfg.esperas || 0) + 1;
+      const ra = Number(r.headers.get("retry-after")) || 15;
+      await dormir(Math.min(25, Math.max(5, ra)) * 1000);
+      continue;
+    }
+    break;
+  }
   if (r.status === 401 || r.status === 403) throw new Error("O EVO recusou a chave. Confira o DNS e o token em Integrações.");
   if (r.status === 429) throw new Error("O EVO pediu para esperar (limite de consultas). Tente mais tarde.");
   if (!r.ok) throw new Error(`O EVO respondeu com erro ${r.status} em ${path}.`);
@@ -478,8 +488,19 @@ Deno.serve(async (req) => {
     if (cron) {
       const { data } = await db.from("sistema_segredos").select("valor").eq("nome", "cron").maybeSingle();
       if (!data || data.valor !== cron) return resp({ erro: "Não autorizado." }, 401);
-      const { data: todasAc } = await db.from("integracoes_evo").select("academia_id");
-      alvos = (todasAc || []).map((x) => x.academia_id);
+      // Uma academia por chamada (o limite do EVO é por conta, e várias unidades podem dividir a mesma conta).
+      // O agendamento chama várias vezes de madrugada; cada vez pega quem está há mais tempo sem atualizar.
+      const fin = body.modo === "fin";
+      const { data: lista } = await db.from("integracoes_evo").select("academia_id, ultima_sync, ultima_tentativa, ultima_tentativa_fin");
+      const { data: fins } = fin ? await db.from("evo_dados").select("academia_id, atualizado_em").eq("chave", "financeiro") : { data: [] as any[] };
+      const finEm: Record<string, string> = {}; (fins || []).forEach((x: any) => { finEm[x.academia_id] = x.atualizado_em; });
+      const velho = (d: string | null | undefined, h: number) => !d || Date.now() - Date.parse(d) > h * 3600000;
+      const cand = (lista || []).filter((x: any) => (fin ? velho(finEm[x.academia_id], 12) : velho(x.ultima_sync, 12)) &&
+          velho(fin ? x.ultima_tentativa_fin : x.ultima_tentativa, 10 / 60))
+        .sort((a: any, b: any) => String((fin ? finEm[a.academia_id] : a.ultima_sync) || "").localeCompare(String((fin ? finEm[b.academia_id] : b.ultima_sync) || "")));
+      if (!cand.length) return resp({ resultado: [], nada: true });
+      alvos = [cand[0].academia_id];
+      await db.from("integracoes_evo").update(fin ? { ultima_tentativa_fin: new Date().toISOString() } : { ultima_tentativa: new Date().toISOString() }).eq("academia_id", alvos[0]);
     } else {
       const auth = req.headers.get("Authorization") || "";
       if (!body.academia_id) return resp({ erro: "Academia não informada." }, 400);
