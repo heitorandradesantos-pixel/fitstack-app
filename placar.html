@@ -146,7 +146,7 @@ input:disabled,textarea:disabled,select:disabled{opacity:.7}
 .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
 .datenav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .datenav input{width:auto;min-width:150px}
-.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.grid3{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:16px;align-items:start}
 .turno{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;min-width:0}
 .th{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .tn{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.04em;line-height:1}
@@ -267,6 +267,8 @@ details.fold[open]>summary::after{content:"−"}
   .score-n{font-size:52px}
 }
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+.dupla{display:flex;gap:10px;align-items:flex-start;margin:12px 0;padding:12px;border:1px solid var(--line,#ddd);border-radius:12px;font-size:14px;line-height:1.4}
+.dupla input{width:20px;height:20px;flex:none;margin-top:1px}
 </style>
 <style>html,body{margin:0}[hidden]{display:none!important}.voltar{color:var(--muted);font-size:13px;text-decoration:none;font-weight:600}.voltar:hover{color:var(--fg)}</style>
 </head>
@@ -360,12 +362,25 @@ function criarDb(acad){
 }
 
 
-const TURNOS=[
+const TURNOS_BASE=[
   {k:'manha',nome:'Manhã',horario:'5h às 11h',foco:'Parabéns até as 10h. Depois cobrança dos inadimplentes e retorno a quem visitou e não fechou.'},
   {k:'tarde',nome:'Tarde',horario:'11h às 17h',foco:'Encher a agenda: prospecção, alunos sumidos e visitas marcadas para os próximos dias.'},
   {k:'noite',nome:'Noite',horario:'17h às 23h',foco:'Horário cheio. Atender bem quem chega, converter a visita e pedir indicação para quem está treinando.'}
 ];
-const TN={manha:'Manhã',tarde:'Tarde',noite:'Noite'};
+// Duas recepcionistas à noite: cada uma com o próprio turno, metas e pontos (ganham do mesmo jeito)
+const NOITE_DUPLA=[
+  {k:'noite',nome:'Noite 1',horario:'17h às 23h',foco:'Balcão e vendas: atender quem chega, converter a visita e pedir indicação para quem está treinando.'},
+  {k:'noite2',nome:'Noite 2',horario:'17h às 23h',foco:'Relacionamento: cobrança dos inadimplentes, alunos sumidos e Instagram. Ajuda no balcão quando encher.'}
+];
+let TURNOS=TURNOS_BASE.slice();
+const TN={manha:'Manhã',tarde:'Tarde',noite:'Noite',noite2:'Noite 2'};
+function aplicarTurnos(cfg){
+  TURNOS=cfg&&cfg.noiteDupla?TURNOS_BASE.slice(0,2).concat(NOITE_DUPLA):TURNOS_BASE.slice();
+  TN.noite=cfg&&cfg.noiteDupla?'Noite 1':'Noite';
+  if(S&&S.turnoRec&&!TURNOS.some(function(T){return T.k===S.turnoRec;}))S.turnoRec='noite';
+  if(S&&S.turnoRec==='noite'&&cfg&&cfg.noiteDupla&&ls('placar.noite')==='noite2')S.turnoRec='noite2';
+}
+const TODOS_TURNOS=['manha','tarde','noite','noite2'];
 const CAMPOS={
   aniv:{label:'Parabéns aos aniversariantes',curto:'Parabéns',ajuda:'Aniversariantes do dia no EVO. Todos recebem parabéns até as 10h. A meta é em %.'},
   inad:{label:'Inadimplentes cobrados',curto:'Inadimplentes',ajuda:'Contato pelo WhatsApp ou telefone da academia, com a lista do EVO.'},
@@ -379,15 +394,18 @@ const CAMPOS={
 const ORDEM={
   manha:['aniv','inad','followup','indicacoes','insta','prospec','ausentes','agendadas'],
   tarde:['prospec','insta','ausentes','agendadas','indicacoes','followup','inad','aniv'],
-  noite:['indicacoes','followup','inad','insta','prospec','ausentes','agendadas','aniv']
+  noite:['indicacoes','followup','inad','insta','prospec','ausentes','agendadas','aniv'],
+  noite2:['inad','ausentes','insta','indicacoes','followup','prospec','agendadas','aniv']
 };
 const PADRAO={
   metas:{
     manha:{aniv:100,inad:15,followup:15,indicacoes:3,insta:5},
     tarde:{prospec:20,insta:5,ausentes:10,agendadas:3,indicacoes:3},
-    noite:{indicacoes:4,followup:5}
+    noite:{indicacoes:4,followup:5},
+    noite2:{inad:10,ausentes:10,insta:5,indicacoes:2}
   },
-  prazos:{manha:'11:00',tarde:'17:00',noite:'23:00',gerente:'10:00'},
+  prazos:{manha:'11:00',tarde:'17:00',noite:'23:00',noite2:'23:00',gerente:'10:00'},
+  noiteDupla:false,
   gerenteNome:'Rafael',
   unidade:'Paranavaí',
   extras:{}
@@ -411,7 +429,8 @@ function dsem(s){return DS[parseD(s).getDay()];}
 function quando(s,hhmm){const d=parseD(s);const p=String(hhmm||'00:00').split(':').map(Number);d.setHours(p[0]||0,p[1]||0,0,0);return d;}
 function hora(x){const d=new Date(x);return pad(d.getHours())+':'+pad(d.getMinutes());}
 function dataHora(x){return fmtData(iso(new Date(x)))+' às '+hora(x);}
-function turnoAgora(){const d=new Date();const h=d.getHours()+d.getMinutes()/60;return h<11?'manha':h<17?'tarde':'noite';}
+function turnoAgora(){const d=new Date();const h=d.getHours()+d.getMinutes()/60;const t=h<11?'manha':h<17?'tarde':'noite';
+  if(t==='noite'&&TURNOS.some(function(T){return T.k==='noite2';})&&ls('placar.noite')==='noite2')return 'noite2';return t;}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function brl(n){return (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
 function moneyIn(n){return (Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -432,7 +451,8 @@ async function hashSenha(tipo,val){
 function mergeCfg(d){
   const c=clone(PADRAO);
   if(d){
-    if(d.metas)['manha','tarde','noite'].forEach(function(t){if(d.metas[t])c.metas[t]=Object.assign({},d.metas[t]);});
+    if(d.metas)TODOS_TURNOS.forEach(function(t){if(d.metas[t])c.metas[t]=Object.assign({},d.metas[t]);});
+    c.noiteDupla=!!d.noiteDupla;
     if(d.prazos)Object.assign(c.prazos,d.prazos);
     if(d.gerenteNome)c.gerenteNome=String(d.gerenteNome);
     if(d.unidade)c.unidade=String(d.unidade);
@@ -443,8 +463,8 @@ function mergeCfg(d){
 const CAMPOS_BASE=Object.keys(CAMPOS);
 function aplicarExtras(cfg){
   Object.keys(CAMPOS).forEach(function(k){if(CAMPOS_BASE.indexOf(k)<0&&!(cfg.extras&&cfg.extras[k]))delete CAMPOS[k];});
-  ['manha','tarde','noite'].forEach(function(t){ORDEM[t]=ORDEM[t].filter(function(k){return CAMPOS_BASE.indexOf(k)>=0||(cfg.extras&&cfg.extras[k]);});});
-  Object.keys(cfg.extras||{}).forEach(function(k){const x=cfg.extras[k];CAMPOS[k]={label:x.label,curto:x.curto||x.label,ajuda:x.ajuda||''};['manha','tarde','noite'].forEach(function(t){if(ORDEM[t].indexOf(k)<0)ORDEM[t].push(k);});});
+  TODOS_TURNOS.forEach(function(t){ORDEM[t]=ORDEM[t].filter(function(k){return CAMPOS_BASE.indexOf(k)>=0||(cfg.extras&&cfg.extras[k]);});});
+  Object.keys(cfg.extras||{}).forEach(function(k){const x=cfg.extras[k];CAMPOS[k]={label:x.label,curto:x.curto||x.label,ajuda:x.ajuda||''};TODOS_TURNOS.forEach(function(t){if(ORDEM[t].indexOf(k)<0)ORDEM[t].push(k);});});
 }
 function rotuloCampo(k,cfgA,cfgB){if(CAMPOS[k])return CAMPOS[k].label;const x=(cfgA&&cfgA.extras&&cfgA.extras[k])||(cfgB&&cfgB.extras&&cfgB.extras[k]);return x?x.label:k;}
 function mergeCom(d){
@@ -591,7 +611,7 @@ function somaDia(D){
 function nomeDe(id){if(!id)return '';const p=S.prof[id];return p&&p.name?p.name:'';}
 
 /* ---------- comissão ---------- */
-const TI={manha:0,tarde:1,noite:2};
+const TI={manha:0,tarde:1,noite:2,noite2:3};
 function chaveNome(n){return String(n||'').trim().replace(/\s+/g,' ').toLowerCase();}
 function addMes(ym,n){const p=ym.split('-').map(Number);const d=new Date(p[0],p[1]-1+n,1);return d.getFullYear()+'-'+pad(d.getMonth()+1);}
 function nomeMes(ym){const p=ym.split('-').map(Number);return MESES[p[1]-1];}
@@ -741,8 +761,8 @@ async function removerGerencia(id){
 async function salvarMetas(){
   const c=S.metasDraft||clone(S.cfg);
   const metas={};TURNOS.forEach(function(T){metas[T.k]={};listaCampos(c).forEach(function(k){const n=num(c.metas[T.k]&&c.metas[T.k][k]);if(n>0)metas[T.k][k]=n;});});
-  const body={extras:clone(c.extras||{}),metas:metas,prazos:Object.assign({},c.prazos),gerenteNome:String(c.gerenteNome||'Gerente').trim()||'Gerente',unidade:String(c.unidade||'').trim()||PADRAO.unidade,atualizadoEm:new Date().toISOString()};
-  try{await writeRetry(function(){return S.db.doc('config/metas').set(body);});S.cfg=mergeCfg(body);aplicarExtras(S.cfg);S.metasDraft=null;toast(S.isOwner?'Metas salvas. Já valem para todos.':'Metas salvas. Já valem para todos, e a mudança ficou registrada para o dono.');carregarHistorico();}
+  const body={extras:clone(c.extras||{}),metas:metas,noiteDupla:!!c.noiteDupla,prazos:Object.assign({},c.prazos),gerenteNome:String(c.gerenteNome||'Gerente').trim()||'Gerente',unidade:String(c.unidade||'').trim()||PADRAO.unidade,atualizadoEm:new Date().toISOString()};
+  try{await writeRetry(function(){return S.db.doc('config/metas').set(body);});S.cfg=mergeCfg(body);aplicarExtras(S.cfg);aplicarTurnos(S.cfg);S.metasDraft=null;toast(S.isOwner?'Metas salvas. Já valem para todos.':'Metas salvas. Já valem para todos, e a mudança ficou registrada para o dono.');carregarHistorico();}
   catch(e){writeErr(e);return;}
   render();
 }
@@ -763,7 +783,7 @@ function relatorioTexto(D){
   const cump=sts.filter(function(s){return s.s==='ok';}).length;
   const L=[];
   L.push('*Panobianco '+S.cfg.unidade+' · '+DSL[parseD(D).getDay()]+' '+fmtData(D)+'*');
-  L.push('Dever de casa: '+cump+' de 3 turnos cumpriram a meta');
+  L.push('Dever de casa: '+cump+' de '+TURNOS.length+' turnos cumpriram a meta');
   L.push('');
   TURNOS.forEach(function(T,i){
     const st=sts[i],cs=css[i];
@@ -1057,7 +1077,7 @@ function viewGerente(){
   h+=pend.length?'<div class="banner warn"><b>'+pend.length+(pend.length>1?' turnos esperando':' turno esperando')+(souGerente?' sua conferência':' conferência do gerente')+'</b><div class="chips">'+
     pend.map(function(p){return '<button class="chip t-'+(p.s==='falhou'?'bad':'warn')+'" data-act="ir-ger" data-d="'+p.day+'">'+dsem(p.day)+' '+fmtData(p.day)+' · '+TN[p.t]+'</button>';}).join('')+'</div></div>'
     :'<div class="banner ok">Nenhum turno pendente de conferência nos últimos 7 dias.</div>';
-  h+='<div class="grid3">'+TURNOS.map(function(T){return cardTurno(D,T.k,souGerente?'gerente':'leitura');}).join('')+'</div>';
+  h+='<div class="grid3" style="--n:'+TURNOS.length+'">'+TURNOS.map(function(T){return cardTurno(D,T.k,souGerente?'gerente':'leitura');}).join('')+'</div>';
   if(!S.isOwner&&pode('placar_gestao'))h+=metasHtml();
   h+='<p class="muted small">Regra: turno abaixo de 90% ou fechado fora do prazo exige cobrança registrada. Prazo de conferência: até '+esc(S.cfg.prazos.gerente)+' do dia seguinte. O dono acompanha cada conferência em tempo real.</p>';
   return h;
@@ -1156,15 +1176,17 @@ function listaCampos(c){return CAMPOS_BASE.concat(Object.keys((c&&c.extras)||{})
 function metasHtml(){
   const c=S.metasDraft||S.cfg;
   const thRow='style="font-family:var(--body);text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;white-space:normal"';
+  const TT=c.noiteDupla?TURNOS_BASE.slice(0,2).concat(NOITE_DUPLA):TURNOS_BASE;
   let h='<details class="panel fold" data-keep="metas"'+(S.open.metas?' open':'')+'><summary><span class="h2">Metas e prazos</span><span class="muted small">Dever de casa de cada turno</span></summary>'+
-    '<div class="tablewrap"><table class="mt-table"><thead><tr><th scope="col">Atividade</th>'+TURNOS.map(function(T){return '<th scope="col">'+T.nome+'<br><span class="muted">'+T.horario+'</span></th>';}).join('')+'</tr></thead><tbody>';
+    '<label class="dupla"><input type="checkbox" data-dupla="1"'+(c.noiteDupla?' checked':'')+'> <span><b>2 recepcionistas à noite</b> (Noite 1 e Noite 2). Cada uma tem o próprio turno, metas e pontos, e entram na comissão do mesmo jeito. Divida as funções da noite entre as duas colunas.</span></label>'+
+    '<div class="tablewrap"><table class="mt-table"><thead><tr><th scope="col">Atividade</th>'+TT.map(function(T){return '<th scope="col">'+T.nome+'<br><span class="muted">'+T.horario+'</span></th>';}).join('')+'</tr></thead><tbody>';
   listaCampos(c).forEach(function(kk){
     const ex=c.extras&&c.extras[kk];
     h+='<tr><th scope="row" '+thRow+'>'+esc(ex?ex.label:CAMPOS[kk].label)+(kk==='aniv'?' (%)':'')+(ex?' <button type="button" class="btn ghost sm" data-act="x-del" data-k="'+esc(kk)+'" style="margin-left:6px">Remover</button>':'')+'</th>'+
-      TURNOS.map(function(T){return '<td><input type="number" min="0" step="1" inputmode="numeric" id="m-'+T.k+'-'+kk+'" data-meta="'+T.k+'.'+kk+'" value="'+num(c.metas[T.k]&&c.metas[T.k][kk])+'" aria-label="'+esc((ex?ex.label:CAMPOS[kk].curto)+' '+T.nome)+'"></td>';}).join('')+'</tr>';
+      TT.map(function(T){return '<td><input type="number" min="0" step="1" inputmode="numeric" id="m-'+T.k+'-'+kk+'" data-meta="'+T.k+'.'+kk+'" value="'+num(c.metas[T.k]&&c.metas[T.k][kk])+'" aria-label="'+esc((ex?ex.label:CAMPOS[kk].curto)+' '+T.nome)+'"></td>';}).join('')+'</tr>';
   });
   h+='<tr><th scope="row" '+thRow+'>Fechar o turno até</th>'+
-    TURNOS.map(function(T){return '<td><input type="time" id="p-'+T.k+'" data-prazo="'+T.k+'" value="'+esc(c.prazos[T.k])+'" aria-label="Prazo '+T.nome+'"></td>';}).join('')+'</tr></tbody></table></div>';
+    TT.map(function(T){return '<td><input type="time" id="p-'+T.k+'" data-prazo="'+T.k+'" value="'+esc(c.prazos[T.k])+'" aria-label="Prazo '+T.nome+'"></td>';}).join('')+'</tr></tbody></table></div>';
   h+='<div class="metas-foot"><div><label class="lbl" for="p-gerente">Gerente confere até</label><input type="time" id="p-gerente" data-prazo="gerente" value="'+esc(c.prazos.gerente)+'"></div>'+
     '<div><label class="lbl" for="g-nome">Nome do gerente</label><input id="g-nome" data-gnome="1" value="'+esc(c.gerenteNome)+'"></div>'+
     '<div><label class="lbl" for="u-nome">Unidade</label><input id="u-nome" data-unidade="1" value="'+esc(c.unidade)+'"></div>'+
@@ -1190,7 +1212,7 @@ function viewDono(){
   const confOk=precisa.filter(function(c){return c.s==='ok';}).length;
   const pendG=css.filter(function(c){return c.s==='pendente';}).length;
   const kpis=[
-    {k:'Dever de casa',v:cump+'/3',s:'turnos cumpriram a meta',t:fechados?(cump===fechados?'ok':cump===0?'bad':'warn'):'idle'},
+    {k:'Dever de casa',v:cump+'/'+TURNOS.length,s:'turnos cumpriram a meta',t:fechados?(cump===fechados?'ok':cump===0?'bad':'warn'):'idle'},
     {k:'Gerente',v:confOk+'/'+precisa.length,s:precisa.length?'conferências certas'+(pendG?' · '+pendG+' no prazo':''):(pendG?pendG+' aguardando até '+S.cfg.prazos.gerente+' de '+fmtData(addDias(D,1)):'nada para conferir ainda'),t:precisa.length?(confOk===precisa.length?'ok':precisa.some(function(c){return c.s==='falhou';})?'bad':'warn'):'idle'},
     {k:'Matrículas',v:sm.matriculas,s:sm.visitas+' visitas · '+(sm.visitas?pc(sm.matriculas/sm.visitas)+' de conversão':'sem visitas'),t:'idle'},
     {k:'Indicações',v:sm.indicacoes,s:'meta do dia: '+sm.metaInd,t:fechados?tomP(sm.indicacoes/Math.max(1,sm.metaInd)):'idle'},
@@ -1202,7 +1224,7 @@ function viewDono(){
   if(faltaSenha)h+='<div class="banner warn"><b>Crie as senhas antes de compartilhar.</b><span>Sem a senha do gerente, ninguém entra na área do gerente. Sem a sua, Gerente e Dono abrem direto na sua conta.</span></div>'+acessosHtml();
   if(S.dbState==='on'&&S.registros.size===0)h+='<div class="banner">Nenhum turno registrado ainda. Assim que a recepção começar a preencher, os números aparecem aqui ao vivo.</div>';
   h+='<div class="kpis">'+kpis.map(function(x){return '<div class="kpi"><span class="lbl">'+x.k+'</span><div class="v num c-'+x.t+(x.money?' money':'')+'">'+esc(x.v)+'</div><div class="s">'+esc(x.s)+'</div></div>';}).join('')+'</div>';
-  h+='<div class="grid3">'+TURNOS.map(function(T){return cardTurno(D,T.k,'leitura');}).join('')+'</div>';
+  h+='<div class="grid3" style="--n:'+TURNOS.length+'">'+TURNOS.map(function(T){return cardTurno(D,T.k,'leitura');}).join('')+'</div>';
   h+=comissaoResumo();
   h+='<div class="two">'+boardSemana(D)+cardGerente(D)+'</div>';
   h+=escadaHtml();
@@ -1232,7 +1254,7 @@ function diffConfig(doc,a,b){
     });
   });
   const pa=a.prazos||{},pb=b.prazos||{};
-  ['manha','tarde','noite','gerente'].forEach(function(k){if((pa[k]||'')!==(pb[k]||'')&&(pa[k]||pb[k]))L.push((k==='gerente'?'Prazo do gerente':'Prazo '+TN[k])+': '+(pa[k]||'padrão')+' → '+(pb[k]||'padrão'));});
+  TODOS_TURNOS.concat(['gerente']).forEach(function(k){if((pa[k]||'')!==(pb[k]||'')&&(pa[k]||pb[k]))L.push((k==='gerente'?'Prazo do gerente':'Prazo '+TN[k])+': '+(pa[k]||'padrão')+' → '+(pb[k]||'padrão'));});
   if((a.gerenteNome||'')!==(b.gerenteNome||'')&&a.gerenteNome!==undefined)L.push('Nome do gerente: '+(a.gerenteNome||'—')+' → '+(b.gerenteNome||'—'));
   if((a.unidade||'')!==(b.unidade||'')&&a.unidade!==undefined)L.push('Unidade: '+(a.unidade||'—')+' → '+(b.unidade||'—'));
   return L;
@@ -1337,6 +1359,9 @@ view.addEventListener('input',function(e){
 });
 view.addEventListener('change',function(e){
   const el=e.target;
+  if(el.dataset&&el.dataset.dupla){if(!S.metasDraft)S.metasDraft=clone(S.cfg);S.metasDraft.noiteDupla=el.checked;S.open.metas=true;
+    if(el.checked){const m=S.metasDraft.metas;if(!m.noite2||!Object.keys(m.noite2).length)m.noite2=clone(PADRAO.metas.noite2);if(!S.metasDraft.prazos.noite2)S.metasDraft.prazos.noite2=S.metasDraft.prazos.noite||'23:00';}
+    render();return;}
   if(el.id==='rec-data'&&el.value){flush();S.dataRec=el.value>hoje()?hoje():el.value;S.confirmFechar=false;render();}
   else if(el.id==='dt-ger'&&el.value){S.dataGer=el.value;render();}
   else if(el.id==='dt-dono'&&el.value){S.dataDono=el.value;render();}
@@ -1350,7 +1375,7 @@ view.addEventListener('click',function(e){
     const f=b.dataset.f;if(!S.draft)return;const v=S.draft.v||(S.draft.v={});
     const n=Math.max(0,num(v[f])+Number(b.dataset.d));const inp=document.getElementById('f-'+f);if(inp)inp.value=n;setCampo(f,n);
   }
-  else if(a==='turno'){flush();S.turnoRec=b.dataset.t;S.confirmFechar=false;render();}
+  else if(a==='turno'){flush();S.turnoRec=b.dataset.t;if(b.dataset.t==='noite'||b.dataset.t==='noite2')ls('placar.noite',b.dataset.t);S.confirmFechar=false;render();}
   else if(a==='fechar'){if(!S.draft||faltas().length)return;if(score(S.draft,S.turnoRec)<0.9){S.confirmFechar=true;render();}else fecharTurno();}
   else if(a==='fechar-sim'){S.confirmFechar=false;fecharTurno();}
   else if(a==='fechar-nao'){S.confirmFechar=false;render();}
@@ -1419,7 +1444,7 @@ function subscribe(){
   S.db.collection('registros').where('data','>=',desde).onSnapshot(function(snap){
     const m=new Map();snap.docs.forEach(function(d){if(d.exists)m.set(d.id,d.data());});S.registros=m;S.loaded.reg=true;onRemote();
   },dbErr);
-  S.db.doc('config/metas').onSnapshot(function(d){S.cfg=mergeCfg(d.exists?d.data():null);aplicarExtras(S.cfg);requestRender();},dbErr);
+  S.db.doc('config/metas').onSnapshot(function(d){S.cfg=mergeCfg(d.exists?d.data():null);aplicarExtras(S.cfg);aplicarTurnos(S.cfg);requestRender();},dbErr);
   S.db.doc('config/comissao').onSnapshot(function(d){S.com=mergeCom(d.exists?d.data():null);requestRender();},dbErr);
   S.db.doc('config/acesso').onSnapshot(function(d){S.acesso={gerenteHash:d.exists?(d.data().gerenteHash||null):null,loaded:true};requestRender();},dbErr);
   if(S.isOwner){
