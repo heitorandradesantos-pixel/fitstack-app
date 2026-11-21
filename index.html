@@ -551,7 +551,8 @@ function carregarMetas(){
     S.metas=r.error?{erro:true}:(r.data||{});if(S.tab==='inicio')render();});
 }
 function carregarComparativo(){
-  var ids=S.membros.filter(function(m){return m.papel==='admin'||m.papel==='socio';}).map(function(m){return m.academia_id;});
+  var DEMO='d3a00000-0000-4000-8000-00000000de30';
+  var ids=S.membros.filter(function(m){return (m.papel==='admin'||m.papel==='socio')&&m.academia_id!==DEMO;}).map(function(m){return m.academia_id;});
   if(ids.length<2){S.comp=null;return;}
   sb.from('evo_dados').select('academia_id,dados,atualizado_em').eq('chave','resumo').in('academia_id',ids).then(function(r){
     var o={};(r.data||[]).forEach(function(x){if(x.academia_id)o[x.academia_id]=x;});S.comp=o;if(S.tab==='inicio')render();});
