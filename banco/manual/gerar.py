@@ -3,7 +3,7 @@ import os, html
 OUT = "/home/claude/fitstack-app/manual"
 
 CSS = """
-:root{--ink:#1b1714;--muted:#6b625b;--line:#e4ddd6;--bg:#ffffff;--soft:#f6f2ee;--acc:#E8530A;--acc-soft:#fdeee5;--ok:#1f8a55;--ok-soft:#e6f4ec;--bad:#c23b36;--bad-soft:#fbe9e8;--warn:#9a6a00;--warn-soft:#fdf3dc}
+:root{--ink:#0b1426;--muted:#4f5d75;--line:#d6deeb;--bg:#ffffff;--soft:#f4f6fa;--acc:#0b3a8c;--acc-soft:#e6edf8;--ok:#1f8a55;--ok-soft:#e6f4ec;--bad:#c23b36;--bad-soft:#fbe9e8;--warn:#9a6a00;--warn-soft:#fdf3dc}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:16px;line-height:1.55}
@@ -12,10 +12,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI"
 .marca{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.14em;font-size:14px}
 .marca i{display:grid;grid-template-columns:9px 9px;gap:2px}.marca i b{width:9px;height:9px;background:var(--acc);display:block}.marca i b:last-child{background:transparent;border:2px solid var(--acc)}
 .baixar{display:inline-block;background:var(--acc);color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:8px;font-size:15px}
-.capa{border-radius:14px;background:var(--ink);color:#fff;padding:30px 26px;margin-bottom:28px}
-.capa small{display:block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:#ffb08a;font-weight:700}
+.capa{border-radius:14px;background:#0b2350;color:#fff;padding:30px 26px;margin-bottom:28px}
+.capa small{display:block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:#9cc5ff;font-weight:700}
 .capa h1{font-size:38px;line-height:1.05;margin:8px 0 10px;letter-spacing:-.01em}
-.capa p{margin:0;color:#ddd5ce;font-size:16px}
+.capa p{margin:0;color:#d5deee;font-size:16px}
 h2{font-size:25px;line-height:1.15;margin:44px 0 6px;padding-top:6px;border-top:3px solid var(--ink)}
 h2 .n{color:var(--acc);margin-right:8px}
 h3{font-size:18px;margin:26px 0 8px}
@@ -114,7 +114,7 @@ PRIMEIRO_ACESSO = (
     '<p class="lead">Você só faz isso <b>uma vez</b>. Antes, o dono ou o gerente te manda uma mensagem no WhatsApp com o seu <b>e-mail</b> e um <b>código de 6 letras e números</b>.</p>' +
     passos(
         ('Abra a mensagem do WhatsApp que você recebeu da academia.', 'Uma mensagem com o endereço do site, o seu e-mail e o código. Exemplo de código: K7P2QX.'),
-        ('Toque no endereço <b>app.fitstack.com.br</b> (ou digite ele no navegador).', 'A tela preta do FitStack com dois botões em cima: Entrar e Primeiro acesso.'),
+        ('Toque no endereço <b>app.fitstack.com.br</b> (ou digite ele no navegador).', 'A tela azul do FitStack com dois botões em cima: Entrar e Primeiro acesso.'),
         ('Toque em ' + B('Primeiro acesso') + '.', 'Um formulário com 4 campos.'),
         ('No campo <b>Seu nome</b>, escreva seu nome e sobrenome.', 'Seu nome aparece no campo.'),
         ('No campo <b>E-mail</b>, escreva o e-mail <b>igualzinho</b> ao da mensagem.', 'Se uma letra estiver diferente, não funciona.'),
@@ -129,7 +129,7 @@ ENTRAR = (
         ('Abra <b>app.fitstack.com.br</b>.', 'A tela do FitStack.'),
         ('Toque em ' + B('Entrar') + '.', 'Campos de e-mail e senha.'),
         ('Escreva seu e-mail e a sua senha.', ''),
-        ('Toque no botão laranja para entrar.', 'A tela "Olá, seu nome" com os seus atalhos.'),
+        ('Toque no botão azul para entrar.', 'A tela "Olá, seu nome" com os seus atalhos.'),
     ) +
     box('dica', 'Dica: salve como atalho', 'No celular, abra o site e escolha "Adicionar à tela de início" (iPhone: botão compartilhar; Android: menu ⋮). Vira um ícone igual a um aplicativo.') +
     '<h3>Esqueci a senha</h3>' +
@@ -146,8 +146,8 @@ rec = []
 rec.append(('O que é o FitStack', '''
 <p>O FitStack é o sistema da academia. Nele você faz <b>três coisas</b>:</p>
 ''' + tabela(['O quê', 'Para quê', 'Onde fica'], [
-    ['<b>Contatos do dia</b>', 'Chamar no WhatsApp quem faz aniversário, quem sumiu, quem está devendo e quem precisa renovar.', 'Aba <b>Contatos do dia</b>'],
-    ['<b>Placar do turno</b>', 'Marcar quantas tarefas você fez no seu turno e fechar o turno.', 'Aba <b>Placar</b>'],
+    ['<b>Contatos do dia</b>', 'Chamar no WhatsApp quem faz aniversário, quem sumiu, quem está devendo e quem precisa renovar.', 'Menu → <b>Contatos do dia</b>'],
+    ['<b>Placar do turno</b>', 'Marcar quantas tarefas você fez no seu turno e fechar o turno.', 'Menu → <b>Placar</b>'],
     ['<b>Comissão</b>', 'Ver seus pontos e quanto você está ganhando no mês.', 'Dentro do Placar, aba <b>Comissão</b>'],
 ]) + box('regra', 'Regra de ouro', 'O sistema só sabe o que você marca nele. Se você fez e não marcou, para o sistema você não fez. Se você marcou e não fez, o gerente vê na conferência.') +
 '<p>As listas de alunos vêm do <b>EVO</b> sozinhas, todo dia às 5h40 da manhã. Você não precisa copiar nada do EVO.</p>'))
@@ -169,12 +169,12 @@ rec.append(('Sua rotina em cada turno', '''
 ]) + box('atencao', 'Os horários e as metas podem mudar', 'O gerente pode mudar as metas. O que vale é sempre o que aparece no seu Placar hoje.')))
 
 rec.append(('Entrar pela primeira vez', PRIMEIRO_ACESSO))
-rec.append(('Entrar nos outros dias e "esqueci a senha"', ENTRAR + fig('inicio-colaborador', 'Depois de entrar: a tela "Olá" com os seus atalhos')))
+rec.append(('Entrar nos outros dias e "esqueci a senha"', ENTRAR + fig('inicio-colaborador', 'Depois de entrar: a tela "Olá" com os seus atalhos') + box('dica', 'Onde fica o menu', '<b>No computador:</b> o menu fica na faixa azul à esquerda (Início, Contatos do dia, Placar…). <b>No celular:</b> os botões ficam embaixo da tela. Se o que você procura não aparece ali, toque em <b>Mais</b>.')))
 
 rec.append(('Contatos do dia (WhatsApp)', '''
 <p class="lead">Aqui estão as pessoas que você precisa chamar hoje. A mensagem já vem pronta. Você só confere e envia.</p>
 ''' + passos(
-    ('Toque na aba ' + B('Contatos do dia') + '.', 'Uma fileira de botões redondos: Aniversários, Sumidos, Inadimplentes, Renovação, Leads, Cancelados. O número do lado é quantas pessoas tem na lista.'),
+    ('No menu, toque em ' + B('Contatos do dia') + '.', 'Uma fileira de botões redondos: Aniversários, Sumidos, Inadimplentes, Renovação, Leads, Cancelados. O número do lado é quantas pessoas tem na lista.'),
     ('Toque na lista que você vai fazer agora. Exemplo: <b>Aniversários</b>.', 'Aparecem os nomes. Embaixo de cada nome tem o motivo (exemplo: "Faz 30 anos hoje").'),
     ('Se aparecer uma segunda fileira (exemplo: <b>Hoje</b> e <b>Próximos 7 dias</b>), escolha a de cima primeiro.', 'A lista muda.'),
     ('No primeiro nome, toque no botão verde ' + B('WhatsApp', 'zap') + '.', 'O WhatsApp abre na conversa com o aluno e a mensagem já escrita.'),
@@ -207,9 +207,9 @@ fig('contatos-celular', 'No celular a tela fica assim', 'cel')))
 rec.append(('Placar do turno', '''
 <p class="lead">O Placar é o seu "dever de casa" do turno. Cada linha é uma tarefa com uma meta. Você aperta <b>+</b> cada vez que faz uma.</p>
 ''' + passos(
-    ('Toque na aba ' + B('Placar') + '.', 'Abre o "Placar de Turnos", na aba Recepção.'),
+    ('No menu, toque em ' + B('Placar') + '.', 'Abre o "Placar de Turnos", na aba Recepção.'),
     ('Confira a <b>Data</b>. Tem que ser hoje.', 'A data aparece no campo da esquerda.'),
-    ('Toque no seu turno: ' + B('Manhã') + ', ' + B('Tarde') + ' ou ' + B('Noite') + '.', 'O botão fica laranja. As tarefas do turno aparecem embaixo, numeradas.'),
+    ('Toque no seu turno: ' + B('Manhã') + ', ' + B('Tarde') + ' ou ' + B('Noite') + '.', 'O botão fica azul. As tarefas do turno aparecem embaixo, numeradas.'),
     ('Confira o campo <b>Seu nome</b>.', 'Ele já vem preenchido com o nome da sua conta.'),
     ('Leia o quadro <b>Foco</b>.', 'Ele diz o que é mais importante no seu turno.'),
     ('Faça as tarefas <b>na ordem dos números</b> (1, 2, 3…). A cada tarefa feita, toque em <b>+</b> na linha dela.', 'O número sobe, a barrinha anda e a porcentagem do lado direito ("Dever de casa do turno") aumenta.'),
@@ -267,7 +267,7 @@ rec.append(('Avaliações anônimas (todos os colaboradores)', '''
 
 rec.append(('Se der problema', tabela(['Problema', 'O que fazer'], [
     ['Não consigo entrar', 'Confira o e-mail. Use "Esqueci minha senha". Se nunca entrou, use "Primeiro acesso" com o código.'],
-    ['Não aparece a aba Contatos do dia ou Placar', 'Você não tem essa permissão. Fale com o gerente.'],
+    ['Não aparece Contatos do dia ou Placar no menu', 'Você não tem essa permissão. Fale com o gerente.'],
     ['A lista do Contatos do dia está vazia', 'A lista vem do EVO às 5h40. Se estiver vazia a tarde toda, avise o gerente.'],
     ['O WhatsApp não abre', 'Confira se o WhatsApp (ou WhatsApp Web) está instalado e conectado no aparelho.'],
     ['Apareceu "Sem conexão"', 'Confira a internet. Os números não se perdem: atualize a página quando a internet voltar.'],
@@ -294,10 +294,10 @@ ger.append(('Seu papel no FitStack', '''
 ''' + tabela(['Você pode', 'Onde'], [
     ['Conferir os turnos da recepção e registrar cobrança', 'Placar → aba <b>Gerente</b>'],
     ['Mudar as metas, os horários e criar atividades novas', 'Placar → aba Gerente → <b>Metas e prazos</b>'],
-    ['Ver quem chamou cada aluno no WhatsApp', 'Aba <b>Contatos do dia</b>'],
+    ['Ver quem chamou cada aluno no WhatsApp', 'Menu → <b>Contatos do dia</b>'],
     ['Ver o ranking de comissão', 'Placar → aba <b>Comissão</b>'],
-    ['Cadastrar colaboradores (se o dono liberou)', 'Aba <b>Equipe e acessos</b>'],
-    ['Criar avaliações (se o dono liberou)', 'Aba <b>Avaliações</b>'],
+    ['Cadastrar colaboradores (se o dono liberou)', 'Menu → <b>Equipe e acessos</b>'],
+    ['Criar avaliações (se o dono liberou)', 'Menu → <b>Avaliações</b>'],
 ]) + box('regra', 'Transparência', 'O dono vê tudo o que você faz: se conferiu no prazo, se aprovou turno abaixo da meta e cada mudança de meta (dia, hora, antes e depois). Isso protege você e a equipe.') +
 '<p>Para entrar no sistema (primeiro acesso, senha, esqueci a senha), siga o <b>Manual da Recepção</b>, capítulos 3 e 4. É igual para todo mundo.</p>'))
 
@@ -314,7 +314,7 @@ ger.append(('Sua rotina todo dia', check([
 ger.append(('Conferir um turno', '''
 <p class="lead">Conferir é olhar os números da recepção e dizer se está dentro do padrão. Turno abaixo de 90% ou fechado fora do horário <b>exige cobrança registrada</b>.</p>
 ''' + passos(
-    ('Entre no FitStack e toque na aba ' + B('Placar') + '.', 'Abre o Placar de Turnos.'),
+    ('Entre no FitStack e toque em ' + B('Placar') + ' no menu.', 'Abre o Placar de Turnos.'),
     ('Toque na aba ' + B('Gerente') + '.', 'Em cima aparece uma faixa amarela: "X turnos esperando sua conferência", com os dias e turnos. Se estiver verde, está tudo conferido.'),
     ('Toque no dia e turno da faixa amarela (exemplo: <b>ter 17/11 · Manhã</b>).', 'A data muda e aparecem 3 cartões: Manhã, Tarde e Noite.'),
     ('No cartão do turno, leia: o nome da recepcionista, a porcentagem e cada tarefa (feito/meta).', 'Exemplo: Inadimplentes 15/15 = fez 15 de 15.'),
@@ -348,6 +348,7 @@ ger.append(('Mudar metas e criar atividades', '''
     ('Toque em ' + B('Adicionar atividade') + '.', 'A atividade entra na tabela com meta 0.'),
     ('Coloque a meta em cada turno e toque em ' + B('Salvar metas', 'lar') + '.', 'A recepção já vê a tarefa nova no Placar dela.'),
 ) + fig('gerente-metas', 'Metas e prazos: tabela por turno e Nova atividade') +
+box('dica', 'Academia com 2 recepcionistas à noite', 'Em Metas e prazos, marque <b>2 recepcionistas à noite</b> e salve. A noite vira <b>Noite 1</b> (balcão e vendas) e <b>Noite 2</b> (inadimplentes, sumidos e Instagram), cada uma com as suas metas. As duas ganham do mesmo jeito: os pontos são a porcentagem que cada uma cumpriu das próprias metas.') +
 box('dica', 'Para tirar uma atividade criada', 'Toque em <b>Remover</b> ao lado do nome e depois em Salvar metas. As 8 atividades padrão não têm Remover: para tirar, coloque meta 0.')))
 
 ger.append(('Contatos do dia: acompanhar a recepção', '''
@@ -366,7 +367,7 @@ ger.append(('Contatos do dia: acompanhar a recepção', '''
 ger.append(('Cadastrar um colaborador', '''
 <p class="lead">Só aparece se o dono te deu a permissão "Cadastrar colaboradores". Você pode cadastrar apenas <b>colaboradores</b>, com as permissões de Placar e Comissão.</p>
 ''' + passos(
-    ('Toque na aba ' + B('Equipe e acessos') + '.', 'A lista de quem tem acesso.'),
+    ('No menu, toque em ' + B('Equipe e acessos') + '.', 'A lista de quem tem acesso.'),
     ('Toque em ' + B('Cadastrar acesso', 'lar') + '.', 'O formulário "Novo acesso".'),
     ('Escreva o <b>Nome</b> e o <b>E-mail</b> da pessoa (peça o e-mail certo, de preferência Gmail).', ''),
     ('Em <b>Cargo</b>, deixe <b>Colaborador</b>.', 'As caixinhas "Preencher o Placar do turno" e "Ver o ranking de comissão" já vêm marcadas.'),
@@ -380,7 +381,7 @@ box('dica', 'A pessoa perdeu o código', 'Em "Cadastrados que ainda não criaram
 ger.append(('Avaliações anônimas', '''
 <p class="lead">Só aparece se o dono te deu a permissão "Criar avaliações". Você pode avaliar as funções da equipe. Avaliações de <b>gerente, coordenador e clima</b> só o dono e os sócios criam e veem.</p>
 ''' + passos(
-    ('Toque na aba ' + B('Avaliações') + '.', 'A lista das avaliações já criadas.'),
+    ('No menu, toque em ' + B('Avaliações') + '.', 'A lista das avaliações já criadas.'),
     ('Toque em ' + B('Nova avaliação', 'lar') + '.', 'Os modelos prontos: Recepção, Professor de musculação, Professor de aulas coletivas, Limpeza, Vendas, Comercial, Personal, Estagiário, Manutenção, Alunos e outros.'),
     ('Toque no modelo da função.', 'A tela "Montar avaliação" com as perguntas.'),
     ('Em <b>Quem está sendo avaliado</b>, escreva o nome. Se for aula coletiva, escolha a modalidade.', ''),
@@ -412,7 +413,7 @@ don.append(('Comece por aqui', '''
     '<b class="h">2</b> <b>Ligar o EVO</b> (capítulo 3). Sem isso, o Painel e os Contatos do dia ficam vazios.',
     '<b class="h">3</b> Cadastrar o <b>gerente</b> e a <b>recepção</b> em Equipe e acessos (capítulo 9).',
     '<b class="h">4</b> Conferir as <b>metas do Placar</b> de cada turno (capítulo 10).',
-    '<b class="h">5</b> Mandar os <b>manuais</b> para a equipe: aba <b>Manual</b> → botão WhatsApp em cada manual.',
+    '<b class="h">5</b> Mandar os <b>manuais</b> para a equipe: <b>Manual</b> no menu → botão WhatsApp em cada manual.',
     '<b class="h">6</b> Tem outra unidade? <b>Cadastrar outra unidade</b> (capítulo 4).',
 ]) + box('dica', 'Dúvida ou problema?', 'Fale com a FitStack pelo e-mail <b>contato@fitstack.com.br</b>. Se puder, mande um print da tela.')))
 
@@ -428,10 +429,10 @@ don.append(('Primeiro acesso', passos(
 '<h3>Nos outros dias</h3><p>Abra o site, toque em <b>Entrar</b> e use e-mail e senha. Esqueceu? Toque em <b>Esqueci minha senha</b>: chega um e-mail para criar a senha nova.</p>'))
 
 don.append(('Várias unidades num login só', passos(
-    ('Na aba ' + B('Início') + ', role até <b>Minhas unidades</b>.', ''),
+    ('Em ' + B('Início') + ', role até <b>Minhas unidades</b>.', ''),
     ('Toque em ' + B('+ Cadastrar outra unidade') + '.', 'Campos de nome e cidade.'),
     ('Escreva o nome da unidade e a cidade e toque em ' + B('Criar unidade', 'lar') + '.', 'Você já entra na unidade nova, como dono.'),
-    ('Para trocar de unidade, use o <b>seletor ao lado de FITSTACK</b>, lá em cima.', 'A tela recarrega com os dados da unidade escolhida.'),
+    ('Para trocar de unidade, use o <b>seletor com o nome da unidade</b>, perto de FITSTACK, ou toque na unidade em Início.', 'A tela recarrega com os dados da unidade escolhida.'),
 ) + box('atencao', 'Cada unidade é separada', 'Cada unidade tem o próprio Painel, Contatos, Placar, equipe e chave do EVO. Cadastre a equipe e ligue o EVO em cada uma.')))
 
 don.append(('Dono e sócio: o que cada um pode', tabela(['', 'Dono', 'Sócio'], [
@@ -462,7 +463,7 @@ don.append(('Rotina dos sócios', tabela(['Quando', 'O que olhar', 'Onde'], [
 don.append(('Painel da academia (EVO)', '''
 <p class="lead">O Painel mostra os números da academia direto do EVO. Ele atualiza sozinho todo dia às 5h40.</p>
 ''' + passos(
-    ('Toque na aba ' + B('Painel') + '.', 'Em cima: "Dados do EVO de (data e hora)". Embaixo, os quadros com os números.'),
+    ('No menu, toque em ' + B('Painel') + '.', 'Em cima: "Dados do EVO de (data e hora)". Embaixo, os quadros com os números.'),
     ('Leia os 6 números de cima (tabela abaixo).', ''),
     ('Leia o quadro <b>Onde está o gap</b>.', 'Frases prontas dizendo onde a academia está perdendo dinheiro e alunos.'),
     ('Role a tela para ver os gráficos e a evolução dia a dia.', ''),
@@ -487,10 +488,10 @@ don.append(('Painel da academia (EVO)', '''
 ])))
 
 don.append(('Financeiro: contas a pagar e DRE', '''
-<p class="lead">A aba <b>Financeiro</b> é só do dono e dos sócios. Ela faz duas coisas: confere boletos e Pix <b>antes</b> de pagar e monta a DRE do mês com o que entrou e saiu.</p>
+<p class="lead">A área <b>Financeiro</b> é só do dono e dos sócios. Ela faz duas coisas: confere boletos e Pix <b>antes</b> de pagar e monta a DRE do mês com o que entrou e saiu.</p>
 <h3>Conferir um boleto ou Pix antes de pagar</h3>
 ''' + passos(
-    ('Toque na aba ' + B('Financeiro') + '.', 'Abre em "Contas a pagar".'),
+    ('No menu, toque em ' + B('Financeiro') + '.', 'Abre em "Contas a pagar".'),
     ('Toque em <b>PDF ou foto do boleto</b> e escolha o arquivo.', 'Ou copie a linha digitável (ou o Pix copia e cola) e cole no campo do código.'),
     ('Escreva o <b>Fornecedor</b> que você espera que receba e o <b>Valor impresso</b>.', 'O CNPJ é opcional, mas ajuda: o FitStack consulta na Receita.'),
     ('Escolha a <b>Linha da DRE</b> (ex.: Aluguel, Folha, Equipamentos).', 'É onde essa conta vai aparecer na DRE.'),
@@ -508,6 +509,14 @@ don.append(('Financeiro: contas a pagar e DRE', '''
     ('Errou? Toque em ' + B('Desfazer') + ' ou ' + B('Excluir') + ' (toque duas vezes para confirmar).', ''),
     ('Conta sem código (salário, transferência)? Preencha valor, vencimento e linha da DRE e toque em ' + B('Lançar sem código') + '.', ''),
 ) + fig('financeiro-contas', 'Contas do mês') + '''
+<h3>Comprovantes (importar os PDFs do banco)</h3>
+<p>Já pagou e tem o comprovante em PDF? Não precisa digitar nada: o FitStack lê o PDF e lança a conta como paga.</p>
+''' + passos(
+    ('Em Financeiro, toque em ' + B('Comprovantes') + ' e escolha os PDFs (pode vários de uma vez).', 'Cada comprovante vira um cartão com valor, data e quem recebeu.'),
+    ('Confira cada cartão e escolha o <b>centro de custo</b>.', 'O FitStack sugere um quando reconhece o fornecedor. Comprovante repetido aparece avisado.'),
+    ('Toque em ' + B('Lançar') + '.', 'As contas entram como pagas e o PDF fica guardado junto.'),
+    ('Para corrigir depois: em <b>Contas a pagar</b>, troque o centro de custo direto na linha ou toque em ' + B('Editar') + '.', 'O filtro <b>Sem centro de custo</b> mostra só o que falta classificar.'),
+) + '''
 <h3>DRE do mês</h3>
 <p>A DRE soma <b>o que entrou</b> (recebido no EVO + entradas que você lançar, como o repasse do Wellhub) e <b>o que saiu</b> (contas pagas no EVO + contas pagas aqui). O FitStack busca no EVO sozinho todo dia às 6h10.</p>
 ''' + passos(
@@ -526,7 +535,7 @@ don.append(('Financeiro: contas a pagar e DRE', '''
 don.append(('Equipe e acessos', '''
 <p class="lead">Aqui você cria o acesso de cada pessoa e escolhe o que ela pode ver e fazer.</p>
 ''' + passos(
-    ('Toque na aba ' + B('Equipe e acessos') + '.', 'Três partes: Novo acesso, Quem já tem acesso e Cadastrados que ainda não criaram a senha.'),
+    ('No menu, toque em ' + B('Equipe e acessos') + '.', 'Três partes: Novo acesso, Quem já tem acesso e Cadastrados que ainda não criaram a senha.'),
     ('Toque em ' + B('Cadastrar acesso', 'lar') + '.', 'O formulário Novo acesso.'),
     ('Escreva <b>Nome</b> e <b>E-mail</b>.', ''),
     ('Escolha o <b>Cargo</b>: Sócio, Gerente ou Colaborador.', 'As caixinhas de permissão se marcam sozinhas com o padrão do cargo (tabela abaixo).'),
@@ -534,7 +543,7 @@ don.append(('Equipe e acessos', '''
     ('Toque em ' + B('Cadastrar', 'lar') + '.', 'Aparece o código de 6 letras e números e o botão de WhatsApp.'),
     ('Toque em WhatsApp e envie.', 'A pessoa recebe o passo a passo, o e-mail e o código.'),
 ) + fig('equipe', 'Equipe e acessos') + tabela(['Permissão', 'O que libera', 'Sócio', 'Gerente', 'Colaborador'], [
-    ['Preencher o Placar do turno', 'Placar → Recepção e a aba Contatos do dia', '✓', '✓', '✓'],
+    ['Preencher o Placar do turno', 'Placar → Recepção e Contatos do dia', '✓', '✓', '✓'],
     ['Ver o Placar de todos e cobrar a equipe', 'Placar → Gerente (conferir, metas, reabrir)', '✓', '✓', ''],
     ['Ver o ranking de comissão', 'Placar → Comissão', '✓', '✓', '✓'],
     ['Criar avaliações e ver resultados', 'Avaliações (menos gerente, coordenador e clima)', '✓', '✓', ''],
@@ -603,7 +612,7 @@ don.append(('Ligar o EVO (passo a passo)', '''
 ) + box('nunca', 'Não mexa nos outros tokens', 'Se já existir algum token na lista, ele é de outra integração (CRM, site, catraca). Se você apagar, aquela integração para de funcionar.') +
 '<h3>Parte 2: colar a chave no FitStack</h3>' + passos(
     ('Abra <b>app.fitstack.com.br</b> e entre como dono.', ''),
-    ('Toque na aba ' + B('Integrações') + '.', 'O cartão "Conectar ao EVO".'),
+    ('No menu, toque em ' + B('Integrações') + '.', 'O cartão "Conectar ao EVO".'),
     ('No campo <b>DNS</b>, cole o DNS.', ''),
     ('No campo <b>Token</b>, cole o token.', 'Ele aparece como bolinhas.'),
     ('Toque em ' + B('Salvar chave', 'lar') + '.', '"✅ Chave do EVO salva", com o final do token.'),
@@ -617,7 +626,7 @@ don.append(('Ligar o EVO (passo a passo)', '''
     ['Trocar ou desligar', 'Em Integrações: <b>Trocar a chave</b> ou <b>Desligar integração</b> (toque duas vezes).'],
 ]) + '<h3>Parte 3: alertas em tempo real (opcional, recomendado)</h3>' +
 '<p>Com isso, cartão recusado, boleto vencido e aluno que faltou aparecem <b>na hora</b> na lista Alertas da recepção. Precisa do plano da EVO API que tem webhook (o EVO chama de API Pro).</p>' + passos(
-    ('No FitStack, aba ' + B('Integrações') + ', role até <b>Alertas em tempo real</b> e toque em ' + B('Copiar', 'lar') + '.', 'O endereço dos alertas fica copiado. Ele é só da sua academia: não mande para ninguém.'),
+    ('No FitStack, em ' + B('Integrações') + ', role até <b>Alertas em tempo real</b> e toque em ' + B('Copiar', 'lar') + '.', 'O endereço dos alertas fica copiado. Ele é só da sua academia: não mande para ninguém.'),
     ('No EVO: <b>Configurações → Integrações → EVO API</b>, aba <b>Webhook</b>.', ''),
     ('Cole o endereço e marque os avisos: cartão recusado na recorrência, saldo vencido, boleto vencido, cancelamento por inadimplência, vencimento de contrato, ausência, visita e aula experimental.', ''),
     ('Salve.', 'Quando chegar o primeiro aviso, Integrações mostra "✅ Recebendo alertas".'),
