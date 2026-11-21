@@ -123,6 +123,9 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .num{font-family:var(--display);font-weight:700;font-size:15px;text-align:right}
 .g-ok{background:var(--ok)} .g-warn{background:var(--warn)} .g-bad{background:var(--bad)}
 .t-ok{color:var(--ok)} .t-warn{color:var(--warn)} .t-bad{color:var(--bad)}
+.metal{display:grid;gap:8px}
+.metal .track{height:12px;border-radius:6px}
+.metal .fill{border-radius:6px}
 .resumo{max-height:320px;overflow-y:auto;line-height:1.55;font-size:14.5px}
 .coment{padding:10px 12px;border-radius:8px;background:var(--surface-2);font-size:14px;white-space:pre-wrap}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;max-width:min(92vw,520px);z-index:20}
@@ -432,6 +435,13 @@ var FORMS={
       if(r.error){toast(erroMsg(r.error));render();return;}
       S.evoTrocar=false;toast('Chave do EVO salva.');carregarEvo();},function(e){S.ocupado=false;toast(erroMsg(e));render();});
   },
+  metas:function(d){
+    var row={academia_id:S.atual.academia_id,matriculas:d.matriculas?Math.round(finNum(d.matriculas)||0)||null:null,receita:d.receita?finNum(d.receita)||null:null,atualizado_em:new Date().toISOString()};
+    S.ocupado=true;render();
+    sb.from('metas').upsert(row).then(function(r){S.ocupado=false;
+      if(r.error){toast(erroMsg(r.error));render();return;}
+      S.metas={matriculas:row.matriculas,receita:row.receita};S.metaEdit=false;toast('Metas salvas.');render();},function(e){S.ocupado=false;toast(erroMsg(e));render();});
+  },
   novaUnidade:function(d){
     S.ocupado=true;render();
     sb.rpc('criar_academia',{p_nome:d.nome,p_cidade:d.cidade}).then(function(r){S.ocupado=false;
@@ -534,6 +544,66 @@ function telaSemAcademia(){
     msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Criar academia</button></form>'+
     '<p class="small muted" style="margin:14px 0 0">Recebeu um código de uma academia? <button class="link" data-act="sair">Sair</button> e use "Primeiro acesso".</p></section></div>';
 }
+// ---- Início: metas do mês, contas a vencer e comparativo de unidades ----
+function finPronto(){var F=S.fin;return !!(F&&F.acad===S.atual.academia_id&&F.contas&&F.receitas&&F.mapa&&F.evo!==undefined);}
+function carregarMetas(){
+  sb.from('metas').select('matriculas,receita').eq('academia_id',S.atual.academia_id).maybeSingle().then(function(r){
+    S.metas=r.error?{erro:true}:(r.data||{});if(S.tab==='inicio')render();});
+}
+function carregarComparativo(){
+  var ids=S.membros.filter(function(m){return m.papel==='admin'||m.papel==='socio';}).map(function(m){return m.academia_id;});
+  if(ids.length<2){S.comp=null;return;}
+  sb.from('evo_dados').select('academia_id,dados,atualizado_em').eq('chave','resumo').in('academia_id',ids).then(function(r){
+    var o={};(r.data||[]).forEach(function(x){if(x.academia_id)o[x.academia_id]=x;});S.comp=o;if(S.tab==='inicio')render();});
+}
+function ritmo(v){var h=hojeBR(),d=Number(h.slice(8,10)),tot=new Date(Number(h.slice(0,4)),Number(h.slice(5,7)),0).getDate();return {dia:d,dias:tot,proj:d?Math.round(v/d*tot):0};}
+function metaLinha(nome,v,meta,fmt){
+  var p=ritmo(v),pc=meta?Math.min(100,Math.round(v*100/meta)):0,ok=p.proj>=meta,quase=p.proj>=meta*.9;
+  return '<div class="metal"><div class="row between"><b>'+nome+'</b><span class="num">'+fmt(v)+' de '+fmt(meta)+'</span></div>'+
+    '<div class="track"><div class="fill '+(ok?'g-ok':quase?'g-warn':'g-bad')+'" style="width:'+pc+'%"></div></div>'+
+    '<p class="small '+(ok?'t-ok':quase?'t-warn':'t-bad')+'" style="margin:0">No ritmo de hoje (dia '+p.dia+' de '+p.dias+'), o mês fecha em <b>'+fmt(Math.round(p.proj))+'</b>'+
+    (ok?': dentro da meta.':': faltam '+fmt(Math.max(0,Math.round(meta-p.proj)))+' para a meta.')+'</p></div>';
+}
+function inicioMetas(r){
+  var M=S.metas;if(M===undefined||M.erro)return '';
+  var tem=M.matriculas||M.receita,h='<section class="panel"><div class="row between"><span class="lbl" style="margin:0">Meta do mês</span>'+
+    (S.metaEdit?'':'<button class="btn ghost sm" data-act="metaEditar">'+(tem?'Mudar metas':'Definir metas')+'</button>')+'</div>';
+  if(S.metaEdit)return h+'<form class="form2" data-form="metas" style="margin-top:12px;align-items:end">'+
+    '<label class="f"><span>Matrículas no mês</span><input name="matriculas" inputmode="numeric" value="'+esc(M.matriculas||'')+'" placeholder="Ex.: 60"></label>'+
+    '<label class="f"><span>Receita do mês (R$)</span><input name="receita" inputmode="decimal" value="'+(M.receita?esc(Number(M.receita).toLocaleString('pt-BR')):'')+'" placeholder="Ex.: 120.000"></label>'+
+    '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Salvar metas</button><button type="button" class="btn ghost" data-act="metaCancelar">Cancelar</button></div></form></section>';
+  if(!tem)return h+'<p class="muted small" style="margin:10px 0 0">Defina quantas matrículas e quanto de receita você quer no mês. O FitStack mostra todo dia se o ritmo atual chega lá.</p></section>';
+  h+='<div style="display:grid;gap:16px;margin-top:14px">';
+  if(M.matriculas)h+=metaLinha('Matrículas',r.matriculasMes||0,M.matriculas,function(x){return String(x);});
+  if(M.receita){
+    if(finPronto()){var D=finDre(hojeBR().slice(0,7));h+=metaLinha('Receita',D.bruta,Number(M.receita),brl0);}
+    else h+='<p class="small muted" style="margin:0">Carregando a receita do mês…</p>';}
+  return h+'</div><p class="small muted" style="margin:12px 0 0">A projeção divide o que já entrou pelos dias que passaram. É uma estimativa: cobranças recorrentes costumam se concentrar em alguns dias do mês.</p></section>';
+}
+function inicioVencer(){
+  if(!finPronto())return '';
+  var hoje=hojeBR(),v7=new Date(Date.now()+7*864e5-3*3600e3).toISOString().slice(0,10);
+  var av=S.fin.contas.filter(function(c){return !c.pago_em&&c.vencimento&&c.vencimento<=v7;});
+  if(!av.length)return '';
+  var venc=av.filter(function(c){return c.vencimento<hoje;}),tot=av.reduce(function(t,c){return t+Number(c.valor||0);},0);
+  return '<div class="insight '+(venc.length?'bad':'warn')+'"><b>'+av.length+(av.length===1?' conta':' contas')+' para pagar até '+dBR(v7)+': '+brl0(tot)+'.</b> '+
+    (venc.length?venc.length+(venc.length===1?' já venceu. ':' já venceram. '):'')+'<button class="link" data-tab="financeiro">Abrir contas a pagar</button></div>';
+}
+function inicioComparativo(){
+  var C=S.comp;if(!C)return '';
+  var ms=S.membros.filter(function(m){return (m.papel==='admin'||m.papel==='socio')&&C[m.academia_id];});
+  if(ms.length<2)return '';
+  var L=[['Alunos ativos',function(r){return Number(r.ativos||0).toLocaleString('pt-BR');}],
+    ['Saldo do mês',function(r){var s=(r.matriculasMes||0)-(r.canceladosMes||0);return '<span class="'+(s>=0?'t-ok':'t-bad')+'">'+(s>=0?'+':'')+s+'</span> <span class="muted small">('+(r.matriculasMes||0)+' − '+(r.canceladosMes||0)+')</span>';}],
+    ['Sumidos 7+ dias',function(r){var s=(r.sumidos7||0)+(r.sumidos15||0)+(r.sumidos30||0);return s+' <span class="muted small">('+pct(s,r.ativos)+')</span>';}],
+    ['Em atraso',function(r){return brl0(r.inadValor)+' <span class="muted small">('+(r.inadimplentes||0)+')</span>';}],
+    ['Risco alto de cancelar',function(r){return r.riscoAlto==null?'–':r.riscoAlto;}],
+    ['Leads no mês',function(r){return r.leadsMes||0;}]];
+  return '<section class="panel"><span class="lbl">Unidades lado a lado</span><div class="scrollx"><table class="tbl"><thead><tr><th></th>'+
+    ms.map(function(m){return '<th>'+esc(m.academias.nome)+'</th>';}).join('')+'</tr></thead><tbody>'+
+    L.map(function(l){return '<tr><td>'+l[0]+'</td>'+ms.map(function(m){return '<td>'+l[1](C[m.academia_id].dados||{})+'</td>';}).join('')+'</tr>';}).join('')+
+    '</tbody></table></div><p class="small muted" style="margin:10px 0 0">Números da última busca no EVO de cada unidade.</p></section>';
+}
 function telaInicio(){
   var cards=[];
   if(pode('placar')||pode('placar_gestao'))cards.push(['contatos','Contatos do dia','Quem chamar hoje no WhatsApp: aniversariantes, sumidos, inadimplentes e renovações.']);
@@ -549,6 +619,7 @@ function telaInicio(){
   var h='<div class="hello"><span class="dia">'+esc(dia)+' · '+esc(S.atual.academias.nome)+'</span><h1>Olá'+(pn?', '+esc(pn):'')+'</h1></div>';
   if(isAdmin()){
     if(S.evoDados===undefined&&!S.evoPedido){S.evoPedido=true;carregarEvoDados();}
+    if(!S.inicioPedido){S.inicioPedido=true;carregarFin();carregarMetas();carregarComparativo();}
     var r=S.evoDados&&S.evoDados.resumo;
     if(r){
       var sum=(r.sumidos7||0)+(r.sumidos15||0)+(r.sumidos30||0),saldo=(r.matriculasMes||0)-(r.canceladosMes||0);
@@ -558,7 +629,9 @@ function telaInicio(){
         '<button class="kpi" data-tab="contatos"><span class="lbl">Em atraso</span><div class="v t-bad" style="font-size:23px">'+brl0(r.inadValor)+'</div><div class="s">'+(r.inadimplentes||0)+' pessoas para cobrar</div></button>'+
         '<button class="kpi" data-tab="contatos"><span class="lbl">Sumidos 7+ dias</span><div class="v t-bad">'+sum+'</div><div class="s">'+pct(sum,r.ativos)+' da base não está vindo</div></button>'+
       '</div></section>';
+      h+=inicioVencer()+inicioMetas(r);
     }
+    h+=inicioComparativo();
   }
   if(isAdmin()&&new Date().getDay()===1)h+='<div class="insight ok"><b>Hoje é segunda.</b> O resumo da semana para os sócios está pronto no Painel. <button class="link" data-tab="painel">Abrir o resumo</button></div>';
   h+='<section style="display:grid;gap:10px"><span class="lbl" style="margin:0">Aonde você quer ir</span>'+(cards.length>1?'<div class="grid">'+cards.map(function(c){
@@ -730,6 +803,7 @@ function resumoSemana(r){
   L.push('');L.push('*Alunos*');
   L.push('• Ativos: '+Number(r.ativos||0).toLocaleString('pt-BR')+dif(r.ativos,ant&&ant.ativos));
   L.push('• No mês: '+(r.matriculasMes||0)+' matrículas, '+(r.canceladosMes||0)+' cancelamentos (saldo '+(saldo>=0?'+':'')+saldo+')');
+  if(S.metas&&S.metas.matriculas){var pm=ritmo(r.matriculasMes||0);L.push('• Meta de matrículas: '+(r.matriculasMes||0)+' de '+S.metas.matriculas+' (no ritmo atual, fecha em '+Math.round(pm.proj)+')');}
   L.push('• Sumidos há 7 dias ou mais: '+sum+' ('+pct(sum,r.ativos)+' da base)'+dif(sum,ant&&((ant.sumidos7||0)+(ant.sumidos15||0)+(ant.sumidos30||0))));
   if(r.riscoAlto!=null)L.push('• Risco alto de cancelar: '+r.riscoAlto);
   L.push('• Planos que vencem em 15 dias: '+(r.vencendo15||0));
@@ -1224,10 +1298,10 @@ function carregarFin(){
   if(!S.fin||S.fin.acad!==A)S.fin={acad:A,sub:'contas',mes:finMesAtual(),draft:finNovo(),res:null,contas:null,receitas:null,mapa:null,evo:undefined,usarEvo:true,usarFs:true,usarTaxas:true};
   var F=S.fin;
   sb.from('fin_contas').select('*').eq('academia_id',A).order('vencimento',{ascending:false}).limit(3000).then(function(r){
-    if(r.error){F.erro=erroMsg(r.error);F.contas=[];}else{F.erro=null;F.contas=r.data||[];}if(S.tab==='financeiro'||S.tab==='painel')render();});
-  sb.from('fin_receitas').select('*').eq('academia_id',A).order('criado_em',{ascending:true}).limit(2000).then(function(r){F.receitas=r.data||[];if(S.tab==='financeiro'||S.tab==='painel')render();});
-  sb.from('fin_mapa').select('centro,categoria,proprio').eq('academia_id',A).then(function(r){var m={},pp={};(r.data||[]).forEach(function(x){m[x.centro]=x.categoria;if(x.proprio)pp[x.centro]=1;});F.mapa=m;F.mapaP=pp;if(S.tab==='financeiro'||S.tab==='painel')render();});
-  sb.from('evo_dados').select('dados,atualizado_em').eq('academia_id',A).eq('chave','financeiro').maybeSingle().then(function(r){F.evo=r.data?r.data.dados:null;F.evoEm=r.data?r.data.atualizado_em:null;if(S.tab==='financeiro'||S.tab==='painel')render();});
+    if(r.error){F.erro=erroMsg(r.error);F.contas=[];}else{F.erro=null;F.contas=r.data||[];}if(S.tab==='financeiro'||S.tab==='painel'||S.tab==='inicio')render();});
+  sb.from('fin_receitas').select('*').eq('academia_id',A).order('criado_em',{ascending:true}).limit(2000).then(function(r){F.receitas=r.data||[];if(S.tab==='financeiro'||S.tab==='painel'||S.tab==='inicio')render();});
+  sb.from('fin_mapa').select('centro,categoria,proprio').eq('academia_id',A).then(function(r){var m={},pp={};(r.data||[]).forEach(function(x){m[x.centro]=x.categoria;if(x.proprio)pp[x.centro]=1;});F.mapa=m;F.mapaP=pp;if(S.tab==='financeiro'||S.tab==='painel'||S.tab==='inicio')render();});
+  sb.from('evo_dados').select('dados,atualizado_em').eq('academia_id',A).eq('chave','financeiro').maybeSingle().then(function(r){F.evo=r.data?r.data.dados:null;F.evoEm=r.data?r.data.atualizado_em:null;if(S.tab==='financeiro'||S.tab==='painel'||S.tab==='inicio')render();});
 }
 function finStatus(c){
   if(c.pago_em)return ['ok','Paga '+dBR(c.pago_em)];
@@ -1739,6 +1813,8 @@ document.addEventListener('click',function(ev){
   if(d.desfaz){if(d.desfaz==='tmp')return;sb.from('evo_contatos').delete().eq('id',d.desfaz).then(function(r){if(r.error)toast(erroMsg(r.error));carregarContatos();});return;}
   var act=d.act;if(!act)return;
   if(act==='evoAtualizar'){evoAtualizar();return;}
+  if(act==='metaEditar'){S.metaEdit=true;render();return;}
+  if(act==='metaCancelar'){S.metaEdit=false;render();return;}
   if(act==='novaUnidade'){S.novaUnidade=true;render();return;}
   if(act==='cancelUnidade'){S.novaUnidade=false;render();return;}
   if(act==='zapManual'){var m=MANUAIS[d.k];wa('FitStack · '+m[0]+'\n\nGuia rápido (2 páginas, comece por ele):\n'+APP_URL+'/'+m[5]+'\n\nManual completo:\n'+APP_URL+'/'+m[3]+'\n\nLeia com calma, é passo a passo.');return;}

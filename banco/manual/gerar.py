@@ -460,6 +460,19 @@ don.append(('Rotina dos sócios', tabela(['Quando', 'O que olhar', 'Onde'], [
     ['A cada 3 meses', 'Avaliação anônima do gerente e de clima', '<b>Avaliações</b>'],
 ])))
 
+don.append(('Início: números do dia, metas e unidades', '''
+<p class="lead">A tela <b>Início</b> é o seu resumo. Em um olhar você vê como a academia está e o que pede atenção.</p>
+''' + tabela(['Parte da tela', 'Para que serve'], [
+    ['<b>A academia agora</b>', 'Alunos ativos, matrículas do mês, valor em atraso e sumidos. Toque em um número para abrir a tela dele.'],
+    ['<b>Aviso de contas</b>', 'Aparece quando tem conta para pagar nos próximos 7 dias ou já vencida. Toque em Abrir contas a pagar.'],
+    ['<b>Meta do mês</b>', 'Mostra quanto já foi feito e, no ritmo de hoje, em quanto o mês fecha. Verde = chega na meta; vermelho = não chega.'],
+    ['<b>Unidades lado a lado</b>', 'Só para quem é dono ou sócio de mais de uma unidade: compara as unidades na mesma tabela.'],
+]) + passos(
+    ('Em <b>Meta do mês</b>, toque em ' + B('Definir metas') + '.', 'Dois campos: matrículas no mês e receita do mês.'),
+    ('Preencha um ou os dois e toque em ' + B('Salvar metas') + '.', 'A barra aparece na hora. A meta vale para todos os meses, até você mudar.'),
+) + fig('inicio-dono', 'Início do dono: números, aviso de contas, meta do mês e atalhos') +
+box('dica', 'A projeção é uma estimativa', 'Ela divide o que já entrou pelos dias que passaram. Como as cobranças se concentram em alguns dias do mês, a receita projetada pode variar bastante no começo do mês.')))
+
 don.append(('Painel da academia (EVO)', '''
 <p class="lead">O Painel mostra os números da academia direto do EVO. Ele atualiza sozinho todo dia às 5h40.</p>
 ''' + passos(
