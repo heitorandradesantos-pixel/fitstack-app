@@ -215,7 +215,7 @@ rec.append(('Placar do turno', '''
     ('Leia o quadro <b>Foco</b>.', 'Ele diz o que é mais importante no seu turno.'),
     ('Faça as tarefas <b>na ordem dos números</b> (1, 2, 3…). A cada tarefa feita, toque em <b>+</b> na linha dela.', 'O número sobe, a barrinha anda e a porcentagem do lado direito ("Dever de casa do turno") aumenta.'),
     ('Apertou + sem querer? Toque em <b>−</b>.', 'O número diminui.'),
-) + box('atencao', 'Matrícula também é visita', 'Quem matriculou hoje no balcão conta como <b>visita atendida</b> e como <b>matrícula</b>. Se você marcar mais matrículas do que visitas, o Placar mostra um aviso em amarelo antes de fechar o turno.') + fig('placar-recepcao', 'Placar da recepção: tarefas numeradas, + e −, e a porcentagem à direita') + '''
+) + box('dica', 'Sábado, domingo e feriado', 'Nesses dias, no lugar de Manhã, Tarde e Noite aparece o botão <b>Plantão</b> (ou Plantão 1 e Plantão 2, se forem duas pessoas). As tarefas e o horário de fechar são os do plantão. O resto é igual.') + box('atencao', 'Matrícula também é visita', 'Quem matriculou hoje no balcão conta como <b>visita atendida</b> e como <b>matrícula</b>. Se você marcar mais matrículas do que visitas, o Placar mostra um aviso em amarelo antes de fechar o turno.') + fig('placar-recepcao', 'Placar da recepção: tarefas numeradas, + e −, e a porcentagem à direita') + '''
 <h3>O que cada linha quer dizer</h3>
 ''' + tabela(['Tarefa', 'Quando conta +1', 'Exemplo'], [
     ['<b>Parabéns aos aniversariantes</b>', 'Tem 2 números: em <b>Aniversariantes hoje</b> coloque quantos fazem aniversário (veja em Contatos do dia). Em <b>Parabéns enviados</b>, quantos você já mandou.', '4 aniversariantes, mandou para 4 = 100%.'],
@@ -349,6 +349,7 @@ ger.append(('Mudar metas e criar atividades', '''
     ('Toque em ' + B('Adicionar atividade') + '.', 'A atividade entra na tabela com meta 0.'),
     ('Coloque a meta em cada turno e toque em ' + B('Salvar metas', 'lar') + '.', 'A recepção já vê a tarefa nova no Placar dela.'),
 ) + fig('gerente-metas', 'Metas e prazos: tabela por turno e Nova atividade') +
+box('dica', 'Sábado, domingo e feriado', 'Em Metas e prazos, marque <b>Minha academia tem horário diferente no fim de semana e nos feriados</b>. Para o <b>sábado</b> e para <b>domingo e feriado</b> você escolhe se a academia abre, o horário e se são 1 ou 2 pessoas na recepção. Nesses dias o Placar troca Manhã, Tarde e Noite por um <b>Plantão</b>, com metas próprias (coluna Plantão da tabela) e prazo no horário de fechar. Os feriados nacionais entram sozinhos; os da cidade você escreve no campo <b>Feriados da cidade</b>.') +
 box('dica', 'Academia com 2 recepcionistas à noite', 'Em Metas e prazos, marque <b>2 recepcionistas à noite</b> e salve. A noite vira <b>Noite 1</b> (balcão e vendas) e <b>Noite 2</b> (inadimplentes, sumidos e Instagram), cada uma com as suas metas. As duas ganham do mesmo jeito: os pontos são a porcentagem que cada uma cumpriu das próprias metas.') +
 box('dica', 'Para tirar uma atividade criada', 'Toque em <b>Remover</b> ao lado do nome e depois em Salvar metas. As 8 atividades padrão não têm Remover: para tirar, coloque meta 0.')))
 

@@ -277,6 +277,11 @@ details.fold[open]>summary::after{content:"−"}
   .score-n{font-size:52px}
 }
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+.esc-l{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.esc-l b{min-width:150px}
+.esc-l label{display:flex;gap:6px;align-items:center;font-size:14px}
+.esc-l input[type=time],.esc-l select{width:auto;min-height:38px;padding:4px 8px}
+.esc-l input[type=checkbox]{width:18px;height:18px}
 .dupla{display:flex;gap:10px;align-items:flex-start;margin:12px 0;padding:12px;border:1px solid var(--line,#ddd);border-radius:12px;font-size:14px;line-height:1.4}
 .dupla input{width:20px;height:20px;flex:none;margin-top:1px}
 </style>
@@ -413,14 +418,46 @@ const NOITE_DUPLA=[
   {k:'noite2',nome:'Noite 2',horario:'17h às 23h',foco:'Relacionamento: cobrança dos inadimplentes, alunos sumidos e Instagram. Ajuda no balcão quando encher.'}
 ];
 let TURNOS=TURNOS_BASE.slice();
-const TN={manha:'Manhã',tarde:'Tarde',noite:'Noite',noite2:'Noite 2'};
+const TN={manha:'Manhã',tarde:'Tarde',noite:'Noite',noite2:'Noite 2',plantao:'Plantão',plantao2:'Plantão 2'};
 function aplicarTurnos(cfg){
   TURNOS=cfg&&cfg.noiteDupla?TURNOS_BASE.slice(0,2).concat(NOITE_DUPLA):TURNOS_BASE.slice();
   TN.noite=cfg&&cfg.noiteDupla?'Noite 1':'Noite';
   if(S&&S.turnoRec&&!TURNOS.some(function(T){return T.k===S.turnoRec;}))S.turnoRec='noite';
   if(S&&S.turnoRec==='noite'&&cfg&&cfg.noiteDupla&&ls('placar.noite')==='noite2')S.turnoRec='noite2';
+  if(S&&S.cfg)ajustarTurnoRec();
 }
-const TODOS_TURNOS=['manha','tarde','noite','noite2'];
+const TODOS_TURNOS=['manha','tarde','noite','noite2','plantao','plantao2'];
+/* ---------- Sábado, domingo e feriado: cada academia define o próprio horário ---------- */
+function pascoa(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;return new Date(y,mes-1,dia);}
+const FERIADOS_FIXOS={'01-01':'Confraternização Universal','04-21':'Tiradentes','05-01':'Dia do Trabalho','09-07':'Independência','10-12':'Nossa Senhora Aparecida','11-02':'Finados','11-15':'Proclamação da República','11-20':'Consciência Negra','12-25':'Natal'};
+function nomeFeriado(D,cfg){
+  const md=D.slice(5);if(FERIADOS_FIXOS[md])return FERIADOS_FIXOS[md];
+  const p=pascoa(Number(D.slice(0,4)));p.setDate(p.getDate()-2);
+  const sx=p.getFullYear()+'-'+String(p.getMonth()+1).padStart(2,'0')+'-'+String(p.getDate()).padStart(2,'0');
+  if(D===sx)return 'Sexta-feira Santa';
+  const ex=((cfg&&cfg.escala&&cfg.escala.feriados)||[]);
+  if(ex.indexOf(D)>=0||ex.indexOf(md)>=0)return 'Feriado da cidade';
+  return '';
+}
+function escalaDia(D,cfg){
+  cfg=cfg||(S&&S.cfg);const e=cfg&&cfg.escala;
+  if(!e||!e.ativa||!D||(e.desde&&D<e.desde))return null;
+  const dow=new Date(D+'T12:00:00').getDay(),fer=nomeFeriado(D,cfg);
+  const tipo=(dow===0||fer)?'dom':dow===6?'sab':'';
+  if(!tipo)return null;
+  return Object.assign({tipo:tipo,feriado:fer,rotulo:fer?'Feriado ('+fer+')':tipo==='sab'?'Sábado':'Domingo'},e[tipo]);
+}
+function hCurta(h){const p=String(h||'').split(':');return Number(p[0])+'h'+(p[1]&&p[1]!=='00'?p[1]:'');}
+function turnosDia(D,cfg){
+  const e=escalaDia(D,cfg);if(!e)return TURNOS;if(!e.abre)return [];
+  const hz=hCurta(e.ini)+' às '+hCurta(e.fim),dois=Number(e.pessoas)>1;
+  const a=[{k:'plantao',nome:dois?'Plantão 1':'Plantão',horario:hz,foco:e.rotulo+', das '+hz+'. '+(dois?'Balcão e vendas: atender quem chega, fechar a visita e pedir indicação.':'Atender bem quem chega, fechar a visita e fazer os contatos do dia.')}];
+  if(dois)a.push({k:'plantao2',nome:'Plantão 2',horario:hz,foco:e.rotulo+', das '+hz+'. Relacionamento: inadimplentes, alunos sumidos e Instagram. Ajuda no balcão quando encher.'});
+  return a;
+}
+function prazoHora(D,t){if(t==='plantao'||t==='plantao2'){const e=escalaDia(D);return (e&&e.fim)||'17:00';}return S.cfg.prazos[t];}
+function ajustarTurnoRec(){const ts=turnosDia(S.dataRec);if(ts.length&&!ts.some(function(T){return T.k===S.turnoRec;})){
+  const ag=turnoAgora();S.turnoRec=ts.some(function(T){return T.k===ag;})?ag:ts[0].k;}}
 const CAMPOS={
   aniv:{label:'Parabéns aos aniversariantes',curto:'Parabéns',ajuda:'Aniversariantes do dia no EVO. Todos recebem parabéns até as 10h. A meta é em %.'},
   inad:{label:'Inadimplentes cobrados',curto:'Inadimplentes',ajuda:'Contato pelo WhatsApp ou telefone da academia, com a lista do EVO.'},
@@ -435,15 +472,20 @@ const ORDEM={
   manha:['aniv','inad','followup','indicacoes','insta','prospec','ausentes','agendadas'],
   tarde:['prospec','insta','ausentes','agendadas','indicacoes','followup','inad','aniv'],
   noite:['indicacoes','followup','inad','insta','prospec','ausentes','agendadas','aniv'],
-  noite2:['inad','ausentes','insta','indicacoes','followup','prospec','agendadas','aniv']
+  noite2:['inad','ausentes','insta','indicacoes','followup','prospec','agendadas','aniv'],
+  plantao:['aniv','followup','indicacoes','agendadas','inad','ausentes','insta','prospec'],
+  plantao2:['inad','ausentes','insta','indicacoes','followup','prospec','agendadas','aniv']
 };
 const PADRAO={
   metas:{
     manha:{aniv:100,inad:15,followup:15,indicacoes:3,insta:5},
     tarde:{prospec:20,insta:5,ausentes:10,agendadas:3,indicacoes:3},
     noite:{indicacoes:4,followup:5},
-    noite2:{inad:10,ausentes:10,insta:5,indicacoes:2}
+    noite2:{inad:10,ausentes:10,insta:5,indicacoes:2},
+    plantao:{aniv:100,followup:5,indicacoes:2,agendadas:2},
+    plantao2:{inad:5,ausentes:5,insta:3}
   },
+  escala:{ativa:false,desde:'',sab:{abre:true,ini:'08:00',fim:'16:00',pessoas:1},dom:{abre:true,ini:'08:00',fim:'13:00',pessoas:1},feriados:[]},
   prazos:{manha:'11:00',tarde:'17:00',noite:'23:00',noite2:'23:00',gerente:'10:00'},
   noiteDupla:false,
   gerenteNome:'Rafael',
@@ -493,6 +535,7 @@ function mergeCfg(d){
   if(d){
     if(d.metas)TODOS_TURNOS.forEach(function(t){if(d.metas[t])c.metas[t]=Object.assign({},d.metas[t]);});
     c.noiteDupla=!!d.noiteDupla;
+    if(d.escala&&typeof d.escala==='object'){const e=d.escala;c.escala={ativa:!!e.ativa,desde:String(e.desde||''),sab:Object.assign({},c.escala.sab,e.sab||{}),dom:Object.assign({},c.escala.dom,e.dom||{}),feriados:Array.isArray(e.feriados)?e.feriados.slice(0,40):[]};}
     if(d.prazos)Object.assign(c.prazos,d.prazos);
     if(d.gerenteNome)c.gerenteNome=String(d.gerenteNome);
     if(d.unidade)c.unidade=String(d.unidade);
@@ -605,7 +648,7 @@ function pctCampo(r,t,k){
   const m=Number(metasDe(t)[k])||0;if(!m)return 1;return Math.min(1,num(v[k])/m);
 }
 function score(r,t){const ks=camposDe(t);if(!ks.length)return 1;let s=0;ks.forEach(function(k){s+=pctCampo(r,t,k);});return s/ks.length;}
-function prazoTurno(s,t){return quando(s,S.cfg.prazos[t]);}
+function prazoTurno(s,t){return quando(s,prazoHora(s,t));}
 function prazoGer(s){return quando(addDias(s,1),S.cfg.prazos.gerente);}
 
 function statusTurno(data,t){
@@ -641,7 +684,7 @@ function statusConf(data,t){
 }
 function somaDia(D){
   const o={visitas:0,matriculas:0,indicacoes:0,recuperado:0,metaInd:0};
-  TURNOS.forEach(function(T){
+  turnosDia(D).forEach(function(T){
     o.metaInd+=Number(metasDe(T.k).indicacoes)||0;
     const r=S.registros.get(D+'_'+T.k);if(!r)return;const v=r.v||{};
     o.visitas+=num(v.visitas);o.matriculas+=num(v.matriculas);o.indicacoes+=num(v.indicacoes);o.recuperado+=Number(r.inad_valor)||0;
@@ -651,7 +694,7 @@ function somaDia(D){
 function nomeDe(id){if(!id)return '';const p=S.prof[id];return p&&p.name?p.name:'';}
 
 /* ---------- comissão ---------- */
-const TI={manha:0,tarde:1,noite:2,noite2:3};
+const TI={manha:0,tarde:1,noite:2,noite2:3,plantao:4,plantao2:5};
 function chaveNome(n){return String(n||'').trim().replace(/\s+/g,' ').toLowerCase();}
 function addMes(ym,n){const p=ym.split('-').map(Number);const d=new Date(p[0],p[1]-1+n,1);return d.getFullYear()+'-'+pad(d.getMonth()+1);}
 function nomeMes(ym){const p=ym.split('-').map(Number);return MESES[p[1]-1];}
@@ -802,8 +845,10 @@ async function removerGerencia(id){
 }
 async function salvarMetas(){
   const c=S.metasDraft||clone(S.cfg);
-  const metas={};TURNOS.forEach(function(T){metas[T.k]={};listaCampos(c).forEach(function(k){const n=num(c.metas[T.k]&&c.metas[T.k][k]);if(n>0)metas[T.k][k]=n;});});
-  const body={extras:clone(c.extras||{}),metas:metas,noiteDupla:!!c.noiteDupla,prazos:Object.assign({},c.prazos),gerenteNome:String(c.gerenteNome||'Gerente').trim()||'Gerente',unidade:String(c.unidade||'').trim()||PADRAO.unidade,atualizadoEm:new Date().toISOString()};
+  const metas={};const esc0=c.escala||PADRAO.escala;
+  const TS=TURNOS.map(function(T){return T.k;}).concat(esc0.ativa?['plantao'].concat(Number(esc0.sab.pessoas)>1||Number(esc0.dom.pessoas)>1?['plantao2']:[]):[]);
+  TS.map(function(k){return {k:k};}).forEach(function(T){metas[T.k]={};listaCampos(c).forEach(function(k){const n=num(c.metas[T.k]&&c.metas[T.k][k]);if(n>0)metas[T.k][k]=n;});});
+  const body={extras:clone(c.extras||{}),metas:metas,noiteDupla:!!c.noiteDupla,escala:{ativa:!!esc0.ativa,desde:esc0.ativa?(esc0.desde||hoje()):'',sab:Object.assign({},esc0.sab),dom:Object.assign({},esc0.dom),feriados:(esc0.feriados||[]).slice(0,40)},prazos:Object.assign({},c.prazos),gerenteNome:String(c.gerenteNome||'Gerente').trim()||'Gerente',unidade:String(c.unidade||'').trim()||PADRAO.unidade,atualizadoEm:new Date().toISOString()};
   try{await writeRetry(function(){return S.db.doc('config/metas').set(body);});S.cfg=mergeCfg(body);aplicarExtras(S.cfg);aplicarTurnos(S.cfg);S.metasDraft=null;toast(S.isOwner?'Metas salvas. Já valem para todos.':'Metas salvas. Já valem para todos, e a mudança ficou registrada para o dono.');carregarHistorico();}
   catch(e){writeErr(e);return;}
   render();
@@ -819,6 +864,7 @@ async function salvarComissao(){
 
 /* ---------- relatório e planilha ---------- */
 function relatorioTexto(D){
+  const TURNOS=turnosDia(D);
   const sts=TURNOS.map(function(T){return statusTurno(D,T.k);});
   const css=TURNOS.map(function(T){return statusConf(D,T.k);});
   const sm=somaDia(D);
@@ -852,7 +898,7 @@ function gerarCSV(dias){
   const linhas=[cab.map(q).join(';')];
   for(let i=dias-1;i>=0;i--){
     const d=addDias(hoje(),-i);
-    TURNOS.forEach(function(T){
+    turnosDia(d).forEach(function(T){
       const st=statusTurno(d,T.k);if(st.s==='fora')return;
       const cs=statusConf(d,T.k);const r=st.r;const v=(r&&r.v)||{};
       const row=[fmtData(d)+'/'+d.slice(0,4),T.nome,r?r.nome:'',st.label,r?Math.round(st.sc*100):0]
@@ -901,9 +947,11 @@ function stepper(f,val,dis){
 }
 
 function viewRecepcao(){
+  ajustarTurnoRec();
+  if(!turnosDia(S.dataRec).length){const e0=escalaDia(S.dataRec);return '<div class="panel rec-head"><div><label class="lbl" for="rec-data">Data</label><input type="date" id="rec-data" value="'+S.dataRec+'" max="'+hoje()+'"></div></div><div class="panel"><b>'+esc(e0?e0.rotulo:'Este dia')+': a academia não abre.</b><p class="muted" style="margin:6px 0 0">Não tem turno para preencher neste dia. Se a academia abriu, o dono ou o gerente ajusta em Metas e prazos → Sábado, domingo e feriado.</p></div>';}
   syncDraft();
   const t=S.turnoRec,k=keyRec(),r=S.registros.get(k),c=S.confs.get(k),d=S.draft,v=d.v||{};
-  const T=TURNOS.find(function(x){return x.k===t;});
+  const T=turnosDia(S.dataRec).find(function(x){return x.k===t;})||TURNOS[0];
   const conferido=!!(r&&r.conferido)||!!c;
   const futuro=S.dataRec>hoje();
   const carregando=S.dbState==='on'&&!S.loaded.reg;
@@ -938,7 +986,7 @@ function viewRecepcao(){
 
   const head='<div class="panel rec-head">'+
     '<div><label class="lbl" for="rec-data">Data</label><input type="date" id="rec-data" value="'+S.dataRec+'" max="'+hoje()+'"></div>'+
-    '<div><span class="lbl">Turno</span><div class="seg" role="group" aria-label="Turno">'+TURNOS.map(function(x){return '<button type="button" data-act="turno" data-t="'+x.k+'" aria-pressed="'+(x.k===t)+'">'+x.nome+'</button>';}).join('')+'</div></div>'+
+    '<div><span class="lbl">Turno</span><div class="seg" role="group" aria-label="Turno">'+turnosDia(S.dataRec).map(function(x){return '<button type="button" data-act="turno" data-t="'+x.k+'" aria-pressed="'+(x.k===t)+'">'+x.nome+'</button>';}).join('')+'</div></div>'+
     '<div><label class="lbl" for="f-nome">Seu nome</label><input id="f-nome" data-f="nome" list="lista-nomes" autocomplete="off" placeholder="Quem está no turno" value="'+esc(d.nome||'')+'"'+dis+(nomeConta&&!locked?' readonly title="Nome da sua conta"':'')+'>'+
     '<datalist id="lista-nomes">'+nomes.map(function(n){return '<option value="'+esc(n)+'">';}).join('')+'</datalist></div></div>';
 
@@ -954,11 +1002,11 @@ function viewRecepcao(){
     else fechar='<button class="btn primary block" id="rec-fechar" data-act="fechar"'+(fl.length?' disabled':'')+'>Fechar turno</button><div class="muted small" id="rec-falta">'+(fl.length?'Falta preencher '+fl.join(' e ')+'.':'Ao fechar, os números travam e o gerente confere.')+'</div>';
     fechar+='<div class="small" id="rec-aviso" style="color:var(--warn);font-weight:600"'+(avisoVisitas()?'':' hidden')+'>'+esc(avisoVisitas())+'</div>';
   }
-  const side='<aside class="panel side"><div><div class="lbl">Dever de casa do turno</div><div class="score-n num c-'+tomP(sc)+'" id="rec-score">'+pc(sc)+'</div><div class="muted small">Meta: 90% ou mais · fechar até '+esc(S.cfg.prazos[t])+'</div></div>'+miniComissao(d.nome)+
+  const side='<aside class="panel side"><div><div class="lbl">Dever de casa do turno</div><div class="score-n num c-'+tomP(sc)+'" id="rec-score">'+pc(sc)+'</div><div class="muted small">Meta: 90% ou mais · fechar até '+esc(prazoHora(S.dataRec,t))+'</div></div>'+miniComissao(d.nome)+
     '<div class="sep" style="margin:4px 0"></div><div><label class="lbl" for="f-passagem">Passagem de turno</label><textarea id="f-passagem" data-f="passagem" rows="5" placeholder="Pendências para o próximo turno: quem prometeu pagar, visitas marcadas, recados."'+dis+'>'+esc(d.passagem||'')+'</textarea></div>'+fechar+'</aside>';
 
   return cardEu()+head+'<div class="statusline">'+status+'</div>'+
-    '<div class="rec"><section class="panel"><div class="foco"><span class="lbl">Foco da '+T.nome.toLowerCase()+' · '+T.horario+'</span><p>'+esc(T.foco)+'</p></div>'+
+    '<div class="rec"><section class="panel"><div class="foco"><span class="lbl">'+(/^plantao/.test(T.k)?'Foco do ':'Foco da ')+T.nome.toLowerCase()+' · '+T.horario+'</span><p>'+esc(T.foco)+'</p></div>'+
     '<ol class="meta-list">'+(rows||'<li class="meta-row muted">Nenhuma meta para este turno.</li>')+'</ol>'+
     '<h2 class="h2 mt">Resultado do turno</h2>'+res+'</section>'+side+'</div>';
 }
@@ -1070,7 +1118,7 @@ function blocoConf(data,t,modo){
       (c.acao?'<div class="acao">'+esc(ACOES[c.acao]||c.acao)+'</div>':'')+(c.nota?'<p class="nota">'+esc(c.nota)+'</p>':'')+'</div>';
   }
   if(modo!=='gerente'||cs.s==='fora')return '<div class="conf"><div class="row"><span class="muted small">Gerente</span>'+pill(TOM[cs.s],cs.label)+'</div></div>';
-  if(st.s==='andamento')return '<div class="conf"><span class="muted small">Aguardando a recepção fechar o turno (prazo '+esc(S.cfg.prazos[t])+').</span></div>';
+  if(st.s==='andamento')return '<div class="conf"><span class="muted small">Aguardando a recepção fechar o turno (prazo '+esc(prazoHora(data,t))+').</span></div>';
   if(st.r&&st.r.conferido)return '<div class="conf"><div class="row">'+pill('ok','Conferido')+'<span class="muted small">'+dataHora(st.r.conferidoEm)+'</span></div></div>';
   const ui=S.confUI[k]||{modo:null,acao:'feedback',nota:''};
   const travado=S.readOnly||S.dbState!=='on'?' disabled':'';
@@ -1090,7 +1138,7 @@ function blocoConf(data,t,modo){
 function cardTurno(data,t,modo){
   const st=statusTurno(data,t),r=st.r,v=(r&&r.v)||{};
   let flags='';
-  if(st.atrasado)flags+='<p class="flag warn">Fechado fora do prazo ('+esc(S.cfg.prazos[t])+').</p>';
+  if(st.atrasado)flags+='<p class="flag warn">Fechado fora do prazo ('+esc(prazoHora(data,t))+').</p>';
   if(r&&!r.enviado&&st.s==='andamento')flags+='<p class="flag idle">Ao vivo · atualizado às '+hora(r.atualizadoEm)+'</p>';
   if(r&&r.reabertoEm&&!r.enviado&&!r.conferido)flags+='<p class="flag warn">Reaberto pelo gerente para correção.</p>';
   const pas=r&&r.passagem?'<details class="pas"><summary>Passagem de turno</summary><p>'+esc(r.passagem)+'</p></details>':'';
@@ -1114,23 +1162,29 @@ function viewGerente(){
   const souGerente=papel()==='gerente';
   const D=S.dataGer;
   const pend=[];
-  for(let i=7;i>=0;i--){const day=addDias(hoje(),-i);TURNOS.forEach(function(T){const cs=statusConf(day,T.k);const r=S.registros.get(day+'_'+T.k);if(!cs.c&&!(r&&r.conferido)&&(cs.s==='pendente'||cs.s==='falhou'))pend.push({day:day,t:T.k,s:cs.s});});}
+  for(let i=7;i>=0;i--){const day=addDias(hoje(),-i);turnosDia(day).forEach(function(T){const cs=statusConf(day,T.k);const r=S.registros.get(day+'_'+T.k);if(!cs.c&&!(r&&r.conferido)&&(cs.s==='pendente'||cs.s==='falhou'))pend.push({day:day,t:T.k,s:cs.s});});}
   let h='<div class="toolbar"><h2 class="h2">Conferência do gerente</h2>'+datenav('ger',D)+'</div>';
   if(S.isOwner&&!idsConf().length)h+='<div class="banner">Nenhuma conferência registrada ainda.</div>';
   h+=pend.length?'<div class="banner warn"><b>'+pend.length+(pend.length>1?' turnos esperando':' turno esperando')+(souGerente?' sua conferência':' conferência do gerente')+'</b><div class="chips">'+
     pend.map(function(p){return '<button class="chip t-'+(p.s==='falhou'?'bad':'warn')+'" data-act="ir-ger" data-d="'+p.day+'">'+dsem(p.day)+' '+fmtData(p.day)+' · '+TN[p.t]+'</button>';}).join('')+'</div></div>'
     :'<div class="banner ok">Nenhum turno pendente de conferência nos últimos 7 dias.</div>';
-  h+='<div class="grid3" style="--n:'+TURNOS.length+'">'+TURNOS.map(function(T){return cardTurno(D,T.k,souGerente?'gerente':'leitura');}).join('')+'</div>';
+  h+=gradeDia(D,souGerente?'gerente':'leitura');
   if(!S.isOwner&&pode('placar_gestao'))h+=metasHtml();
   h+='<p class="muted small">Regra: turno abaixo de 90% ou fechado fora do prazo exige cobrança registrada. Prazo de conferência: até '+esc(S.cfg.prazos.gerente)+' do dia seguinte. O dono acompanha cada conferência em tempo real.</p>';
   return h;
 }
 
+function gradeDia(D,modo){
+  const ts=turnosDia(D),e=escalaDia(D);
+  const av=e?'<p class="muted small" style="margin:0">'+esc(e.rotulo)+': '+(e.abre?'plantão das '+hCurta(e.ini)+' às '+hCurta(e.fim)+'.':'a academia não abre.')+'</p>':'';
+  if(!ts.length)return av;
+  return av+'<div class="grid3" style="--n:'+Math.max(ts.length,e?2:1)+'">'+ts.map(function(T){return cardTurno(D,T.k,modo);}).join('')+'</div>';
+}
 function resumoGerente(D){
   const r={ok:0,total:0,atrasado:0,nao:0,semCobrar:0,pend:0,falhas:[]};
   for(let i=6;i>=0;i--){
     const d=addDias(D,-i);
-    TURNOS.forEach(function(T){
+    turnosDia(d).forEach(function(T){
       const cs=statusConf(d,T.k);const tag=dsem(d)+' '+fmtData(d)+' · '+T.nome;
       if(cs.s==='andamento'||cs.s==='fora')return;
       if(cs.s==='pendente'){r.pend++;return;}
@@ -1150,8 +1204,11 @@ function boardSemana(D){
   const sel=function(d){return d===D?' class="sel"':'';};
   let h='<section class="panel"><h2 class="h2">Últimos 7 dias</h2><div class="tablewrap"><table class="board"><thead><tr><th scope="col"><span class="sr">Turno</span></th>'+
     dias.map(function(d){return '<th scope="col"'+sel(d)+'>'+dsem(d)+'<br><span class="num">'+fmtData(d)+'</span></th>';}).join('')+'</tr></thead><tbody>';
-  TURNOS.forEach(function(T){
+  const linhasT=[];dias.forEach(function(d){turnosDia(d).forEach(function(T){if(!linhasT.some(function(x){return x.k===T.k;}))linhasT.push({k:T.k,nome:TN[T.k]});});});
+  linhasT.sort(function(a,b){return TI[a.k]-TI[b.k];});
+  linhasT.forEach(function(T){
     h+='<tr><th scope="row">'+T.nome+'</th>'+dias.map(function(d){
+      if(!turnosDia(d).some(function(x){return x.k===T.k;}))return '<td'+sel(d)+'><span class="cell t-idle">·</span></td>';
       const st=statusTurno(d,T.k);
       if(st.s==='fora')return '<td'+sel(d)+'><span class="cell t-idle">·</span></td>';
       const txt=st.r?pc(st.sc):(st.s==='naoenviado'?'0%':'·');
@@ -1159,7 +1216,7 @@ function boardSemana(D){
     }).join('')+'</tr>';
   });
   h+='<tr><th scope="row">Gerente</th>'+dias.map(function(d){
-    const cs=TURNOS.map(function(T){return statusConf(d,T.k);}).filter(function(c){return ['ok','parcial','falhou'].indexOf(c.s)>=0;});
+    const cs=turnosDia(d).map(function(T){return statusConf(d,T.k);}).filter(function(c){return ['ok','parcial','falhou'].indexOf(c.s)>=0;});
     if(!cs.length)return '<td'+sel(d)+'><span class="cell t-idle">·</span></td>';
     const ok=cs.filter(function(c){return c.s==='ok';}).length;
     const tone=ok===cs.length?'ok':cs.some(function(c){return c.s==='falhou';})?'bad':'warn';
@@ -1219,7 +1276,17 @@ function listaCampos(c){return CAMPOS_BASE.concat(Object.keys((c&&c.extras)||{})
 function metasHtml(){
   const c=S.metasDraft||S.cfg;
   const thRow='style="font-family:var(--body);text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;white-space:normal"';
-  const TT=c.noiteDupla?TURNOS_BASE.slice(0,2).concat(NOITE_DUPLA):TURNOS_BASE;
+  const E=c.escala||PADRAO.escala,doisP=Number(E.sab.pessoas)>1||Number(E.dom.pessoas)>1;
+  const TT=(c.noiteDupla?TURNOS_BASE.slice(0,2).concat(NOITE_DUPLA):TURNOS_BASE).concat(E.ativa?[{k:'plantao',nome:doisP?'Plantão 1':'Plantão',horario:'sáb, dom e feriado'}].concat(doisP?[{k:'plantao2',nome:'Plantão 2',horario:'sáb, dom e feriado'}]:[]):[]);
+  const linhaEsc=function(k,nome){const x=E[k];return '<div class="esc-l"><b>'+nome+'</b>'+
+    '<label><input type="checkbox" data-esc="'+k+'.abre"'+(x.abre?' checked':'')+'> Abre</label>'+
+    '<label>das <input type="time" data-esc="'+k+'.ini" value="'+esc(x.ini)+'"'+(x.abre?'':' disabled')+'></label>'+
+    '<label>às <input type="time" data-esc="'+k+'.fim" value="'+esc(x.fim)+'"'+(x.abre?'':' disabled')+'></label>'+
+    '<label>Pessoas na recepção <select data-esc="'+k+'.pessoas"'+(x.abre?'':' disabled')+'><option value="1"'+(Number(x.pessoas)>1?'':' selected')+'>1</option><option value="2"'+(Number(x.pessoas)>1?' selected':'')+'>2</option></select></label></div>';};
+  const escHtml='<div class="sep"></div><div class="lbl">Sábado, domingo e feriado</div>'+
+    '<label class="dupla" style="margin-top:0"><input type="checkbox" data-esc="ativa"'+(E.ativa?' checked':'')+'> <span><b>Minha academia tem horário diferente no fim de semana e nos feriados.</b> Nesses dias o Placar troca os turnos da semana por um <b>Plantão</b>, com metas próprias e prazo no horário de fechar.</span></label>'+
+    (E.ativa?linhaEsc('sab','Sábado')+linhaEsc('dom','Domingo e feriado')+
+      '<div style="margin-top:10px"><label class="lbl" for="esc-fer">Feriados da cidade (os nacionais já entram sozinhos)</label><input id="esc-fer" data-esc="feriados" placeholder="Ex.: 14/12, 26/07" value="'+esc((E.feriados||[]).map(function(f){return f.length===5?f.slice(3)+'/'+f.slice(0,2):f.slice(8)+'/'+f.slice(5,7)+'/'+f.slice(0,4);}).join(', '))+'"><p class="muted small" style="margin:6px 0 0">Escreva dia/mês, separados por vírgula. Feriados nacionais: 1/1, Sexta-feira Santa, 21/4, 1/5, 7/9, 12/10, 2/11, 15/11, 20/11 e 25/12. As metas do plantão ficam na coluna Plantão da tabela acima.</p></div>':'');
   let h='<details class="panel fold" data-keep="metas"'+(S.open.metas?' open':'')+'><summary><span class="h2">Metas e prazos</span><span class="muted small">Dever de casa de cada turno</span></summary>'+
     '<label class="dupla"><input type="checkbox" data-dupla="1"'+(c.noiteDupla?' checked':'')+'> <span><b>2 recepcionistas à noite</b> (Noite 1 e Noite 2). Cada uma tem o próprio turno, metas e pontos, e entram na comissão do mesmo jeito. Divida as funções da noite entre as duas colunas.</span></label>'+
     '<div class="tablewrap"><table class="mt-table"><thead><tr><th scope="col">Atividade</th>'+TT.map(function(T){return '<th scope="col">'+T.nome+'<br><span class="muted">'+T.horario+'</span></th>';}).join('')+'</tr></thead><tbody>';
@@ -1229,7 +1296,8 @@ function metasHtml(){
       TT.map(function(T){return '<td><input type="number" min="0" step="1" inputmode="numeric" id="m-'+T.k+'-'+kk+'" data-meta="'+T.k+'.'+kk+'" value="'+num(c.metas[T.k]&&c.metas[T.k][kk])+'" aria-label="'+esc((ex?ex.label:CAMPOS[kk].curto)+' '+T.nome)+'"></td>';}).join('')+'</tr>';
   });
   h+='<tr><th scope="row" '+thRow+'>Fechar o turno até</th>'+
-    TT.map(function(T){return '<td><input type="time" id="p-'+T.k+'" data-prazo="'+T.k+'" value="'+esc(c.prazos[T.k])+'" aria-label="Prazo '+T.nome+'"></td>';}).join('')+'</tr></tbody></table></div>';
+    TT.map(function(T){return /^plantao/.test(T.k)?'<td><span class="muted small">no horário de fechar</span></td>':'<td><input type="time" id="p-'+T.k+'" data-prazo="'+T.k+'" value="'+esc(c.prazos[T.k])+'" aria-label="Prazo '+T.nome+'"></td>';}).join('')+'</tr></tbody></table></div>';
+  h+=escHtml;
   h+='<div class="metas-foot"><div><label class="lbl" for="p-gerente">Gerente confere até</label><input type="time" id="p-gerente" data-prazo="gerente" value="'+esc(c.prazos.gerente)+'"></div>'+
     '<div><label class="lbl" for="g-nome">Nome do gerente</label><input id="g-nome" data-gnome="1" value="'+esc(c.gerenteNome)+'"></div>'+
     '<div><label class="lbl" for="u-nome">Unidade</label><input id="u-nome" data-unidade="1" value="'+esc(c.unidade)+'"></div>'+
@@ -1246,6 +1314,7 @@ function viewDono(){
   const trava=precisaSenha('dono');if(trava)return viewSenha(trava);
   if(S.dbState==='on'&&!(S.loaded.reg&&S.loaded.conf))return carregandoHtml();
   const D=S.dataDono;
+  const TURNOS=turnosDia(D);
   const sts=TURNOS.map(function(T){return statusTurno(D,T.k);});
   const css=TURNOS.map(function(T){return statusConf(D,T.k);});
   const fechados=sts.filter(function(s){return ['ok','parcial','falhou','naoenviado'].indexOf(s.s)>=0;}).length;
@@ -1267,7 +1336,7 @@ function viewDono(){
   if(faltaSenha)h+='<div class="banner warn"><b>Crie as senhas antes de compartilhar.</b><span>Sem a senha do gerente, ninguém entra na área do gerente. Sem a sua, Gerente e Dono abrem direto na sua conta.</span></div>'+acessosHtml();
   if(S.dbState==='on'&&S.registros.size===0)h+='<div class="banner">Nenhum turno registrado ainda. Assim que a recepção começar a preencher, os números aparecem aqui ao vivo.</div>';
   h+='<div class="kpis">'+kpis.map(function(x){return '<div class="kpi"><span class="lbl">'+x.k+'</span><div class="v num c-'+x.t+(x.money?' money':'')+'">'+esc(x.v)+'</div><div class="s">'+esc(x.s)+'</div></div>';}).join('')+'</div>';
-  h+='<div class="grid3" style="--n:'+TURNOS.length+'">'+TURNOS.map(function(T){return cardTurno(D,T.k,'leitura');}).join('')+'</div>';
+  h+=gradeDia(D,'leitura');
   h+=comissaoResumo();
   h+='<div class="two">'+boardSemana(D)+cardGerente(D)+'</div>';
   h+=escadaHtml();
@@ -1289,7 +1358,7 @@ function diffConfig(doc,a,b){
   Object.keys(eb).forEach(function(k){if(!ea[k])L.push('Nova atividade criada: '+eb[k].label);});
   Object.keys(ea).forEach(function(k){if(!eb[k])L.push('Atividade removida: '+ea[k].label);});
   const ma=a.metas||{},mb=b.metas||{};
-  TURNOS.forEach(function(T){
+  TODOS_TURNOS.map(function(k){return {k:k,nome:TN[k]};}).forEach(function(T){
     const ks={};Object.keys(ma[T.k]||{}).concat(Object.keys(mb[T.k]||{})).forEach(function(k){ks[k]=1;});
     Object.keys(ks).forEach(function(k){
       const va=num((ma[T.k]||{})[k]),vb=num((mb[T.k]||{})[k]);
@@ -1402,6 +1471,12 @@ view.addEventListener('input',function(e){
 });
 view.addEventListener('change',function(e){
   const el=e.target;
+  if(el.dataset&&el.dataset.esc){if(!S.metasDraft)S.metasDraft=clone(S.cfg);const d=S.metasDraft;if(!d.escala)d.escala=clone(PADRAO.escala);S.open.metas=true;
+    const p=el.dataset.esc.split('.');
+    if(p[0]==='ativa'){d.escala.ativa=el.checked;if(el.checked){['plantao','plantao2'].forEach(function(k){if(!d.metas[k]||!Object.keys(d.metas[k]).length)d.metas[k]=clone(PADRAO.metas[k]);});}}
+    else if(p[0]==='feriados'){d.escala.feriados=String(el.value||'').split(/[,;\s]+/).map(function(x){const m=x.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/);if(!m)return '';const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0');return m[3]?m[3]+'-'+mm+'-'+dd:mm+'-'+dd;}).filter(Boolean);return;}
+    else{d.escala[p[0]][p[1]]=p[1]==='abre'?el.checked:p[1]==='pessoas'?Number(el.value):el.value;if(p[1]!=='abre'&&p[1]!=='pessoas')return;}
+    render();return;}
   if(el.dataset&&el.dataset.dupla){if(!S.metasDraft)S.metasDraft=clone(S.cfg);S.metasDraft.noiteDupla=el.checked;S.open.metas=true;
     if(el.checked){const m=S.metasDraft.metas;if(!m.noite2||!Object.keys(m.noite2).length)m.noite2=clone(PADRAO.metas.noite2);if(!S.metasDraft.prazos.noite2)S.metasDraft.prazos.noite2=S.metasDraft.prazos.noite||'23:00';}
     render();return;}
@@ -1442,7 +1517,7 @@ view.addEventListener('click',function(e){
     const key='x_'+nome.normalize('NFD').replace(/[^a-zA-Z0-9]+/g,'_').toLowerCase().slice(0,20)+'_'+Date.now().toString(36).slice(-4);
     d.extras[key]={label:nome,curto:nome.length>14?nome.slice(0,13)+'…':nome,ajuda:String(S.xForm.ajuda||'').trim()};
     S.xForm={nome:'',ajuda:''};S.open.metas=true;render();toast('Atividade adicionada. Coloque a meta em cada turno e clique em Salvar metas.');}
-  else if(a==='x-del'){if(!S.metasDraft)S.metasDraft=clone(S.cfg);const d=S.metasDraft;const k=b.dataset.k;if(d.extras)delete d.extras[k];TURNOS.forEach(function(T){if(d.metas[T.k])delete d.metas[T.k][k];});S.open.metas=true;render();toast('Atividade removida. Clique em Salvar metas para confirmar.');}
+  else if(a==='x-del'){if(!S.metasDraft)S.metasDraft=clone(S.cfg);const d=S.metasDraft;const k=b.dataset.k;if(d.extras)delete d.extras[k];TODOS_TURNOS.forEach(function(tk){if(d.metas[tk])delete d.metas[tk][k];});S.open.metas=true;render();toast('Atividade removida. Clique em Salvar metas para confirmar.');}
   else if(a==='senha-salvar')salvarSenha(b.dataset.tipo);
   else if(a==='tirar-gerente')tirarGerente(b.dataset.id);
   else if(a==='eu-salvar')salvarEu();
