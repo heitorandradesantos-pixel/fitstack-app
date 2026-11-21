@@ -123,6 +123,7 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .num{font-family:var(--display);font-weight:700;font-size:15px;text-align:right}
 .g-ok{background:var(--ok)} .g-warn{background:var(--warn)} .g-bad{background:var(--bad)}
 .t-ok{color:var(--ok)} .t-warn{color:var(--warn)} .t-bad{color:var(--bad)}
+.resumo{max-height:320px;overflow-y:auto;line-height:1.55;font-size:14.5px}
 .coment{padding:10px 12px;border-radius:8px;background:var(--surface-2);font-size:14px;white-space:pre-wrap}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;max-width:min(92vw,520px);z-index:20}
 .linkbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -324,7 +325,7 @@ function erroMsg(e){var m=String((e&&(e.message||e.error_description||e.msg))||e
   if(/^FS: /.test(m))return m.slice(4);
   for(var k=0;k<T.length;k++)if(T[k][0].test(m))return T[k][1];
   return 'Algo deu errado. Tente de novo em instantes. Se continuar, fale com o admin da academia.';}
-function copiar(txt){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast('Link copiado.');},function(){prompt('Copie o link:',txt);});}
+function copiar(txt){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast('Copiado.');},function(){prompt('Copie o link:',txt);});}
 function wa(txt){window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');}
 
 // ================= AUTENTICAÇÃO =================
@@ -559,6 +560,7 @@ function telaInicio(){
       '</div></section>';
     }
   }
+  if(isAdmin()&&new Date().getDay()===1)h+='<div class="insight ok"><b>Hoje é segunda.</b> O resumo da semana para os sócios está pronto no Painel. <button class="link" data-tab="painel">Abrir o resumo</button></div>';
   h+='<section style="display:grid;gap:10px"><span class="lbl" style="margin:0">Aonde você quer ir</span>'+(cards.length>1?'<div class="grid">'+cards.map(function(c){
       return '<button class="card" data-tab="'+c[0]+'"><span class="ib">'+ic(c[0])+'</span><span class="t">'+c[1]+'</span><span class="d">'+c[2]+'</span>'+ic('seta','go')+'</button>';}).join('')+'</div>'
     :'<section class="panel"><p class="muted" style="margin:0">Seu acesso ainda não tem nenhuma área liberada. Fale com o admin da academia.</p></section>')+'</section>';
@@ -698,6 +700,7 @@ function telaPainel(){
   '</div>';
   h+='<section class="panel"><span class="lbl">Onde está o gap</span><div style="display:grid;gap:10px">'+insights(r)+'</div>'+
     '<div class="row" style="margin-top:14px"><button class="btn" data-tab="contatos">Abrir contatos do dia</button></div></section>';
+  h+=painelResumo(r);
   h+=painelResultados(r.resultados);
   h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">';
   h+='<section class="panel"><span class="lbl">Alunos sumidos (ativos sem treinar)</span>'+barras([['7 a 14 dias',r.sumidos7],['15 a 29 dias',r.sumidos15],['30 dias ou mais',r.sumidos30],['Nunca treinaram',r.nuncaVieram||0]],r.ativos,'g-bad')+'</section>';
@@ -714,6 +717,55 @@ function telaPainel(){
   }else h+='<p class="small muted">A partir de amanhã aparece aqui a evolução dia a dia (a busca roda todo dia de madrugada).</p>';
   if(r.avisos&&r.avisos.length)h+='<div class="msg">'+r.avisos.map(esc).join('<br>')+'</div>';
   return h;
+}
+// ---- Resumo da semana (texto pronto para mandar aos sócios) ----
+function resumoSemana(r){
+  var L=[],hoje=hojeBR(),sum=(r.sumidos7||0)+(r.sumidos15||0)+(r.sumidos30||0),saldo=(r.matriculasMes||0)-(r.canceladosMes||0);
+  var lim=new Date(Date.now()-7*864e5-3*3600e3).toISOString().slice(0,10);
+  var ant=(r.historico||[]).filter(function(x){return x.dia<=lim;}).slice(-1)[0];
+  var dif=function(a,b,din){if(!ant||b==null)return '';var d=Math.round(a-b);if(!d)return ' (igual à semana passada)';
+    return ' ('+(d>0?'+':'−')+(din?brl0(Math.abs(d)):Math.abs(d))+' na semana)';};
+  L.push('*Resumo da semana · '+S.atual.academias.nome+'*');
+  L.push(new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}));
+  L.push('');L.push('*Alunos*');
+  L.push('• Ativos: '+Number(r.ativos||0).toLocaleString('pt-BR')+dif(r.ativos,ant&&ant.ativos));
+  L.push('• No mês: '+(r.matriculasMes||0)+' matrículas, '+(r.canceladosMes||0)+' cancelamentos (saldo '+(saldo>=0?'+':'')+saldo+')');
+  L.push('• Sumidos há 7 dias ou mais: '+sum+' ('+pct(sum,r.ativos)+' da base)'+dif(sum,ant&&((ant.sumidos7||0)+(ant.sumidos15||0)+(ant.sumidos30||0))));
+  if(r.riscoAlto!=null)L.push('• Risco alto de cancelar: '+r.riscoAlto);
+  L.push('• Planos que vencem em 15 dias: '+(r.vencendo15||0));
+  L.push('');L.push('*Dinheiro*');
+  L.push('• Em atraso: '+brl0(r.inadValor)+' ('+(r.inadimplentes||0)+' pessoas)'+dif(r.inadValor,ant&&ant.inadValor,true));
+  var F=S.fin;
+  if(F&&F.acad===S.atual.academia_id&&F.contas&&F.receitas&&F.mapa&&F.evo!==undefined){
+    var mes=hoje.slice(0,7),D=finDre(mes),nm=new Date(mes+'-15T12:00:00').toLocaleDateString('pt-BR',{month:'long'});
+    if(D.bruta>0){L.push('• Receita de '+nm+' até agora: '+brl0(D.bruta));
+      if(D.despesas>0)L.push('• Despesas pagas: '+brl0(D.despesas)+' · Resultado operacional parcial: '+brl0(D.ebitda));
+      else L.push('• Despesas de '+nm+' ainda não lançadas');}
+    var v7=new Date(Date.now()+7*864e5-3*3600e3).toISOString().slice(0,10);
+    var av=F.contas.filter(function(c){return !c.pago_em&&c.vencimento&&c.vencimento<=v7;});
+    if(av.length){var venc=av.filter(function(c){return c.vencimento<hoje;}).length;
+      L.push('• Contas a pagar até '+dBR(v7)+': '+brl0(av.reduce(function(t,c){return t+Number(c.valor||0);},0))+' ('+av.length+(av.length===1?' conta':' contas')+(venc?', '+venc+' já vencida'+(venc>1?'s':''):'')+')');}
+  }
+  var R=r.resultados;
+  if(R&&R.chamados){var res=R.voltou+R.pagou+R.renovou;
+    L.push('');L.push('*Equipe · últimos 30 dias*');
+    L.push('• Contatos feitos: '+R.chamados+', '+res+' com resultado ('+pct(res,R.mediveis||R.chamados)+')');
+    L.push('• Voltaram a treinar: '+R.voltou+' · Pagaram: '+brl0(R.pagouValor)+' ('+R.pagou+') · Renovaram: '+R.renovou);
+    var top=(R.porPessoa||[]).slice().sort(function(a,b){return b.resultados-a.resultados;})[0];
+    if(top&&top.resultados)L.push('• Quem mais trouxe resultado: '+top.nome+' ('+top.resultados+' de '+top.chamados+' contatos)');}
+  var at=[],m,re=/<b>(.*?)<\/b>/g,ih=insights(r);
+  while((m=re.exec(ih))&&at.length<3)at.push(m[1].replace(/<[^>]+>/g,''));
+  if(at.length){L.push('');L.push('*Onde olhar esta semana*');at.forEach(function(x){L.push('• '+x);});}
+  L.push('');L.push('Números do EVO de '+dataHora(S.evoDados._resumo)+', pelo FitStack.');
+  return L.join('\n');
+}
+function painelResumo(r){
+  var t=resumoSemana(r),F=S.fin,semFin=!(F&&F.contas&&F.receitas&&F.mapa&&F.evo!==undefined);
+  return '<section class="panel"><div class="row between" style="align-items:flex-start"><div><span class="lbl">Resumo da semana para os sócios</span>'+
+    '<p class="small muted" style="margin:0 0 12px;max-width:62ch">Texto pronto com os números de hoje. Toque em WhatsApp e escolha o grupo dos sócios. Bom para mandar toda segunda.</p></div>'+
+    '<div class="row"><button class="btn sm" data-watxt="'+esc(t)+'">Mandar no WhatsApp</button><button class="btn ghost sm" data-copy="'+esc(t)+'">Copiar</button></div></div>'+
+    '<div class="coment resumo">'+esc(t).replace(/\*(.+?)\*/g,'<b>$1</b>')+'</div>'+
+    (semFin?'<p class="small muted" style="margin:8px 0 0">Carregando a parte do financeiro…</p>':'')+'</section>';
 }
 function painelResultados(R){
   if(!R)return '';
@@ -1172,10 +1224,10 @@ function carregarFin(){
   if(!S.fin||S.fin.acad!==A)S.fin={acad:A,sub:'contas',mes:finMesAtual(),draft:finNovo(),res:null,contas:null,receitas:null,mapa:null,evo:undefined,usarEvo:true,usarFs:true,usarTaxas:true};
   var F=S.fin;
   sb.from('fin_contas').select('*').eq('academia_id',A).order('vencimento',{ascending:false}).limit(3000).then(function(r){
-    if(r.error){F.erro=erroMsg(r.error);F.contas=[];}else{F.erro=null;F.contas=r.data||[];}if(S.tab==='financeiro')render();});
-  sb.from('fin_receitas').select('*').eq('academia_id',A).order('criado_em',{ascending:true}).limit(2000).then(function(r){F.receitas=r.data||[];if(S.tab==='financeiro')render();});
-  sb.from('fin_mapa').select('centro,categoria,proprio').eq('academia_id',A).then(function(r){var m={},pp={};(r.data||[]).forEach(function(x){m[x.centro]=x.categoria;if(x.proprio)pp[x.centro]=1;});F.mapa=m;F.mapaP=pp;if(S.tab==='financeiro')render();});
-  sb.from('evo_dados').select('dados,atualizado_em').eq('academia_id',A).eq('chave','financeiro').maybeSingle().then(function(r){F.evo=r.data?r.data.dados:null;F.evoEm=r.data?r.data.atualizado_em:null;if(S.tab==='financeiro')render();});
+    if(r.error){F.erro=erroMsg(r.error);F.contas=[];}else{F.erro=null;F.contas=r.data||[];}if(S.tab==='financeiro'||S.tab==='painel')render();});
+  sb.from('fin_receitas').select('*').eq('academia_id',A).order('criado_em',{ascending:true}).limit(2000).then(function(r){F.receitas=r.data||[];if(S.tab==='financeiro'||S.tab==='painel')render();});
+  sb.from('fin_mapa').select('centro,categoria,proprio').eq('academia_id',A).then(function(r){var m={},pp={};(r.data||[]).forEach(function(x){m[x.centro]=x.categoria;if(x.proprio)pp[x.centro]=1;});F.mapa=m;F.mapaP=pp;if(S.tab==='financeiro'||S.tab==='painel')render();});
+  sb.from('evo_dados').select('dados,atualizado_em').eq('academia_id',A).eq('chave','financeiro').maybeSingle().then(function(r){F.evo=r.data?r.data.dados:null;F.evoEm=r.data?r.data.atualizado_em:null;if(S.tab==='financeiro'||S.tab==='painel')render();});
 }
 function finStatus(c){
   if(c.pago_em)return ['ok','Paga '+dBR(c.pago_em)];
@@ -1647,7 +1699,7 @@ document.addEventListener('click',function(ev){
     if(d.tab==='equipe'){S.novoAcesso=null;carregarEquipe();}
     if(d.tab==='integracoes'){S.evoTrocar=false;carregarEvo();}
     if(d.tab==='financeiro'){carregarFin();}
-    if(d.tab==='painel'){carregarEvoDados();carregarContatos();}
+    if(d.tab==='painel'){carregarEvoDados();carregarContatos();carregarFin();}
     if(d.tab==='contatos'){S.mostrar=40;carregarEvoDados();carregarContatos();}
     render();window.scrollTo(0,0);return;}
   if(S.tab==='financeiro'&&finClique(d,b))return;

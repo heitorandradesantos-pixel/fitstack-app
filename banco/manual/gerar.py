@@ -718,6 +718,11 @@ gs.append(('Reunião de 15 minutos toda segunda', check([
     '<b class="h">4</b> <b>Taxa por pessoa</b>: quem chama muito e quase não tem resultado precisa de treino na mensagem, não de bronca.',
     '<b class="h">5</b> <b>Uma decisão</b> para a semana (ex.: "esta semana, todos os sumidos de 7 a 14 dias", "gerente liga para quem deve mais de R$ 300").',
 ])))
+gs.append(('Resumo da semana para os sócios', check([
+    '<b>Onde fica:</b> Painel → quadro <b>Resumo da semana para os sócios</b>. O texto já vem pronto com os números do dia.',
+    '<b>Como mandar:</b> toque em <b>Mandar no WhatsApp</b> e escolha o grupo dos sócios (ou em <b>Copiar</b> e cole onde quiser).',
+    '<b>Quando:</b> toda segunda, antes da reunião. Na segunda, o Início mostra um lembrete.',
+])))
 gs.append(('Financeiro em 3 passos', check([
     '<b>Antes de pagar qualquer boleto ou Pix:</b> Financeiro → Contas a pagar → Conferir. 🔴 = não paga sem ligar para o fornecedor.',
     '<b>Pagou?</b> Toque em Paguei. A conta entra na DRE do mês.',
