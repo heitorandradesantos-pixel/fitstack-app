@@ -825,19 +825,22 @@ function painelFunil(r){
     return '<div class="fz"><div class="row between"><span><b>'+e[0]+'</b> <span class="small muted">'+e[2]+'</span></span><span class="num">'+e[1]+(i&&ant&&e[1]<=ant?' <span class="small muted">('+pct(e[1],ant)+' da etapa anterior)</span>':'')+'</span></div>'+
       '<div class="track"><div class="fill" style="width:'+Math.max(2,Math.round(e[1]*100/mx))+'%;background:var(--accent)"></div></div></div>';}).join('')+'</div>';
   var a=[];
-  if(F.leads&&F.leads-F.conv>0)a.push([F.parados?'bad':'warn','<b>'+(F.leads-F.conv)+' leads do mês ainda não viraram aluno.</b> '+(F.parados?F.parados+' estão parados há mais de 7 dias. ':'')+(F.novos?F.novos+' chegaram nos últimos 2 dias: lead novo fecha muito mais se for chamado no mesmo dia. ':'')+'<button class="link" data-act="irLeads">Chamar os leads agora</button>']);
-  if(F.visitas>=5){var cv=F.mats/F.visitas;
+  var semConv=F.leads>0&&F.conv===0;
+  if(semConv)a.push([F.parados?'bad':'warn','<b>'+F.leads+' leads chegaram este mês.</b> '+(F.parados?F.parados+' foram cadastrados há mais de 7 dias. ':'')+(F.novos?F.novos+' chegaram nos últimos 2 dias: lead novo fecha muito mais se for chamado no mesmo dia. ':'')+'O EVO desta unidade não está marcando quais leads já viraram aluno, então confira o nome antes de chamar. <button class="link" data-act="irLeads">Abrir a lista de leads</button>']);
+  else if(F.leads&&F.leads-F.conv>0)a.push([F.parados?'bad':'warn','<b>'+(F.leads-F.conv)+' leads do mês ainda não viraram aluno.</b> '+(F.parados?F.parados+' estão parados há mais de 7 dias. ':'')+(F.novos?F.novos+' chegaram nos últimos 2 dias: lead novo fecha muito mais se for chamado no mesmo dia. ':'')+'<button class="link" data-act="irLeads">Chamar os leads agora</button>']);
+  if(F.visitas>=5&&F.mats<=F.visitas){var cv=F.mats/F.visitas;
     if(cv<.4)a.push(['bad','<b>De cada 10 visitas, '+Math.round(cv*10)+' viram matrícula.</b> O lead chega até a academia e sai sem fechar: vale treinar o atendimento da visita (tour, apresentação do plano e pedido de fechamento).']);
     else a.push(['ok','<b>'+pct(F.mats,F.visitas)+' das visitas viram matrícula.</b> O atendimento da visita está fechando bem: o caminho para crescer é trazer mais visitas.']);}
+  else if(F.visitas>=5)a.push(['warn','<b>O Placar tem mais matrículas ('+F.mats+') do que visitas atendidas ('+F.visitas+').</b> A recepção está marcando a matrícula e esquecendo de marcar a visita. Sem isso, não dá para medir a conversão.']);
   else if(F.leads>10)a.push(['warn','<b>Quase não há visitas marcadas no Placar este mês.</b> Sem a recepção marcar visitas agendadas e atendidas, não dá para ver onde o lead se perde.']);
   if(F.leads>=10&&F.agend<F.leads*.3)a.push(['warn','<b>Só '+pct(F.agend,F.leads)+' dos leads viraram visita agendada.</b> O gargalo está em transformar a conversa em horário marcado: a mensagem pronta dos leads já convida para a aula experimental.']);
   if(a.length)h+='<div style="display:grid;gap:10px;margin-top:14px">'+a.map(function(x){return '<div class="insight '+x[0]+'">'+x[1]+'</div>';}).join('')+'</div>';
   var ps=Object.keys(F.pess).map(function(k){return F.pess[k];}).filter(function(p){return p.agend||p.visitas||p.mats;}).sort(function(a,b){return b.mats-a.mats||b.visitas-a.visitas;});
   if(ps.length)h+='<span class="lbl" style="margin-top:18px">Por pessoa da recepção (Placar)</span><div class="scrollx"><table class="tbl"><thead><tr><th>Quem</th><th>Agendou</th><th>Atendeu</th><th>Matriculou</th><th>Conversão</th></tr></thead><tbody>'+
-    ps.map(function(p){return '<tr><td>'+esc(p.nome)+'</td><td>'+p.agend+'</td><td>'+p.visitas+'</td><td>'+p.mats+'</td><td>'+(p.visitas?pct(p.mats,p.visitas):'–')+'</td></tr>';}).join('')+'</tbody></table></div>';
+    ps.map(function(p){return '<tr><td>'+esc(p.nome)+'</td><td>'+p.agend+'</td><td>'+p.visitas+'</td><td>'+p.mats+'</td><td>'+(p.visitas&&p.mats<=p.visitas?pct(p.mats,p.visitas):'–')+'</td></tr>';}).join('')+'</tbody></table></div>';
   var cs=Object.keys(F.canais).map(function(k){return F.canais[k];}).sort(function(a,b){return b.leads-a.leads;}).slice(0,8);
-  if(cs.length>1)h+='<span class="lbl" style="margin-top:18px">De onde vêm os leads (EVO)</span><div class="scrollx"><table class="tbl"><thead><tr><th>Canal</th><th>Leads</th><th>Viraram aluno</th><th>Conversão</th></tr></thead><tbody>'+
-    cs.map(function(c){return '<tr><td>'+esc(c.nome)+'</td><td>'+c.leads+'</td><td>'+c.conv+'</td><td>'+pct(c.conv,c.leads)+'</td></tr>';}).join('')+'</tbody></table></div>';
+  if(cs.length>1)h+='<span class="lbl" style="margin-top:18px">De onde vêm os leads (EVO)</span><div class="scrollx"><table class="tbl"><thead><tr><th>Canal</th><th>Leads</th>'+(semConv?'<th>Parte do total</th>':'<th>Viraram aluno</th><th>Conversão</th>')+'</tr></thead><tbody>'+
+    cs.map(function(c){return '<tr><td>'+esc(c.nome)+'</td><td>'+c.leads+'</td>'+(semConv?'<td>'+pct(c.leads,F.leads)+'</td>':'<td>'+c.conv+'</td><td>'+pct(c.conv,c.leads)+'</td>')+'</tr>';}).join('')+'</tbody></table></div>';
   return h+'<p class="small muted" style="margin:12px 0 0">Leads e matrículas vêm do EVO. Visitas agendadas e atendidas são o que a recepção marca no Placar: se ela não marca, o funil fica furado. As matrículas do EVO incluem quem entrou sem passar por visita.</p></section>';
 }
 // ---- Resumo da semana (texto pronto para mandar aos sócios) ----
