@@ -26,8 +26,9 @@ body>header input,body>header select{color-scheme:dark}
 html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
 .wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-header{background:var(--surface);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);position:sticky;top:0;z-index:5}
-.top{display:flex;align-items:center;gap:14px;justify-content:space-between;padding-block:12px;flex-wrap:wrap}
+/* Casca: no computador, menu lateral fixo; no celular, barra em cima e atalhos embaixo */
+header{background:var(--surface);position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.unidade{min-width:0;flex:1 1 0;color:var(--muted);font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.12em;min-width:0}
 .unid{appearance:none;background:var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a99f97'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid var(--line);color:var(--fg);font:600 14px var(--body);letter-spacing:.02em;padding:6px 28px 6px 10px;border-radius:8px;max-width:58vw;cursor:pointer;text-overflow:ellipsis}
 .brand .bu{color:var(--muted);font-weight:600;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -35,10 +36,33 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding-top
 .mark i{width:8px;height:8px;background:var(--accent)}
 .mark i:last-child{background:transparent;box-shadow:inset 0 0 0 2px var(--accent)}
 .who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
-nav.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
-nav.tabs button{appearance:none;background:transparent;border:1px solid transparent;color:var(--muted);font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
-nav.tabs button[aria-current="page"]{color:var(--fg);background:var(--surface-2);border-color:var(--line)}
-main{padding-block:22px 80px;display:grid;gap:18px}
+.ic{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs{display:none;flex-direction:column;gap:2px}
+nav.tabs .navg{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:14px 12px 6px}
+nav.tabs button{appearance:none;background:transparent;border:0;color:var(--muted);font:600 15.5px var(--body);padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;min-height:44px;width:100%}
+nav.tabs button:hover{color:var(--fg);background:rgba(255,255,255,.06)}
+nav.tabs button[aria-current="page"]{color:#fff;background:var(--surface-2);box-shadow:inset 3px 0 0 var(--accent)}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:7;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));box-shadow:0 -6px 20px rgba(11,20,38,.06)}
+.dock button{flex:1 1 0;min-width:0;appearance:none;border:0;background:transparent;color:var(--muted);font:600 11.5px var(--body);display:grid;justify-items:center;gap:3px;padding:6px 2px;border-radius:10px;cursor:pointer;min-height:52px}
+.dock button[aria-current="page"]{color:var(--accent);background:rgba(11,58,140,.08)}
+.dock button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#hdr[hidden]~.dock,.dock:empty{display:none}
+body.menu-open nav.tabs{display:flex;position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));max-height:70vh;overflow-y:auto;background:var(--navy);padding:6px 12px 16px;border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(5,12,30,.35);z-index:6}
+body.menu-open::before{content:"";position:fixed;inset:0;background:rgba(5,12,30,.45);z-index:5}
+main{padding-block:22px 110px;display:grid;gap:18px}
+@media (min-width:960px){
+  header{position:fixed;inset:0 auto 0 0;width:248px;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:0;padding:22px 14px 16px;overflow-y:auto}
+  header .brand{padding:0 12px 14px;font-size:19px}
+  header .unidade{flex:none;padding:0 12px 6px;white-space:normal}
+  header .unidade .unid{width:100%;max-width:none}
+  nav.tabs{display:flex;flex:1 1 auto}
+  header .who{flex-direction:column;align-items:stretch;gap:10px;padding:14px 12px 0;margin-top:12px;border-top:1px solid var(--line)}
+  header .who .btn{width:100%}
+  .dock{display:none}
+  #hdr:not([hidden])~#shell{padding-left:248px}
+  main{padding-block:34px 72px;gap:22px}
+  body.menu-open::before{display:none}
+}
 h1,.h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,40px);line-height:1;text-transform:uppercase;margin:0}
 .h2{font-family:var(--display);font-weight:800;font-size:21px;text-transform:uppercase;letter-spacing:.04em;margin:0;line-height:1.1}
 .lbl{display:block;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
@@ -133,17 +157,99 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .fincheck label{display:flex;gap:8px;align-items:center}
 @media(max-width:600px){.tbl.dre th:nth-child(4),.tbl.dre td:nth-child(4){display:none}.tbl.dre td:first-child{white-space:normal}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* ===== Acabamento (revisão de UX/UI, nov/2026) ===== */
+body{font-size:16px}
+.wrap{max-width:1120px}
+h1,.h1{letter-spacing:.01em;text-wrap:balance}
+.panel,.kpi,.card{border-radius:14px;box-shadow:0 1px 2px rgba(11,20,38,.04),0 6px 20px rgba(11,20,38,.04)}
+.panel{padding:20px}
+.kpi{padding:16px 18px;display:grid;align-content:start}
+.kpi .lbl{margin-bottom:8px}
+.kpi .s{font-size:13.5px}
+.lead{font-size:16px}
+.lbl{font-size:12px;letter-spacing:.1em}
+input,select,textarea{background:var(--surface);min-height:44px;border-radius:10px;transition:border-color .12s,box-shadow .12s}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(11,58,140,.15)}
+.btn{border-radius:10px;min-height:44px;padding:9px 18px;transition:filter .12s,border-color .12s,background .12s}
+.btn.sm{min-height:38px;padding:6px 12px;border-radius:9px}
+.btn.ghost{background:var(--surface)}
+.btn.ghost:hover{background:var(--surface-2);border-color:var(--line)}
+.btn.danger{background:var(--surface)}
+.pills{gap:8px}
+.pills button{min-height:38px;padding:7px 14px;font-size:14px;background:var(--surface)}
+.pills button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip{font-size:12.5px;padding:4px 10px}
+.it{padding:14px 0}
+.it .n{font-size:16px}
+.it .dt{font-size:13.5px}
+.zap{min-height:44px;padding:9px 16px;border-radius:10px;font-size:15px}
+.insight{padding:14px 16px;border-radius:10px;font-size:15px;border-left-width:4px}
+.msg{border-radius:10px;padding:12px 14px;font-size:15px}
+.tbl{font-size:14.5px}
+.tbl th,.tbl td{padding:10px 10px}
+.tbl tbody tr:hover td{background:rgba(11,58,140,.035)}
+.toast{border-radius:12px;padding:14px 18px;font-size:15px;bottom:calc(84px + env(safe-area-inset-bottom,0px));box-shadow:0 10px 30px rgba(5,12,30,.3)}
+.seg{border-radius:12px}
+.seg button{min-height:42px;border-radius:9px;font-size:15px}
+.seg button[aria-pressed="true"]{box-shadow:0 1px 3px rgba(11,20,38,.12)}
+/* Início */
+.hello{display:grid;gap:4px}
+.hello .dia{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.hoje{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.hoje .kpi{cursor:pointer;text-align:left;font:inherit;color:inherit;appearance:none;border:1px solid var(--line);background:var(--surface)}
+.hoje .kpi:hover{border-color:var(--accent)}
+.hoje .kpi .v{font-size:34px}
+.grid{gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.card{grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:18px;transition:border-color .12s,transform .12s,box-shadow .12s}
+.card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 2px 4px rgba(11,20,38,.05),0 10px 26px rgba(11,58,140,.10)}
+.card .ib{grid-row:1/3;width:46px;height:46px;border-radius:12px;background:rgba(11,58,140,.08);color:var(--accent);display:grid;place-items:center}
+.card .t{font-size:20px;grid-column:2}
+.card .d{grid-column:2;font-size:14.5px}
+.card .go{grid-row:1/3;grid-column:3;color:var(--muted);width:20px;height:20px}
+.card:hover .go{color:var(--accent)}
+details.mais{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
+details.mais summary{cursor:pointer;font-weight:600;color:var(--accent-text);min-height:32px;display:flex;align-items:center;gap:8px;list-style:none}
+details.mais summary::-webkit-details-marker{display:none}
+details.mais summary::before{content:"+";font-weight:700;font-size:18px;line-height:1}
+details.mais[open] summary::before{content:"–"}
+/* Entrar */
+body:has(.auth){background:linear-gradient(180deg,var(--navy) 0,var(--navy) 250px,var(--bg) 250px)}
+.auth{margin-top:5vh}
+.auth>.brand{color:#fff;font-size:22px;justify-content:center;padding:6px 0 4px}
+.auth>.brand .mark i{background:#5fa2ff}
+.auth>.brand .mark i:last-child{background:transparent;box-shadow:inset 0 0 0 2px #5fa2ff}
+.auth>.brand .bu{color:#b7c4df}
+.auth>.seg{background:var(--navy-2)}
+.auth>.seg button{color:#b7c4df}
+.auth>.seg button[aria-pressed="true"]{color:var(--fg)}
+.auth .panel{padding:24px;box-shadow:0 2px 6px rgba(11,20,38,.06),0 18px 50px rgba(11,20,38,.12)}
+.auth .form{max-width:none}
+.auth .form .btn{min-height:48px;font-size:17px}
+@media (max-width:959px){
+  header .who{font-size:0;gap:0}
+  header .who .chip{display:none}
+  header .brand{font-size:17px}
+  .pills{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+  .pills::-webkit-scrollbar{display:none}
+  .hoje{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hoje .kpi .v{font-size:30px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel{padding:16px}
+  h1,.h1{font-size:32px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<header id="hdr" hidden><div class="wrap">
-  <div class="top">
-    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span><span class="bu" id="acadNome"></span></div>
-    <div class="who"><span id="quem"></span><button class="btn ghost sm" data-act="sair">Sair</button></div>
-  </div>
+<header id="hdr" hidden>
+  <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span></div>
+  <div class="unidade" id="acadNome"></div>
   <nav class="tabs" id="tabs" aria-label="Seções"></nav>
-</div></header>
-<main class="wrap" id="view"><p class="muted">Carregando…</p></main>
+  <div class="who"><span id="quem"></span><button class="btn ghost sm" data-act="sair">Sair</button></div>
+</header>
+<nav id="dock" class="dock" aria-label="Atalhos"></nav>
+<div id="shell"><main class="wrap" id="view"><p class="muted">Carregando…</p></main></div>
 <div id="toast" class="toast" role="status" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
@@ -157,6 +263,16 @@ var RESP_URL='https://avaliacao.fitstack.com.br/r/?id=';
 var APP_URL='https://app.fitstack.com.br';
 
 var sb=supabase.createClient(SB_URL,SB_KEY);
+var ICO={inicio:'M3 11l9-8 9 8M5 10v10h14V10',painel:'M4 20V10M10 20V4M16 20v-7M2 20h20',contatos:'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z',
+  avaliacoes:'M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9 6.6 19.8l1.1-6.1L3.2 9.4l6.1-.8z',placar:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16.500a4.500 4.500 0 1 0 0-9 4.500 4.500 0 0 0 0 9zM12 12h.01',
+  equipe:'M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.500 11a3.500 3.500 0 1 0 0-7 3.500 3.500 0 0 0 0 7zM21 20v-1a4 4 0 0 0-3-3.800M16 4.200a3.500 3.500 0 0 1 0 6.600',
+  financeiro:'M3 7h18v12H3zM3 11h18M7 15h4',integracoes:'M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4',manual:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5M9 8h6',
+  mais:'M4 7h16M4 12h16M4 17h16',seta:'M9 6l6 6-6 6'};
+function ic(n,c){return '<svg class="'+(c||'ic')+'" viewBox="0 0 24 24" aria-hidden="true"'+(c?' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"':'')+'><path d="'+ICO[n]+'"/></svg>';}
+var NAV_ORDEM=['inicio','contatos','placar','painel','financeiro','avaliacoes','equipe','integracoes','manual'];
+var NAV_GRUPO={inicio:0,contatos:0,placar:0,painel:1,financeiro:1,avaliacoes:1,equipe:2,integracoes:2,manual:2};
+var NAV_GNOME=['Dia a dia','Gestão','Ajustes'];
+var NAV_CURTO={contatos:'Contatos',equipe:'Equipe',integracoes:'EVO'};
 var PERMS=[
   {k:'placar',t:'Preencher o Placar do turno'},
   {k:'placar_gestao',t:'Ver o Placar de todos e cobrar a equipe'},
@@ -370,7 +486,7 @@ function render(){
   if(!S.sess||S.authModo==='nova-senha'){hdr.hidden=true;view.innerHTML=telaAuth();return;}
   if(!S.atual){hdr.hidden=true;view.innerHTML=telaSemAcademia();return;}
   hdr.hidden=false;
-  if(S.atual.academias.ativa===false){view.innerHTML='<section class="panel"><span class="lbl">Acesso suspenso</span><h1 class="h2">'+esc(S.atual.academias.nome)+' está com o acesso suspenso</h1><p class="muted" style="margin:8px 0 0">Fale com a FitStack pelo contato@fitstack.com.br para reativar.'+(S.membros.length>1?' Você pode trocar de unidade no seletor lá em cima.':'')+'</p></section>';document.getElementById('tabs').innerHTML='';
+  if(S.atual.academias.ativa===false){view.innerHTML='<section class="panel"><span class="lbl">Acesso suspenso</span><h1 class="h2">'+esc(S.atual.academias.nome)+' está com o acesso suspenso</h1><p class="muted" style="margin:8px 0 0">Fale com a FitStack pelo contato@fitstack.com.br para reativar.'+(S.membros.length>1?' Você pode trocar de unidade no seletor lá em cima.':'')+'</p></section>';document.getElementById('tabs').innerHTML='';document.getElementById('dock').innerHTML='';
     document.getElementById('acadNome').textContent=S.atual.academias.nome;return;}
   var an=document.getElementById('acadNome');
   if(S.membros.length>1)an.innerHTML='<select class="unid" id="trocaUnidade" aria-label="Unidade">'+S.membros.slice().sort(function(a,b){return a.academias.nome.localeCompare(b.academias.nome);}).map(function(m){
@@ -388,7 +504,15 @@ function render(){
   if(isAdmin())tabs.push(['integracoes','Integrações']);
   tabs.push(['manual','Manual']);
   if(!tabs.some(function(t){return t[0]===S.tab;}))S.tab='inicio';
-  document.getElementById('tabs').innerHTML=tabs.map(function(t){return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+t[1]+'</button>';}).join('');
+  tabs.sort(function(a,b){return NAV_ORDEM.indexOf(a[0])-NAV_ORDEM.indexOf(b[0]);});
+  var gAnt=-1;
+  document.getElementById('tabs').innerHTML=tabs.map(function(t){var g=NAV_GRUPO[t[0]],cab=g!==gAnt?'<span class="navg">'+NAV_GNOME[g]+'</span>':'';gAnt=g;
+    return cab+'<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+ic(t[0])+'<span>'+t[1]+'</span></button>';}).join('');
+  var prim=tabs.length>5?tabs.slice(0,4):tabs, naPrim=prim.some(function(t){return t[0]===S.tab;});
+  document.getElementById('dock').innerHTML=prim.map(function(t){
+    return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+ic(t[0])+'<span>'+(NAV_CURTO[t[0]]||t[1])+'</span></button>';}).join('')+
+    (tabs.length>5?'<button data-act="menu" aria-label="Mais opções"'+(naPrim?'':' aria-current="page"')+'>'+ic('mais')+'<span>Mais</span></button>':'');
+  document.body.classList.remove('menu-open');
   var fn={inicio:telaInicio,avaliacoes:telaAvaliacoes,placar:telaPlacar,equipe:telaEquipe,integracoes:telaIntegracoes,financeiro:telaFinanceiro,painel:telaPainel,contatos:telaContatos,manual:telaManual}[S.tab];
   view.innerHTML=fn();
 }
@@ -408,36 +532,51 @@ function telaSemAcademia(){
 }
 function telaInicio(){
   var cards=[];
-  if(isAdmin())cards.push(['painel','Painel da academia','Alunos ativos, sumidos, inadimplência, matrículas e cancelamentos do mês, direto do EVO.']);
-  if(pode('placar')||pode('placar_gestao'))cards.push(['contatos','Contatos do dia','Aniversariantes, alunos sumidos, inadimplentes e renovações, com o botão do WhatsApp.']);
-  if(pode('avaliacoes'))cards.push(['avaliacoes','Avaliações','Crie avaliações anônimas para cada função e veja os resultados.']);
-  if(pode('placar')||pode('placar_gestao')||pode('comissao'))cards.push(['placar','Placar de Turnos','Metas do turno, conferência do gerente, ranking de comissão e relatório do dia.']);
-  if(isAdmin()||pode('equipe'))cards.push(['equipe','Equipe e acessos','Cadastre o gerente e os colaboradores e escolha o que cada um vê.']);
-  if(isAdmin())cards.push(['financeiro','Financeiro','Confira boletos e Pix antes de pagar e veja a DRE do mês com o que entrou e saiu.']);
-  if(isAdmin())cards.push(['integracoes','Integração com o EVO','Ligue o FitStack ao EVO para puxar aniversariantes, inadimplentes, sumidos e os números do mês.']);
-  var h='<div><h1>Olá'+(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome?', '+esc(S.sess.user.user_metadata.nome.split(' ')[0]):'')+'</h1><p class="lead">O que vamos fazer agora?</p></div>';
-  h+=cards.length?'<div class="grid">'+cards.map(function(c){return '<button class="card" data-tab="'+c[0]+'"><span class="t">'+c[1]+'</span><span class="d">'+c[2]+'</span></button>';}).join('')+'</div>'
-    :'<section class="panel"><p class="muted" style="margin:0">Seu acesso ainda não tem nenhuma área liberada. Fale com o admin da academia.</p></section>';
-  var souDono=S.membros.some(function(m){return m.papel==='admin';});
-  if(S.membros.length>1||souDono){
-    h+='<section class="panel"><span class="lbl">'+(souDono?'Minhas unidades':'Trocar de unidade')+'</span>';
-    if(S.membros.length>1)h+='<div class="row">'+S.membros.map(function(m){
-      return '<button class="btn '+(m===S.atual?'':'ghost ')+'sm" data-acad="'+m.academia_id+'">'+esc(m.academias.nome)+'</button>';}).join('')+'</div>'+
-      '<p class="small muted" style="margin:8px 0 0">Também dá para trocar no seletor lá em cima, ao lado de FITSTACK. Cada unidade tem o seu Painel, EVO, equipe e Placar.</p>';
-    if(souDono){
-      if(S.novaUnidade)h+='<form class="form" data-form="novaUnidade" style="margin-top:14px">'+
-        '<label class="f"><span>Nome da unidade</span><input name="nome" placeholder="Ex.: Panobianco Cianorte" required></label>'+
-        '<label class="f"><span>Cidade</span><input name="cidade" placeholder="Ex.: Cianorte"></label>'+
-        '<p class="small muted" style="margin:0">Você vai ser o dono dela. Depois cadastre os sócios, o gerente e a equipe dessa unidade, e a chave do EVO dela em Integrações.</p>'+
-        '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Criar unidade</button><button type="button" class="btn ghost" data-act="cancelUnidade">Cancelar</button></div></form>';
-      else h+='<div class="row" style="margin-top:12px"><button class="btn ghost sm" data-act="novaUnidade">+ Cadastrar outra unidade</button></div>';
+  if(pode('placar')||pode('placar_gestao'))cards.push(['contatos','Contatos do dia','Quem chamar hoje no WhatsApp: aniversariantes, sumidos, inadimplentes e renovações.']);
+  if(pode('placar')||pode('placar_gestao')||pode('comissao'))cards.push(['placar','Placar de Turnos','Metas de cada turno, conferência do gerente e ranking da comissão.']);
+  if(isAdmin())cards.push(['painel','Painel da academia','Alunos ativos, sumidos, inadimplência, matrículas e cancelamentos, direto do EVO.']);
+  if(isAdmin())cards.push(['financeiro','Financeiro','Confira boletos e Pix antes de pagar, guarde comprovantes e veja a DRE do mês.']);
+  if(pode('avaliacoes'))cards.push(['avaliacoes','Avaliações','Pesquisas anônimas com alunos e equipe, com o resultado na hora.']);
+  if(isAdmin()||pode('equipe'))cards.push(['equipe','Equipe e acessos','Cadastre gerente e colaboradores e escolha o que cada um vê.']);
+  if(isAdmin())cards.push(['integracoes','Integração com o EVO','Ligação com o EVO, de onde vêm os alunos e os números do mês.']);
+  cards.push(['manual','Manual','Passo a passo de cada tela, para você e para a equipe.']);
+  var pn=S.sess.user.user_metadata&&S.sess.user.user_metadata.nome?S.sess.user.user_metadata.nome.split(' ')[0]:'';
+  var dia=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  var h='<div class="hello"><span class="dia">'+esc(dia)+' · '+esc(S.atual.academias.nome)+'</span><h1>Olá'+(pn?', '+esc(pn):'')+'</h1></div>';
+  if(isAdmin()){
+    if(S.evoDados===undefined&&!S.evoPedido){S.evoPedido=true;carregarEvoDados();}
+    var r=S.evoDados&&S.evoDados.resumo;
+    if(r){
+      var sum=(r.sumidos7||0)+(r.sumidos15||0)+(r.sumidos30||0),saldo=(r.matriculasMes||0)-(r.canceladosMes||0);
+      h+='<section style="display:grid;gap:10px"><div class="row between"><span class="lbl" style="margin:0">A academia agora</span><span class="small muted">EVO de '+dataHora(S.evoDados._resumo)+'</span></div><div class="hoje">'+
+        '<button class="kpi" data-tab="painel"><span class="lbl">Alunos ativos</span><div class="v">'+Number(r.ativos||0).toLocaleString('pt-BR')+'</div><div class="s">'+(saldo>=0?'+':'')+saldo+' no mês</div></button>'+
+        '<button class="kpi" data-tab="painel"><span class="lbl">Matrículas no mês</span><div class="v t-ok">'+(r.matriculasMes||0)+'</div><div class="s">'+(r.canceladosMes||0)+' cancelamentos</div></button>'+
+        '<button class="kpi" data-tab="contatos"><span class="lbl">Em atraso</span><div class="v t-bad" style="font-size:28px">'+brl0(r.inadValor)+'</div><div class="s">'+(r.inadimplentes||0)+' pessoas para cobrar</div></button>'+
+        '<button class="kpi" data-tab="contatos"><span class="lbl">Sumidos 7+ dias</span><div class="v t-bad">'+sum+'</div><div class="s">'+pct(sum,r.ativos)+' da base não está vindo</div></button>'+
+      '</div></section>';
     }
-    h+='</section>';
   }
-  h+='<section class="panel"><span class="lbl">Recebeu acesso a outra unidade?</span>'+
-    '<p class="small muted" style="margin:0 0 10px">Digite aqui o código de 6 letras e números que o dono daquela unidade te mandou. Ela aparece junto com as suas, no seletor lá em cima.</p>'+
+  h+='<section style="display:grid;gap:10px"><span class="lbl" style="margin:0">Aonde você quer ir</span>'+(cards.length>1?'<div class="grid">'+cards.map(function(c){
+      return '<button class="card" data-tab="'+c[0]+'"><span class="ib">'+ic(c[0])+'</span><span class="t">'+c[1]+'</span><span class="d">'+c[2]+'</span>'+ic('seta','go')+'</button>';}).join('')+'</div>'
+    :'<section class="panel"><p class="muted" style="margin:0">Seu acesso ainda não tem nenhuma área liberada. Fale com o admin da academia.</p></section>')+'</section>';
+  var souDono=S.membros.some(function(m){return m.papel==='admin';});
+  h+='<section class="panel"><span class="lbl">'+(souDono?'Minhas unidades':'Unidade')+'</span>';
+  if(S.membros.length>1)h+='<div class="row">'+S.membros.map(function(m){
+      return '<button class="btn '+(m===S.atual?'':'ghost ')+'sm" data-acad="'+m.academia_id+'">'+esc(m.academias.nome)+'</button>';}).join('')+'</div>'+
+      '<p class="small muted" style="margin:10px 0 0">Cada unidade tem o seu Painel, EVO, equipe e Placar. Toque para trocar.</p>';
+  else h+='<p style="margin:0;font-weight:600">'+esc(S.atual.academias.nome)+(S.atual.academias.cidade?' · '+esc(S.atual.academias.cidade):'')+'</p>';
+  if(souDono){
+    if(S.novaUnidade)h+='<form class="form" data-form="novaUnidade" style="margin-top:14px">'+
+      '<label class="f"><span>Nome da unidade</span><input name="nome" placeholder="Ex.: Panobianco Cianorte" required></label>'+
+      '<label class="f"><span>Cidade</span><input name="cidade" placeholder="Ex.: Cianorte"></label>'+
+      '<p class="small muted" style="margin:0">Você vai ser o dono dela. Depois cadastre os sócios, o gerente e a equipe dessa unidade, e a chave do EVO dela em Integrações.</p>'+
+      '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Criar unidade</button><button type="button" class="btn ghost" data-act="cancelUnidade">Cancelar</button></div></form>';
+    else h+='<div class="row" style="margin-top:12px"><button class="btn ghost sm" data-act="novaUnidade">+ Cadastrar outra unidade</button></div>';
+  }
+  h+='<details class="mais"'+(S.authErro||S.authMsg||S.ocupado?' open':'')+'><summary>Recebi um código de acesso de outra unidade</summary>'+
+    '<p class="small muted" style="margin:8px 0 10px">Digite o código de 6 letras e números que o dono daquela unidade te mandou. Ela passa a aparecer junto com as suas.</p>'+
     '<form class="form" data-form="usarCodigo"><label class="f"><span>Código de acesso</span><input name="codigo" maxlength="6" autocomplete="off" required style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"></label>'+
-    msgs()+'<div class="row"><button class="btn sm"'+(S.ocupado?' disabled':'')+'>Entrar na unidade</button></div></form></section>';
+    msgs()+'<div class="row"><button class="btn sm"'+(S.ocupado?' disabled':'')+'>Entrar na unidade</button></div></form></details></section>';
   return h;
 }
 // ================= INTEGRAÇÕES =================
@@ -489,7 +628,7 @@ function pct(a,b){return b?Math.round(a*100/b)+'%':'0%';}
 function carregarEvoDados(){
   sb.from('evo_dados').select('chave,dados,atualizado_em').eq('academia_id',S.atual.academia_id).neq('chave','financeiro').then(function(r){
     var o={};(r.data||[]).forEach(function(x){o[x.chave]=x.dados;o['_'+x.chave]=x.atualizado_em;});S.evoDados=o;
-    if(S.tab==='painel'||S.tab==='contatos')render();});
+    if(S.tab==='painel'||S.tab==='contatos'||S.tab==='inicio')render();});
 }
 function carregarContatos(){
   sb.from('evo_contatos').select('id,lista,id_aluno,por,por_nome,quando').eq('academia_id',S.atual.academia_id).eq('dia',hojeBR()).then(function(r){
@@ -1493,7 +1632,11 @@ view.addEventListener('change',function(ev){
 });
 function autoH(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,240)+'px';}
 document.addEventListener('click',function(ev){
-  var b=ev.target.closest('button,a');if(!b)return;var d=b.dataset;
+  var b=ev.target.closest('button,a');
+  if(!b){if(!ev.target.closest('#tabs'))document.body.classList.remove('menu-open');return;}
+  var d=b.dataset;
+  if(d.act==='menu'){document.body.classList.toggle('menu-open');return;}
+  if(!b.closest('#tabs'))document.body.classList.remove('menu-open');
   if(d.auth){S.authModo=d.auth;S.authErro='';S.authMsg='';render();return;}
   if(d.tab==='placar'){location.href='placar.html';return;}
   if(d.tab){S.tab=d.tab;S.sub='lista';S.confirma=null;
