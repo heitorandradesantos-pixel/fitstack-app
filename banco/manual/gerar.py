@@ -202,6 +202,7 @@ rec.append(('Contatos do dia (WhatsApp)', '''
 ]) + box('dica', 'O selo verde ✓', 'Quando aparece <b>✓ Voltou</b>, <b>✓ Pagou</b> ou <b>✓ Renovou</b> ao lado do nome, é porque o aluno que você chamou voltou a treinar, pagou ou renovou depois do contato. O sistema confere isso no EVO toda manhã, e o dono vê quantos resultados cada pessoa trouxe.') +
 box('dica', 'Duas pessoas no mesmo turno?', 'Quando uma marca um nome, ele fica riscado para a outra também (atualiza a cada 30 segundos). Assim ninguém manda mensagem duas vezes para o mesmo aluno.') +
 box('nunca', 'Nunca', 'Não prometa desconto, isenção ou brinde que o gerente não autorizou. Não cobre de forma grossa nem em tom de ameaça. Não marque "Chamei" se você não falou com a pessoa: o gerente confere.') +
+box('dica', 'Leads: a mensagem muda sozinha', 'Na lista <b>Leads</b>, escolha <b>Novos</b>, <b>3 a 7 dias</b> ou <b>Mais de 7 dias</b>. A mensagem do WhatsApp já vem certa para cada caso: convite para a aula experimental para quem acabou de chegar, lembrete leve para quem está pensando e uma última chamada, sem pressão, para quem sumiu. É só tocar em WhatsApp e enviar. <b>Lead novo se chama no mesmo dia.</b>') +
 fig('contatos-celular', 'No celular a tela fica assim', 'cel')))
 
 rec.append(('Placar do turno', '''
@@ -500,6 +501,15 @@ don.append(('Painel da academia (EVO)', '''
     ['Evolução dia a dia', 'Os últimos 14 dias: ativos, sumidos, atraso, matrículas e cancelamentos.'],
 ])))
 
+don.append(('Funil de vendas (no Painel)', '''
+<p class="lead">O funil mostra o caminho do mês: <b>leads</b> que chegaram, <b>visitas agendadas</b>, <b>visitas atendidas</b> e <b>matrículas</b>. Serve para ver em que etapa a academia perde o aluno novo.</p>
+''' + tabela(['O que aparece', 'De onde vem', 'Como usar'], [
+    ['<b>Leads e matrículas</b>', 'EVO', 'Poucos leads = falta divulgação. Muitos leads e poucas matrículas = o problema está no atendimento.'],
+    ['<b>Visitas agendadas e atendidas</b>', 'O que a recepção marca no Placar', 'Se ninguém marca, o funil fica furado. Cobre o preenchimento.'],
+    ['<b>Por pessoa da recepção</b>', 'Placar', 'Quem agenda, quem atende e quem fecha. Conversão baixa pede treino de atendimento da visita.'],
+    ['<b>De onde vêm os leads</b>', 'Canal do lead no EVO', 'Mostra qual canal traz lead que vira aluno. Coloque o dinheiro de marketing nele.'],
+]) + box('dica', 'Leads parados', 'Quando tem lead sem resposta, o funil mostra o botão <b>Chamar os leads agora</b>. Ele abre Contatos do dia → Leads, já com a mensagem pronta para cada caso.')))
+
 don.append(('Financeiro: contas a pagar e DRE', '''
 <p class="lead">A área <b>Financeiro</b> é só do dono e dos sócios. Ela faz duas coisas: confere boletos e Pix <b>antes</b> de pagar e monta a DRE do mês com o que entrou e saiu.</p>
 <h3>Conferir um boleto ou Pix antes de pagar</h3>
@@ -530,6 +540,15 @@ don.append(('Financeiro: contas a pagar e DRE', '''
     ('Toque em ' + B('Lançar') + '.', 'As contas entram como pagas e o PDF fica guardado junto.'),
     ('Para corrigir depois: em <b>Contas a pagar</b>, troque o centro de custo direto na linha ou toque em ' + B('Editar') + '.', 'O filtro <b>Sem centro de custo</b> mostra só o que falta classificar.'),
 ) + '''
+<h3>Conciliação (conferir com o extrato do banco)</h3>
+<p>Serve para achar o que saiu do banco e ninguém lançou. Faça uma vez por mês, depois de fechar o mês.</p>
+''' + passos(
+    ('No site ou app do banco, baixe o extrato do mês no formato <b>OFX</b>.', 'Em alguns bancos aparece como "Money" ou "Gerenciador financeiro". Se o banco só der planilha, o CSV também serve.'),
+    ('Em Financeiro, toque em ' + B('Conciliação') + ' e depois em ' + B('Escolher extrato') + '.', 'Quatro números: saídas no extrato, conferidas, sem lançamento e entradas.'),
+    ('Olhe a lista <b>Saiu do banco e não está lançado</b>.', 'Cada linha é um pagamento que está no extrato e não está nem no FitStack nem no EVO.'),
+    ('Escolha o centro de custo e toque em ' + B('Lançar') + '.', 'A conta entra como paga na data do extrato e passa a contar na DRE.'),
+    ('Não é despesa da academia (transferência entre contas suas)? Toque em ' + B('Ignorar') + '.', ''),
+) + box('dica', 'O extrato não fica guardado', 'O arquivo é lido só no seu navegador. Se fechar a tela, é só escolher o arquivo de novo: o que você já lançou continua lançado.') + '''
 <h3>DRE do mês</h3>
 <p>A DRE soma <b>o que entrou</b> (recebido no EVO + entradas que você lançar, como o repasse do Wellhub) e <b>o que saiu</b> (contas pagas no EVO + contas pagas aqui). O FitStack busca no EVO sozinho todo dia às 6h10.</p>
 ''' + passos(

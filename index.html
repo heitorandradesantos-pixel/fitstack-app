@@ -123,6 +123,10 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .num{font-family:var(--display);font-weight:700;font-size:15px;text-align:right}
 .g-ok{background:var(--ok)} .g-warn{background:var(--warn)} .g-bad{background:var(--bad)}
 .t-ok{color:var(--ok)} .t-warn{color:var(--warn)} .t-bad{color:var(--bad)}
+.funil{display:grid;gap:14px;margin-top:6px}
+.fz{display:grid;gap:6px}
+.fz .track{height:14px;border-radius:7px}
+.fz .fill{border-radius:7px}
 .metal{display:grid;gap:8px}
 .metal .track{height:12px;border-radius:6px}
 .metal .fill{border-radius:6px}
@@ -775,6 +779,7 @@ function telaPainel(){
   h+='<section class="panel"><span class="lbl">Onde está o gap</span><div style="display:grid;gap:10px">'+insights(r)+'</div>'+
     '<div class="row" style="margin-top:14px"><button class="btn" data-tab="contatos">Abrir contatos do dia</button></div></section>';
   h+=painelResumo(r);
+  h+=painelFunil(r);
   h+=painelResultados(r.resultados);
   h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">';
   h+='<section class="panel"><span class="lbl">Alunos sumidos (ativos sem treinar)</span>'+barras([['7 a 14 dias',r.sumidos7],['15 a 29 dias',r.sumidos15],['30 dias ou mais',r.sumidos30],['Nunca treinaram',r.nuncaVieram||0]],r.ativos,'g-bad')+'</section>';
@@ -791,6 +796,49 @@ function telaPainel(){
   }else h+='<p class="small muted">A partir de amanhã aparece aqui a evolução dia a dia (a busca roda todo dia de madrugada).</p>';
   if(r.avisos&&r.avisos.length)h+='<div class="msg">'+r.avisos.map(esc).join('<br>')+'</div>';
   return h;
+}
+// ---- Funil de vendas do mês: leads (EVO) → visitas agendadas e atendidas (Placar) → matrículas ----
+function carregarFunil(){
+  var ym=hojeBR().slice(0,7);
+  sb.from('placar_docs').select('dados').eq('academia_id',S.atual.academia_id).eq('colecao','registros').gte('data',ym+'-01').limit(400).then(function(r){
+    S.funilRegs=r.error?[]:(r.data||[]).map(function(x){return x.dados||{};}).filter(function(x){return String(x.data||'').slice(0,7)===ym;});
+    if(S.tab==='painel')render();});
+}
+function funilDados(r){
+  var L=((S.evoDados.leads||{}).itens||[]),R=S.funilRegs||[],n=function(x){return Number(x)||0;};
+  var o={leads:L.length,conv:L.filter(function(x){return x.convertido;}).length,agend:0,visitas:0,mats:0,pess:{},canais:{}};
+  o.parados=L.filter(function(x){return !x.convertido&&diasDesde(x.dia)>7;}).length;
+  o.novos=L.filter(function(x){return !x.convertido&&diasDesde(x.dia)<=2;}).length;
+  R.forEach(function(g){var v=g.v||{},nm=(g.nome||'').trim()||'Sem nome';
+    o.agend+=n(v.agendadas);o.visitas+=n(v.visitas);o.mats+=n(v.matriculas);
+    var p=o.pess[nm]=o.pess[nm]||{nome:nm,agend:0,visitas:0,mats:0,turnos:0};p.agend+=n(v.agendadas);p.visitas+=n(v.visitas);p.mats+=n(v.matriculas);p.turnos++;});
+  L.forEach(function(x){var k=x.canal||'Não informado',c=o.canais[k]=o.canais[k]||{nome:k,leads:0,conv:0};c.leads++;if(x.convertido)c.conv++;});
+  o.matsEvo=r.matriculasMes||0;
+  return o;
+}
+function painelFunil(r){
+  if(!S.evoDados||S.funilRegs===undefined)return '';
+  var F=funilDados(r),h='<section class="panel"><span class="lbl">Funil de vendas · '+MESES_N[+hojeBR().slice(5,7)-1]+'</span>';
+  var et=[['Leads cadastrados',F.leads,'no EVO'],['Visitas agendadas',F.agend,'marcadas no Placar'],['Visitas atendidas',F.visitas,'marcadas no Placar'],['Matrículas',F.matsEvo,'no EVO']];
+  var mx=Math.max.apply(null,et.map(function(e){return e[1];}))||1;
+  h+='<div class="funil">'+et.map(function(e,i){var ant=i?et[i-1][1]:0;
+    return '<div class="fz"><div class="row between"><span><b>'+e[0]+'</b> <span class="small muted">'+e[2]+'</span></span><span class="num">'+e[1]+(i&&ant&&e[1]<=ant?' <span class="small muted">('+pct(e[1],ant)+' da etapa anterior)</span>':'')+'</span></div>'+
+      '<div class="track"><div class="fill" style="width:'+Math.max(2,Math.round(e[1]*100/mx))+'%;background:var(--accent)"></div></div></div>';}).join('')+'</div>';
+  var a=[];
+  if(F.leads&&F.leads-F.conv>0)a.push([F.parados?'bad':'warn','<b>'+(F.leads-F.conv)+' leads do mês ainda não viraram aluno.</b> '+(F.parados?F.parados+' estão parados há mais de 7 dias. ':'')+(F.novos?F.novos+' chegaram nos últimos 2 dias: lead novo fecha muito mais se for chamado no mesmo dia. ':'')+'<button class="link" data-act="irLeads">Chamar os leads agora</button>']);
+  if(F.visitas>=5){var cv=F.mats/F.visitas;
+    if(cv<.4)a.push(['bad','<b>De cada 10 visitas, '+Math.round(cv*10)+' viram matrícula.</b> O lead chega até a academia e sai sem fechar: vale treinar o atendimento da visita (tour, apresentação do plano e pedido de fechamento).']);
+    else a.push(['ok','<b>'+pct(F.mats,F.visitas)+' das visitas viram matrícula.</b> O atendimento da visita está fechando bem: o caminho para crescer é trazer mais visitas.']);}
+  else if(F.leads>10)a.push(['warn','<b>Quase não há visitas marcadas no Placar este mês.</b> Sem a recepção marcar visitas agendadas e atendidas, não dá para ver onde o lead se perde.']);
+  if(F.leads>=10&&F.agend<F.leads*.3)a.push(['warn','<b>Só '+pct(F.agend,F.leads)+' dos leads viraram visita agendada.</b> O gargalo está em transformar a conversa em horário marcado: a mensagem pronta dos leads já convida para a aula experimental.']);
+  if(a.length)h+='<div style="display:grid;gap:10px;margin-top:14px">'+a.map(function(x){return '<div class="insight '+x[0]+'">'+x[1]+'</div>';}).join('')+'</div>';
+  var ps=Object.keys(F.pess).map(function(k){return F.pess[k];}).filter(function(p){return p.agend||p.visitas||p.mats;}).sort(function(a,b){return b.mats-a.mats||b.visitas-a.visitas;});
+  if(ps.length)h+='<span class="lbl" style="margin-top:18px">Por pessoa da recepção (Placar)</span><div class="scrollx"><table class="tbl"><thead><tr><th>Quem</th><th>Agendou</th><th>Atendeu</th><th>Matriculou</th><th>Conversão</th></tr></thead><tbody>'+
+    ps.map(function(p){return '<tr><td>'+esc(p.nome)+'</td><td>'+p.agend+'</td><td>'+p.visitas+'</td><td>'+p.mats+'</td><td>'+(p.visitas?pct(p.mats,p.visitas):'–')+'</td></tr>';}).join('')+'</tbody></table></div>';
+  var cs=Object.keys(F.canais).map(function(k){return F.canais[k];}).sort(function(a,b){return b.leads-a.leads;}).slice(0,8);
+  if(cs.length>1)h+='<span class="lbl" style="margin-top:18px">De onde vêm os leads (EVO)</span><div class="scrollx"><table class="tbl"><thead><tr><th>Canal</th><th>Leads</th><th>Viraram aluno</th><th>Conversão</th></tr></thead><tbody>'+
+    cs.map(function(c){return '<tr><td>'+esc(c.nome)+'</td><td>'+c.leads+'</td><td>'+c.conv+'</td><td>'+pct(c.conv,c.leads)+'</td></tr>';}).join('')+'</tbody></table></div>';
+  return h+'<p class="small muted" style="margin:12px 0 0">Leads e matrículas vêm do EVO. Visitas agendadas e atendidas são o que a recepção marca no Placar: se ela não marca, o funil fica furado. As matrículas do EVO incluem quem entrou sem passar por visita.</p></section>';
 }
 // ---- Resumo da semana (texto pronto para mandar aos sócios) ----
 function resumoSemana(r){
@@ -866,7 +914,9 @@ function itensDe(lista){
     if(f==='15')return x.dias>=15&&x.dias<30; if(f==='30')return x.dias>=30; if(f==='nunca')return x.nunca; return x.dias>=7&&x.dias<15;});
   if(lista==='inad')return ((D.inadimplentes||{}).itens||[]).filter(function(x){return f==='ex'?!x.ativo:x.ativo;});
   if(lista==='renovacao')return (D.vencendo||{}).itens||[];
-  if(lista==='lead')return (D.leads||{}).itens||[];
+  if(lista==='lead')return ((D.leads||{}).itens||[]).filter(function(x){var n=diasDesde(x.dia);
+    if(f==='conv')return x.convertido; if(x.convertido)return false;
+    return f==='morno'?(n>=3&&n<=7):f==='frio'?n>7:n<=2;});
   if(lista==='cancelado')return (D.cancelados||{}).itens||[];
   return [];
 }
@@ -874,7 +924,8 @@ var ALERTAS={recurring_debit_charge_declined:'Cartão recusado na cobrança',ove
   contract_due_date:'Contrato vencendo',no_attendance:'Faltou ao treino',prospect_visit:'Visita de interessado',prospect_trial_class_completed:'Fez aula experimental'};
 function tipoBase(t){return String(t||'').toLowerCase().replace(/^.*\./,'');}
 function rotuloAlerta(t){return ALERTAS[tipoBase(t)]||String(t).replace(/^.*\./,'').replace(/_/g,' ');}
-var FILTROS={risco:[['','Prioridade de hoje'],['todos','Todos em risco']],aniversario:[['','Hoje'],['semana','Próximos 7 dias']],sumido:[['','7 a 14 dias'],['15','15 a 29 dias'],['30','30+ dias'],['nunca','Nunca treinaram']],inad:[['','Alunos ativos'],['ex','Ex-alunos']]};
+var FILTROS={risco:[['','Prioridade de hoje'],['todos','Todos em risco']],aniversario:[['','Hoje'],['semana','Próximos 7 dias']],sumido:[['','7 a 14 dias'],['15','15 a 29 dias'],['30','30+ dias'],['nunca','Nunca treinaram']],inad:[['','Alunos ativos'],['ex','Ex-alunos']],lead:[['','Novos (até 2 dias)'],['morno','3 a 7 dias'],['frio','Mais de 7 dias'],['conv','Já matricularam']]};
+function diasDesde(d){return d?Math.max(0,Math.round((new Date(hojeBR()+'T12:00:00')-new Date(String(d).slice(0,10)+'T12:00:00'))/864e5)):0;}
 function detalhe(lista,x){
   if(lista==='risco')return 'Risco '+x.score+' · '+(x.motivos||[]).join(' · ');
   if(lista==='alerta')return rotuloAlerta(x.tipo)+(x.valor?' · '+brl(x.valor):'')+' · '+new Date(x.quando).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
@@ -882,7 +933,7 @@ function detalhe(lista,x){
   if(lista==='sumido')return x.nunca?'Matriculado em '+dBR(x.desde)+' e nunca treinou':'Não vem há '+x.dias+' dias · último treino '+dBR(x.ultima);
   if(lista==='inad')return brl(x.valor)+' · '+x.parcelas+' parcela'+(x.parcelas>1?'s':'')+' · atrasado há '+x.dias+' dia'+(x.dias>1?'s':'');
   if(lista==='renovacao')return (x.dias===0?'Vence hoje':'Vence em '+x.dias+' dia'+(x.dias>1?'s':'')+' ('+dBR(x.fim)+')')+(x.plano?' · '+x.plano:'');
-  if(lista==='lead')return 'Cadastro em '+dBR(x.dia)+(x.canal?' · '+x.canal:'')+(x.por?' · por '+x.por:'');
+  if(lista==='lead'){var nd=diasDesde(x.dia);return (x.convertido?'✓ Já matriculou · ':'')+'Cadastro '+(nd===0?'hoje':nd===1?'ontem':'há '+nd+' dias')+(x.canal?' · '+x.canal:'')+(x.etapa?' · '+x.etapa:'')+(x.por?' · por '+x.por:'');}
   if(lista==='cancelado')return 'Cancelou em '+dBR(x.dia)+(x.motivo?' · '+x.motivo:'');
   return '';
 }
@@ -910,7 +961,11 @@ function mensagem(lista,x){
   if(lista==='inad')return x.ativo?'Oi '+n+', tudo bem? Aqui é da '+ac+'. Consta uma pendência de '+brl(x.valor)+' no seu plano. Consegue regularizar? Pode ser aqui na recepção ou por Pix. Qualquer dúvida estou à disposição!'
     :'Oi '+n+', tudo bem? Aqui é da '+ac+'. Ficou uma pendência de '+brl(x.valor)+' no seu cadastro. Quer resolver e aproveitar para voltar a treinar? Temos uma condição especial de retorno.';
   if(lista==='renovacao')return 'Oi '+n+'! Aqui é da '+ac+'. Seu plano vence '+(x.dias===0?'hoje':'dia '+dBR(x.fim))+'. Quer garantir a renovação e continuar treinando sem parar? Responde aqui ou passa na recepção que a gente resolve.';
-  if(lista==='lead')return 'Oi '+n+'! Aqui é da '+ac+'. Vi que você se interessou em treinar com a gente. Posso te ajudar a escolher o melhor plano ou agendar uma aula experimental?';
+  if(lista==='lead'){var nl=diasDesde(x.dia);
+    if(x.convertido)return 'Oi '+n+'! Aqui é da '+ac+'. Que bom ter você com a gente 🧡 Como foram os primeiros treinos? Se precisar de ajuda com horário ou com o treino, é só me chamar.';
+    if(nl<=2)return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. Vi que você quer conhecer a academia, que legal! Que tal fazer uma aula experimental, sem compromisso? Me fala o dia e o horário que ficam bons pra você e eu já deixo seu nome na recepção.';
+    if(nl<=7)return 'Oi '+n+'! Aqui é da '+ac+'. Passando pra saber se você ainda quer conhecer a academia. Sua aula experimental continua reservada: é só escolher o dia. Prefere de manhã, à tarde ou à noite?';
+    return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. Faz um tempinho que você falou com a gente e fiquei de te chamar. Se ainda fizer sentido começar a treinar, pode chegar no seu tempo: a aula experimental está de pé. Quer que eu te conte como funcionam os planos?';}
   if(lista==='cancelado')return 'Oi '+n+', tudo bem? Aqui é da '+ac+'. Sentimos sua saída e queremos entender como podemos melhorar. Se quiser voltar, temos uma condição especial pra você. Posso te contar?';
   return 'Oi '+n+'!';
 }
@@ -1313,11 +1368,109 @@ function finStatus(c){
 function telaFinanceiro(){
   var F=S.fin;
   var h='<div><h1>Financeiro</h1><p class="lead" style="margin:6px 0 0">Confira boletos e Pix antes de pagar e veja a DRE da academia. Só dono e sócios veem esta aba.</p></div>';
-  h+='<div class="pills"><button data-finsub="contas" aria-pressed="'+(F.sub==='contas')+'">Contas a pagar</button><button data-finsub="comp" aria-pressed="'+(F.sub==='comp')+'">Comprovantes</button><button data-finsub="dre" aria-pressed="'+(F.sub==='dre')+'">DRE</button></div>';
+  h+='<div class="pills"><button data-finsub="contas" aria-pressed="'+(F.sub==='contas')+'">Contas a pagar</button><button data-finsub="comp" aria-pressed="'+(F.sub==='comp')+'">Comprovantes</button><button data-finsub="conc" aria-pressed="'+(F.sub==='conc')+'">Conciliação</button><button data-finsub="dre" aria-pressed="'+(F.sub==='dre')+'">DRE</button></div>';
   h+='<div class="row" style="align-items:center;gap:10px"><button class="btn ghost sm" data-finmes="-1" aria-label="Mês anterior">‹</button><b style="min-width:170px;text-align:center">'+finMesNome(F.mes)+'</b><button class="btn ghost sm" data-finmes="1" aria-label="Próximo mês">›</button></div>';
   if(F.contas===null)return h+'<p class="muted">Carregando…</p>';
   if(F.erro)return h+'<div class="msg erro">O financeiro ainda está sendo ligado no servidor. Tente de novo mais tarde. ('+esc(F.erro)+')</div>';
-  return h+(F.sub==='dre'?telaDre():F.sub==='comp'?telaComprovantes():telaContas());
+  return h+(F.sub==='dre'?telaDre():F.sub==='comp'?telaComprovantes():F.sub==='conc'?telaConciliacao():telaContas());
+}
+// ---- Conciliação bancária: lê o extrato (OFX ou CSV) e cruza com o que está lançado ----
+function extTexto(buf){try{return new TextDecoder('utf-8',{fatal:true}).decode(buf);}catch(e){return new TextDecoder('windows-1252').decode(buf);}}
+function extValor(t){t=String(t||'').trim().replace(/R\$|\s/g,'');if(!t)return NaN;var neg=/^\(.*\)$/.test(t)||/-/.test(t)||/D$/i.test(t);t=t.replace(/[()\-+DC]/gi,'');
+  if(/,\d{1,2}$/.test(t))t=t.replace(/\./g,'').replace(',','.');else t=t.replace(/,/g,'');var n=parseFloat(t);return isFinite(n)?(neg?-n:n):NaN;}
+function extOfx(tx){
+  var out=[],re=/<STMTTRN>([\s\S]*?)(?:<\/STMTTRN>|(?=<STMTTRN>)|<\/BANKTRANLIST>)/gi,m;
+  var campo=function(b,k){var x=b.match(new RegExp('<'+k+'>([^<\\r\\n]*)','i'));return x?x[1].trim():'';};
+  while((m=re.exec(tx))){var b=m[1],dt=campo(b,'DTPOSTED'),v=extValor(campo(b,'TRNAMT'));
+    if(!/^\d{8}/.test(dt)||!isFinite(v)||!v)continue;
+    if(/^debit$/i.test(campo(b,'TRNTYPE'))&&v>0)v=-v;
+    out.push({d:dt.slice(0,4)+'-'+dt.slice(4,6)+'-'+dt.slice(6,8),v:Math.round(v*100)/100,memo:(campo(b,'MEMO')||campo(b,'NAME')||'Sem descrição').replace(/\s+/g,' ').slice(0,90),id:campo(b,'FITID')});}
+  return out;
+}
+function extCsv(tx){
+  var ls=tx.split(/\r?\n/).filter(function(l){return l.trim();});if(ls.length<2)return [];
+  var sep=(ls[0].match(/;/g)||[]).length>=(ls[0].match(/,/g)||[]).length?';':(/\t/.test(ls[0])?'\t':',');
+  var cel=function(l){var o=[],c='',q=false;for(var i=0;i<l.length;i++){var ch=l[i];if(ch==='"'){q=!q;}else if(ch===sep&&!q){o.push(c);c='';}else c+=ch;}o.push(c);return o.map(function(x){return x.trim();});};
+  var hi=-1,H=null;for(var i=0;i<Math.min(ls.length,15);i++){var c=cel(ls[i]).map(finNorm);if(c.some(function(x){return /^data/.test(x);})&&c.some(function(x){return /valor|debito|credito|saida|entrada/.test(x);})){hi=i;H=c;break;}}
+  if(hi<0)return [];
+  var ix=function(re){for(var j=0;j<H.length;j++)if(re.test(H[j]))return j;return -1;};
+  var iD=ix(/^data/),iV=ix(/^valor/),iDeb=ix(/debito|saida/),iCre=ix(/credito|entrada/),iM=ix(/historico|descricao|lancamento|detalhe|memo/),iT=ix(/^tipo|^d c|natureza/),out=[];
+  for(var k=hi+1;k<ls.length;k++){var c2=cel(ls[k]),dm=String(c2[iD]||'').match(/(\d{2})\/(\d{2})\/(\d{2,4})/)||null,di=String(c2[iD]||'').match(/(\d{4})-(\d{2})-(\d{2})/);
+    var d=dm?(dm[3].length===2?'20'+dm[3]:dm[3])+'-'+dm[2]+'-'+dm[1]:di?di[0]:null;if(!d)continue;
+    var v=NaN;if(iV>=0){v=extValor(c2[iV]);if(isFinite(v)&&iT>=0&&/^d/i.test(c2[iT]||'')&&v>0)v=-v;}
+    if(!isFinite(v)||!v){var db=iDeb>=0?Math.abs(extValor(c2[iDeb])):NaN,cr=iCre>=0?Math.abs(extValor(c2[iCre])):NaN;v=isFinite(db)&&db?-db:(isFinite(cr)&&cr?cr:NaN);}
+    if(!isFinite(v)||!v)continue;
+    var memo=(iM>=0?c2[iM]:'')||'Sem descrição';if(/^saldo/i.test(memo.trim()))continue;
+    out.push({d:d,v:Math.round(v*100)/100,memo:memo.replace(/\s+/g,' ').slice(0,90),id:''});}
+  return out;
+}
+function extLer(arq){
+  var F=S.fin;F.extLendo=true;render();
+  arq.arrayBuffer().then(function(buf){var tx=extTexto(buf),mov=/<OFX|<STMTTRN/i.test(tx)?extOfx(tx):extCsv(tx);
+    F.extLendo=false;
+    if(!mov.length){F.ext=null;F.extErro='Não achei lançamentos nesse arquivo. Baixe o extrato no formato OFX (também aparece como "Money" ou "Gerenciador financeiro") no site ou app do banco.';render();return;}
+    mov.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0;});
+    mov.forEach(function(m){m.interno=m.v<0&&/aplica[cç][aã]o|resgate|poupan|invest|cdb|mesma titularidade|entre contas/i.test(m.memo);});
+    F.extErro=null;F.ext={nome:arq.name,mov:mov,de:mov[0].d,ate:mov[mov.length-1].d};F.mes=mov[mov.length-1].d.slice(0,7);render();
+  },function(){F.extLendo=false;F.extErro='Não consegui abrir o arquivo.';render();});
+}
+function extDias(a,b){return Math.abs((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5);}
+function extCruzar(){
+  var F=S.fin,E=F.ext,pool=[];
+  (F.contas||[]).forEach(function(c){if(c.pago_em)pool.push({d:c.pago_em,v:Number(c.valor||0),nome:c.fornecedor||c.descricao||'Conta',de:'FitStack',c:c});});
+  if(F.evo&&F.evo.meses)Object.keys(F.evo.meses).forEach(function(m){((F.evo.meses[m].despesas||{}).itens||[]).forEach(function(x){if(x.d)pool.push({d:x.d,v:Number(x.v||0),nome:x.forn||x.desc||x.centro||'Conta do EVO',de:'EVO'});});});
+  E.mov.forEach(function(m){m.par=null;});
+  E.mov.forEach(function(m){if(m.v>=0||m.interno)return;var alvo=Math.abs(m.v),melhor=null,md=9;
+    pool.forEach(function(p){if(p.usado||Math.abs(p.v-alvo)>.011)return;var dd=extDias(p.d,m.d);if(dd<=4&&dd<md){melhor=p;md=dd;}});
+    if(melhor){melhor.usado=true;m.par=melhor;}});
+  var sobra=pool.filter(function(p){return !p.usado&&p.de==='FitStack'&&p.d>=E.de&&p.d<=E.ate;});
+  return {sobra:sobra};
+}
+function extLancar(i){
+  var F=S.fin,m=F.ext.mov[i];if(!m||m.enviando)return;
+  var centro=m.centro||'',cat=centro?finCentroCat(centro):(m.cat||'outros');
+  var row={academia_id:S.atual.academia_id,descricao:'Extrato: '+m.memo,fornecedor:m.memo.slice(0,80),categoria:cat,centro:centro||null,valor:Math.abs(m.v),vencimento:m.d,pago_em:m.d,
+    forma:/pix/i.test(m.memo)?'pix':(/boleto|t[ií]tulo|cobran/i.test(m.memo)?'boleto':'outro'),obs:'Lançado pela conciliação do extrato'};
+  m.enviando=true;render();
+  sb.from('fin_contas').insert(row).select('*').single().then(function(r){m.enviando=false;
+    if(r.error){toast(erroMsg(r.error));render();return;}
+    F.contas.unshift(r.data||row);toast('Lançado como pago'+(centro?' em '+centro:'')+'.');render();},function(e){m.enviando=false;toast(erroMsg(e));render();});
+}
+function telaConciliacao(){
+  var F=S.fin,E=F.ext;
+  var h='<section class="panel"><span class="lbl">Conferir com o extrato do banco</span>'+
+    '<p class="small muted" style="margin:0 0 12px;max-width:70ch">Baixe o extrato do mês no site ou app do banco em formato <b>OFX</b> (também chamado de Money ou Gerenciador financeiro) e envie aqui. O FitStack cruza cada saída do banco com as contas pagas no FitStack e no EVO e mostra o que ficou sem lançar. O arquivo é lido só no seu navegador: não fica guardado.</p>'+
+    '<div class="row"><label class="btn" style="cursor:pointer">'+(E?'Trocar extrato':'Escolher extrato (OFX ou CSV)')+'<input type="file" id="finExt" accept=".ofx,.qfx,.csv,.txt,application/x-ofx,text/csv" style="display:none"></label>'+
+    (E?'<button class="btn ghost" data-act="extLimpar">Fechar extrato</button><span class="small muted">'+esc(E.nome)+' · '+dBR(E.de)+' a '+dBR(E.ate)+'</span>':'')+(F.extLendo?'<span class="small muted">Lendo…</span>':'')+'</div>'+
+    (F.extErro?'<div class="msg erro" style="margin-top:12px">'+esc(F.extErro)+'</div>':'')+'</section>';
+  if(!E)return h;
+  var X=extCruzar(),deb=E.mov.filter(function(m){return m.v<0&&!m.interno;}),cre=E.mov.filter(function(m){return m.v>0;}),int=E.mov.filter(function(m){return m.interno;});
+  var ok=deb.filter(function(m){return m.par;}),falta=deb.filter(function(m){return !m.par&&!m.ign;}),ign=deb.filter(function(m){return !m.par&&m.ign;});
+  var soma=function(a){return a.reduce(function(t,m){return t+Math.abs(m.v);},0);};
+  h+='<div class="kpis"><div class="kpi"><span class="lbl">Saídas no extrato</span><div class="v sm">'+brl0(soma(deb))+'</div><div class="s">'+deb.length+' lançamentos</div></div>'+
+    '<div class="kpi"><span class="lbl">Conferidas</span><div class="v sm t-ok">'+brl0(soma(ok))+'</div><div class="s">'+ok.length+' batem com o que está lançado</div></div>'+
+    '<div class="kpi"><span class="lbl">Sem lançamento</span><div class="v sm '+(falta.length?'t-bad':'t-ok')+'">'+brl0(soma(falta))+'</div><div class="s">'+falta.length+' saíram do banco e não estão lançadas</div></div>'+
+    '<div class="kpi"><span class="lbl">Entradas no extrato</span><div class="v sm">'+brl0(soma(cre))+'</div><div class="s">'+cre.length+' créditos</div></div></div>';
+  h+='<section class="panel"><span class="lbl">Saiu do banco e não está lançado · '+falta.length+'</span>';
+  if(!falta.length)h+='<div class="insight ok"><b>Tudo conferido.</b> Toda saída do extrato tem uma conta paga correspondente.</div>';
+  else h+='<p class="small muted" style="margin:0 0 6px">Escolha o centro de custo e toque em Lançar: a conta entra como paga na data do extrato e passa a contar na DRE. Se não for despesa da academia (transferência entre contas, por exemplo), toque em Ignorar.</p><div class="lst">'+
+    falta.map(function(m){var i=E.mov.indexOf(m);if(!m.centroMan&&m.centro===undefined){var sg=finSugerir(m.memo,'');m.centro=sg.centro;m.cat=sg.cat;m.sug=sg.de;}
+      return '<div class="it"><div><div class="n">'+esc(m.memo)+'</div><div class="dt">'+dBR(m.d)+' · <b>'+brl(Math.abs(m.v))+'</b>'+(m.sug&&m.centro?' · centro sugerido por '+esc(m.sug):'')+'</div></div>'+
+        '<div class="acts"><span style="min-width:210px">'+finCentroSelect('data-extcentro="'+i+'" aria-label="Centro de custo"',m.centro||'')+'</span>'+
+        '<button class="btn sm" data-extlanc="'+i+'"'+(m.enviando?' disabled':'')+'>Lançar</button><button class="btn ghost sm" data-extign="'+i+'">Ignorar</button></div></div>';}).join('')+'</div>';
+  h+='</section>';
+  if(X.sobra.length)h+='<section class="panel"><span class="lbl">Lançado como pago no FitStack e não achei no extrato · '+X.sobra.length+'</span>'+
+    '<p class="small muted" style="margin:0 0 6px">Pode ter sido pago por outra conta, em outra data ou com valor diferente (juros, desconto). Confira.</p><div class="lst">'+
+    X.sobra.map(function(p){return '<div class="it"><div><div class="n">'+esc(p.nome)+'</div><div class="dt">Pago em '+dBR(p.d)+' · '+brl(p.v)+'</div></div></div>';}).join('')+'</div></section>';
+  var det=function(tit,arr,fn){return arr.length?'<details class="mais" style="border-top:0;margin-top:0;padding-top:0"><summary>'+tit+' · '+arr.length+'</summary><div class="lst" style="margin-top:8px">'+arr.map(fn).join('')+'</div></details>':'';};
+  var linhas=det('Conferidas',ok,function(m){return '<div class="it"><div><div class="n">'+esc(m.memo)+'</div><div class="dt">'+dBR(m.d)+' · '+brl(Math.abs(m.v))+' · bate com <b>'+esc(m.par.nome)+'</b> ('+m.par.de+', '+dBR(m.par.d)+')</div></div><span class="chip ok">✓ Conferida</span></div>';})+
+    det('Aplicações e transferências entre contas (não entram como despesa)',int,function(m){return '<div class="it"><div><div class="n">'+esc(m.memo)+'</div><div class="dt">'+dBR(m.d)+' · '+brl(Math.abs(m.v))+'</div></div></div>';})+
+    det('Ignoradas',ign,function(m){return '<div class="it"><div><div class="n">'+esc(m.memo)+'</div><div class="dt">'+dBR(m.d)+' · '+brl(Math.abs(m.v))+'</div></div><button class="btn ghost sm" data-extign="'+E.mov.indexOf(m)+'">Voltar</button></div>';})+
+    det('Entradas (créditos)',cre,function(m){return '<div class="it"><div><div class="n">'+esc(m.memo)+'</div><div class="dt">'+dBR(m.d)+' · '+brl(m.v)+'</div></div></div>';});
+  if(linhas)h+='<section class="panel" style="display:grid;gap:12px">'+linhas+'</section>';
+  var rec=0;if(F.evo&&F.evo.meses)Object.keys(F.evo.meses).forEach(function(mm){if(mm>=E.de.slice(0,7)&&mm<=E.ate.slice(0,7))rec+=Number((F.evo.meses[mm].receita||{}).total||0);});
+  if(rec)h+='<p class="small muted" style="margin:0">Para comparar: o EVO registra '+brl0(rec)+' recebidos nos meses deste extrato, e o extrato mostra '+brl0(soma(cre))+' de entradas. A diferença costuma ser prazo da maquininha, taxas e o que entra por fora do EVO (Wellhub, Totalpass).</p>';
+  return h;
 }
 // ---- Contas a pagar ----
 function finFornecedor(d){
@@ -1684,6 +1837,9 @@ function finEvo(){
 function finClique(d,b){
   var F=S.fin;if(!F)return false;
   if(d.finsub){F.sub=d.finsub;render();return true;}
+  if(d.extlanc!==undefined){extLancar(+d.extlanc);return true;}
+  if(d.extign!==undefined){F.ext.mov[+d.extign].ign=!F.ext.mov[+d.extign].ign;render();return true;}
+  if(d.act==='extLimpar'){F.ext=null;render();return true;}
   if(d.finmes){F.mes=finAddMes(F.mes,+d.finmes);render();return true;}
   if(d.act==='finConferir'){finConferir();return true;}
   if(d.act==='finSemCodigo'){finSalvar(false,true);return true;}
@@ -1721,6 +1877,10 @@ function finChange(t){
   if(!S.fin)return false;
   if(t.id==='finArq'&&t.files&&t.files[0]){finLerArquivo(t.files[0]);return true;}
   if(t.id==='finComp'&&t.files&&t.files.length){finImpLer(t.files);t.value='';return true;}
+  if(t.id==='finExt'&&t.files&&t.files.length){extLer(t.files[0]);t.value='';return true;}
+  if(t.dataset&&t.dataset.extcentro!==undefined&&S.fin.ext){var mv=S.fin.ext.mov[+t.dataset.extcentro];
+    if(t.value==='__novo'){S.fin.sub='dre';render();setTimeout(function(){var e=document.getElementById('finCentros');if(e)e.scrollIntoView({behavior:'smooth'});},80);toast('Crie o centro de custo aqui e volte em Conciliação: o extrato continua aberto.');return true;}
+    mv.centro=t.value;mv.centroMan=true;return true;}
   if(t.dataset&&t.dataset.imp){return finImpCampo(t);}
   if(t.dataset&&t.dataset.fe){S.fin.editD[t.dataset.fe]=t.value;return true;}
   if(t.dataset&&t.dataset.fincentro){var id=t.dataset.fincentro,v=t.value;
@@ -1774,7 +1934,7 @@ document.addEventListener('click',function(ev){
     if(d.tab==='equipe'){S.novoAcesso=null;carregarEquipe();}
     if(d.tab==='integracoes'){S.evoTrocar=false;carregarEvo();}
     if(d.tab==='financeiro'){carregarFin();}
-    if(d.tab==='painel'){carregarEvoDados();carregarContatos();carregarFin();}
+    if(d.tab==='painel'){carregarEvoDados();carregarContatos();carregarFin();carregarFunil();}
     if(d.tab==='contatos'){S.mostrar=40;carregarEvoDados();carregarContatos();}
     render();window.scrollTo(0,0);return;}
   if(S.tab==='financeiro'&&finClique(d,b))return;
@@ -1814,6 +1974,7 @@ document.addEventListener('click',function(ev){
   if(d.desfaz){if(d.desfaz==='tmp')return;sb.from('evo_contatos').delete().eq('id',d.desfaz).then(function(r){if(r.error)toast(erroMsg(r.error));carregarContatos();});return;}
   var act=d.act;if(!act)return;
   if(act==='evoAtualizar'){evoAtualizar();return;}
+  if(act==='irLeads'){S.tab='contatos';S.lista='lead';S.filtro='';S.mostrar=40;carregarContatos();render();window.scrollTo(0,0);return;}
   if(act==='metaEditar'){S.metaEdit=true;render();return;}
   if(act==='metaCancelar'){S.metaEdit=false;render();return;}
   if(act==='novaUnidade'){S.novaUnidade=true;render();return;}
