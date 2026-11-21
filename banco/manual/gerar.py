@@ -169,7 +169,7 @@ rec.append(('Sua rotina em cada turno', '''
 ]) + box('atencao', 'Os horários e as metas podem mudar', 'O gerente pode mudar as metas. O que vale é sempre o que aparece no seu Placar hoje.')))
 
 rec.append(('Entrar pela primeira vez', PRIMEIRO_ACESSO))
-rec.append(('Entrar nos outros dias e "esqueci a senha"', ENTRAR + fig('inicio-colaborador', 'Depois de entrar: a tela "Olá" com os seus atalhos') + box('dica', 'Onde fica o menu', '<b>No computador:</b> o menu fica na faixa azul à esquerda (Início, Contatos do dia, Placar…). <b>No celular:</b> os botões ficam embaixo da tela. Se o que você procura não aparece ali, toque em <b>Mais</b>.')))
+rec.append(('Entrar nos outros dias e "esqueci a senha"', ENTRAR + box('dica', 'Computador da recepção: troque de pessoa antes de começar', 'Na tela de entrar aparece <b>Quem é você?</b> com o nome de quem já usou aquele computador. Toque no seu nome e digite só a sua senha. Assim os contatos e o Placar ficam no <b>seu</b> nome. Para sair da conta de outra pessoa, toque em <b>Trocar de pessoa</b> (em Contatos do dia) ou em <b>Sair</b>.') + fig('inicio-colaborador', 'Depois de entrar: a tela "Olá" com os seus atalhos') + box('dica', 'Onde fica o menu', '<b>No computador:</b> o menu fica na faixa azul à esquerda (Início, Contatos do dia, Placar…). <b>No celular:</b> os botões ficam embaixo da tela. Se o que você procura não aparece ali, toque em <b>Mais</b>.')))
 
 rec.append(('Contatos do dia (WhatsApp)', '''
 <p class="lead">Aqui estão as pessoas que você precisa chamar hoje. A mensagem já vem pronta. Você só confere e envia.</p>
@@ -215,7 +215,7 @@ rec.append(('Placar do turno', '''
     ('Leia o quadro <b>Foco</b>.', 'Ele diz o que é mais importante no seu turno.'),
     ('Faça as tarefas <b>na ordem dos números</b> (1, 2, 3…). A cada tarefa feita, toque em <b>+</b> na linha dela.', 'O número sobe, a barrinha anda e a porcentagem do lado direito ("Dever de casa do turno") aumenta.'),
     ('Apertou + sem querer? Toque em <b>−</b>.', 'O número diminui.'),
-) + fig('placar-recepcao', 'Placar da recepção: tarefas numeradas, + e −, e a porcentagem à direita') + '''
+) + box('atencao', 'Matrícula também é visita', 'Quem matriculou hoje no balcão conta como <b>visita atendida</b> e como <b>matrícula</b>. Se você marcar mais matrículas do que visitas, o Placar mostra um aviso em amarelo antes de fechar o turno.') + fig('placar-recepcao', 'Placar da recepção: tarefas numeradas, + e −, e a porcentagem à direita') + '''
 <h3>O que cada linha quer dizer</h3>
 ''' + tabela(['Tarefa', 'Quando conta +1', 'Exemplo'], [
     ['<b>Parabéns aos aniversariantes</b>', 'Tem 2 números: em <b>Aniversariantes hoje</b> coloque quantos fazem aniversário (veja em Contatos do dia). Em <b>Parabéns enviados</b>, quantos você já mandou.', '4 aniversariantes, mandou para 4 = 100%.'],

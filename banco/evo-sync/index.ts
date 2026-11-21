@@ -201,6 +201,14 @@ async function sincronizar(cfg: Cfg) {
       canal: p.mktChannel || "", temperatura: p.temperature || "", etapa: p.currentStep || "", por: p.employeeRegisterName || "",
     })).sort((a, b) => String(b.dia).localeCompare(String(a.dia)));
   } catch (_e) { avisos.push("Não deu para ler os leads do EVO."); }
+  // O EVO nem sempre marca o lead que virou aluno: cruza com os alunos ativos por telefone e por nome completo
+  try {
+    const soNum = (t: any) => String(t || "").replace(/\D/g, "").slice(-11);
+    const nrm = (n: any) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+    const tels = new Set(ativos.map((m: any) => soNum(telDe(m))).filter((t: string) => t.length >= 10));
+    const nomes = new Set(ativos.map((m: any) => nrm(nomeDe(m))).filter((n: string) => n.split(" ").length >= 2));
+    leads = leads.map((l) => ({ ...l, convertido: l.convertido || (soNum(l.tel).length >= 10 && tels.has(soNum(l.tel))) || nomes.has(nrm(l.nome)) }));
+  } catch (_e) { /* segue sem o cruzamento */ }
 
   // 5) Risco de cancelamento por aluno e resultado dos contatos já feitos
   const rr = await riscoEResultados(cfg, hoje, ativos, porId, inadimplentes, vencendo);

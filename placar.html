@@ -21,9 +21,33 @@
   --r:10px;
   color-scheme:light;
 }
-/* Cabeçalho azul-marinho (identidade FitStack) */
-header.top{--surface:var(--navy);--surface-2:var(--navy-2);--line:var(--navy-line);--fg:#ffffff;--muted:#b7c4df;--accent:#5fa2ff;--accent-ink:#0b1426;--accent-text:#9cc5ff;background:var(--navy);color:#fff;border-bottom-color:var(--navy)}
-header.top input,header.top select{color-scheme:dark}
+/* Menu do FitStack: igual ao do app (lateral no computador, barra em cima e atalhos embaixo no celular) */
+#fsnav{--surface:var(--navy);--surface-2:var(--navy-2);--line:var(--navy-line);--fg:#ffffff;--muted:#b7c4df;--accent:#5fa2ff;background:var(--navy);color:#fff;position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:8px 12px;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+#fsnav .brand{font-size:15px}
+#fsnav .unidade{min-width:0;flex:1 1 0;color:var(--muted);font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ic{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#fsmenu{display:none;flex-direction:column;gap:2px}
+#fsmenu .navg{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:14px 12px 6px}
+#fsmenu a{color:var(--muted);font:600 15.5px var(--body);padding:10px 12px;border-radius:10px;display:flex;align-items:center;gap:12px;min-height:44px;text-decoration:none}
+#fsmenu a:hover{color:#fff;background:rgba(255,255,255,.06)}
+#fsmenu a[aria-current="page"]{color:#fff;background:var(--surface-2);box-shadow:inset 3px 0 0 var(--accent)}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:7;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));box-shadow:0 -6px 20px rgba(11,20,38,.06)}
+.dock a,.dock button{flex:1 1 0;min-width:0;appearance:none;border:0;background:transparent;color:var(--muted);font:600 11.5px var(--body);display:grid;justify-items:center;gap:3px;padding:6px 2px;border-radius:10px;cursor:pointer;min-height:52px;text-decoration:none}
+.dock a[aria-current="page"]{color:var(--accent);background:rgba(11,58,140,.08)}
+.dock span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.dock:empty{display:none}
+body.menu-open #fsmenu{display:flex;position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));max-height:70vh;overflow-y:auto;background:var(--navy);padding:6px 12px 16px;border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(5,12,30,.35);z-index:6}
+body.menu-open::before{content:"";position:fixed;inset:0;background:rgba(5,12,30,.45);z-index:5}
+@media (min-width:960px){
+  #fsnav{position:fixed;inset:0 auto 0 0;width:248px;flex-direction:column;align-items:stretch;gap:0;padding:22px 14px 16px;overflow-y:auto}
+  #fsnav .brand{padding:0 12px 14px;font-size:17px}
+  #fsnav .unidade{flex:none;padding:0 12px 6px;white-space:normal}
+  #fsmenu{display:flex;flex:1 1 auto}
+  .dock{display:none}
+  #shell{padding-left:248px}
+  body.menu-open::before{display:none}
+}
+@media (max-width:959px){main{padding-bottom:110px!important}.toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
@@ -259,11 +283,16 @@ details.fold[open]>summary::after{content:"−"}
 <style>html,body{margin:0}[hidden]{display:none!important}.voltar{color:var(--muted);font-size:13px;text-decoration:none;font-weight:600}.voltar:hover{color:var(--fg)}</style>
 </head>
 <body>
+<aside id="fsnav">
+  <a class="brand" href="./" style="text-decoration:none;color:inherit"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span></a>
+  <div class="unidade" id="unidade"></div>
+  <nav id="fsmenu" aria-label="Seções do FitStack"></nav>
+</aside>
+<nav id="fsdock" class="dock" aria-label="Atalhos"></nav>
+<div id="shell">
 <header class="top">
   <div class="wrap top-in">
     <div>
-      <a class="voltar" href="./">‹ Voltar ao FitStack</a>
-      <div class="brand" style="margin-top:8px"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>FITSTACK</span><span class="bu" id="unidade"></span></div>
       <h1>Placar de Turnos</h1>
     </div>
     <div class="who" id="who"></div>
@@ -271,6 +300,7 @@ details.fold[open]>summary::after{content:"−"}
   <nav class="wrap tabs" id="tabs" aria-label="Áreas do placar"></nav>
 </header>
 <main class="wrap" id="view" aria-live="polite"></main>
+</div>
 <div id="toast" class="toast" role="status" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
@@ -282,6 +312,30 @@ const SB_KEY='sb_publishable_4pSkdBQF_-Q16yeAVQoFHA_SjhoaXjf';
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const FS={acad:null,papel:null,perms:[],membros:[],nomeMembro:''};
 function pode(p){return FS.papel==='admin'||FS.papel==='socio'||FS.perms.indexOf(p)>=0;}
+const ICO={inicio:'M3 11l9-8 9 8M5 10v10h14V10',painel:'M4 20V10M10 20V4M16 20v-7M2 20h20',contatos:'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z',
+  avaliacoes:'M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9 6.6 19.8l1.1-6.1L3.2 9.4l6.1-.8z',placar:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM12 12h.01',
+  equipe:'M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 20v-1a4 4 0 0 0-3-3.8M16 4.2a3.5 3.5 0 0 1 0 6.6',
+  financeiro:'M3 7h18v12H3zM3 11h18M7 15h4',integracoes:'M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4',manual:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5M9 8h6',mais:'M4 7h16M4 12h16M4 17h16'};
+function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+ICO[n]+'"/></svg>';}
+function menuFitStack(){
+  const adm=FS.papel==='admin'||FS.papel==='socio',t=[['inicio','Início','Início',0]];
+  if(pode('placar')||pode('placar_gestao'))t.push(['contatos','Contatos do dia','Contatos',0]);
+  t.push(['placar','Placar','Placar',0]);
+  if(adm)t.push(['painel','Painel','Painel',1],['financeiro','Financeiro','Financeiro',1]);
+  if(pode('avaliacoes'))t.push(['avaliacoes','Avaliações','Avaliações',1]);
+  if(adm||pode('equipe'))t.push(['equipe','Equipe e acessos','Equipe',2]);
+  if(adm)t.push(['integracoes','Integrações','EVO',2]);
+  t.push(['manual','Manual','Manual',2]);
+  const G=['Dia a dia','Gestão','Ajustes'];let g=-1;
+  const lk=function(x,curto){return '<a href="'+(x[0]==='placar'?'placar.html':'./#'+x[0])+'"'+(x[0]==='placar'?' aria-current="page"':'')+'>'+ic(x[0])+'<span>'+(curto?x[2]:x[1])+'</span></a>';};
+  document.getElementById('fsmenu').innerHTML=t.map(function(x){const cab=x[3]!==g?'<span class="navg">'+G[x[3]]+'</span>':'';g=x[3];return cab+lk(x,false);}).join('');
+  const prim=t.length>5?t.slice(0,4):t;
+  document.getElementById('fsdock').innerHTML=prim.map(function(x){return lk(x,true);}).join('')+(t.length>5?'<button type="button" id="fsmais" aria-label="Mais opções">'+ic('mais')+'<span>Mais</span></button>':'');
+}
+document.addEventListener('click',function(ev){
+  if(ev.target.closest('#fsmais')){document.body.classList.toggle('menu-open');return;}
+  if(!ev.target.closest('#fsmenu'))document.body.classList.remove('menu-open');
+});
 
 function criarDb(acad){
   const listeners=[];let pollT=null;
@@ -648,6 +702,7 @@ function syncDraft(){
   if(!S.dirty){const r=S.registros.get(k);S.draft=r?clone(r):novoRegistro();if(!S.draft.v)S.draft.v={};}
 }
 function saveMsg(){return S.dirty?'Salvando…':S.savedAt?'Salvo às '+hora(S.savedAt)+'. O gerente e o dono já veem os números.':'Os números salvam sozinhos enquanto você preenche.';}
+function avisoVisitas(){const v=(S.draft&&S.draft.v)||{};return num(v.matriculas)>num(v.visitas)?'Você marcou '+num(v.matriculas)+' matrícula'+(num(v.matriculas)>1?'s':'')+' e '+num(v.visitas)+' visita'+(num(v.visitas)===1?'':'s')+' atendida'+(num(v.visitas)===1?'':'s')+'. Quem matriculou hoje no balcão também conta como visita atendida: confira antes de fechar.':'';}
 function faltas(){const f=[];if(!(S.draft.nome||'').trim())f.push('seu nome');if((S.draft.passagem||'').trim().length<10)f.push('a passagem de turno');return f;}
 function labelCampo(f){return {aniv_total:'Aniversariantes hoje',aniv:'Parabéns enviados',visitas:'Visitas atendidas',matriculas:'Matrículas fechadas'}[f]||(CAMPOS[f]?CAMPOS[f].label:f);}
 
@@ -705,6 +760,7 @@ function refreshRec(){
   });
   const sc=score(d,t);const e=$('#rec-score');if(e){e.textContent=pc(sc);e.className='score-n num c-'+tomP(sc);}
   const btn=$('#rec-fechar'),f=$('#rec-falta');
+  const av=$('#rec-aviso');if(av){const tx=avisoVisitas();av.hidden=!tx;av.textContent=tx;}
   if(btn){const fl=faltas();btn.disabled=fl.length>0;if(f)f.textContent=fl.length?'Falta preencher '+fl.join(' e ')+'.':'Ao fechar, os números travam e o gerente confere.';}
   const sm=$('#rec-save');if(sm)sm.textContent=saveMsg();
 }
@@ -896,6 +952,7 @@ function viewRecepcao(){
     const fl=faltas();
     if(S.confirmFechar)fechar='<div class="confirm"><p>Você vai fechar com <b>'+pc(sc)+'</b> do dever de casa. Abaixo de 90%, o gerente registra cobrança. Fechar assim mesmo?</p><div class="row"><button class="btn primary" data-act="fechar-sim">Fechar assim mesmo</button><button class="btn ghost" data-act="fechar-nao">Voltar</button></div></div>';
     else fechar='<button class="btn primary block" id="rec-fechar" data-act="fechar"'+(fl.length?' disabled':'')+'>Fechar turno</button><div class="muted small" id="rec-falta">'+(fl.length?'Falta preencher '+fl.join(' e ')+'.':'Ao fechar, os números travam e o gerente confere.')+'</div>';
+    fechar+='<div class="small" id="rec-aviso" style="color:var(--warn);font-weight:600"'+(avisoVisitas()?'':' hidden')+'>'+esc(avisoVisitas())+'</div>';
   }
   const side='<aside class="panel side"><div><div class="lbl">Dever de casa do turno</div><div class="score-n num c-'+tomP(sc)+'" id="rec-score">'+pc(sc)+'</div><div class="muted small">Meta: 90% ou mais · fechar até '+esc(S.cfg.prazos[t])+'</div></div>'+miniComissao(d.nome)+
     '<div class="sep" style="margin:4px 0"></div><div><label class="lbl" for="f-passagem">Passagem de turno</label><textarea id="f-passagem" data-f="passagem" rows="5" placeholder="Pendências para o próximo turno: quem prometeu pagar, visitas marcadas, recados."'+dis+'>'+esc(d.passagem||'')+'</textarea></div>'+fechar+'</aside>';
@@ -1469,6 +1526,7 @@ async function boot(){
   const salvo=ls('fs-acad');const eu=lista.find(function(x){return x.academia_id===salvo;})||lista[0];
   if(!eu){location.href='./';return;}
   FS.acad=eu.academia_id;FS.papel=eu.papel;FS.perms=eu.permissoes||[];FS.nomeMembro=eu.nome||'';
+  menuFitStack();
   if(!(pode('placar')||pode('placar_gestao')||pode('comissao'))){view.innerHTML='<div class="panel">Seu acesso ainda não tem o Placar liberado. Fale com o admin da academia.</div>';return;}
   const eq=await sb.from('membros').select('user_id,papel,permissoes,nome,email').eq('academia_id',FS.acad);
   FS.membros=(eq&&eq.data)||[];

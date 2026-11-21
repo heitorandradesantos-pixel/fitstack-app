@@ -350,7 +350,8 @@ function telaAuth(){
     (NOVA?'<button type="button" data-auth="academia" aria-pressed="'+(m==='academia')+'">Cadastrar academia</button>':'')+'</div>';
   h+='<section class="panel">';
   if(m==='entrar'){
-    h+='<h1 class="h2">Entrar</h1><form class="form" data-form="entrar" style="margin-top:14px">'+
+    var cts=contasLista();
+    h+='<h1 class="h2">Entrar</h1>'+(cts.length?'<div style="margin-top:12px"><span class="lbl">Quem é você?</span><div class="row">'+cts.map(function(c){return '<button type="button" class="btn ghost sm" data-conta="'+esc(c.e)+'">'+esc(c.n.split(' ')[0])+'</button>';}).join('')+'</div><p class="small muted" style="margin:8px 0 0">Toque no seu nome e digite só a sua senha.</p></div>':'')+'<form class="form" data-form="entrar" style="margin-top:14px">'+
       '<label class="f"><span>E-mail</span><input type="email" name="email" autocomplete="email" required></label>'+
       '<label class="f"><span>Senha</span><input type="password" name="senha" autocomplete="current-password" required></label>'+
       msgs()+'<button class="btn"'+(S.ocupado?' disabled':'')+'>Entrar</button>'+
@@ -486,7 +487,10 @@ function carregar(){
         var salvo=null;try{salvo=localStorage.getItem('fs-acad');}catch(e){}
         S.atual=S.membros.filter(function(x){return x.academia_id===salvo;})[0]||S.membros[0]||null;
         if(S.atual)try{localStorage.setItem('fs-acad',S.atual.academia_id);}catch(e){}
+        if(S.atual)contasGuardar();
         if(S.atual&&location.hash==='#equipe'&&(isAdmin()||pode('equipe'))){S.tab='equipe';history.replaceState(null,'',location.pathname);carregarEquipe();return;}
+        var hs=location.hash.slice(1);
+        if(S.atual&&hs&&NAV_ORDEM.indexOf(hs)>=0&&hs!=='placar'){S.tab=hs;history.replaceState(null,'',location.pathname);carregarDaTab(hs);render();return;}
         render();
       });
     });
@@ -498,6 +502,22 @@ sb.auth.onAuthStateChange(function(ev,sess){
   if(ev==='SIGNED_OUT'){S.sess=null;S.atual=null;render();}
 });
 
+function carregarDaTab(t){
+  if(t==='avaliacoes'){carregarRodadas();carregarModelos();}
+  if(t==='equipe'){S.novoAcesso=null;carregarEquipe();}
+  if(t==='integracoes'){S.evoTrocar=false;carregarEvo();}
+  if(t==='financeiro'){carregarFin();}
+  if(t==='painel'){carregarEvoDados();carregarContatos();carregarFin();carregarFunil();}
+  if(t==='contatos'){S.mostrar=40;carregarEvoDados();carregarContatos();}
+}
+// Quem já entrou neste aparelho (só nome e e-mail, guardados no próprio aparelho) para trocar de pessoa rápido
+function contasGuardar(){
+  try{var u=S.sess.user,e=String(u.email||'').toLowerCase();if(!e)return;
+    var n=(S.atual&&S.atual.nome)||(u.user_metadata&&u.user_metadata.nome)||e;
+    var l=JSON.parse(localStorage.getItem('fs-contas')||'[]').filter(function(x){return x&&x.e!==e;});
+    l.unshift({e:e,n:String(n).slice(0,40)});localStorage.setItem('fs-contas',JSON.stringify(l.slice(0,8)));}catch(e2){}
+}
+function contasLista(){try{return JSON.parse(localStorage.getItem('fs-contas')||'[]').filter(function(x){return x&&x.e&&x.n;});}catch(e){return [];}}
 // ================= SHELL =================
 function render(){
   var hdr=document.getElementById('hdr');
@@ -977,8 +997,8 @@ function telaContatos(){
   var feitos=(S.evoContLista||[]).length;
   var h='<div><h1>Contatos do dia</h1><p class="lead" style="margin:6px 0 0">Toque no WhatsApp: a mensagem já vai pronta e o contato fica marcado. '+(feitos?'<b>'+feitos+' contato'+(feitos>1?'s':'')+' feito'+(feitos>1?'s':'')+' hoje.</b>':'')+'</p></div>';
   var eu=S.atual.nome||(S.sess.user.user_metadata&&S.sess.user.user_metadata.nome)||S.sess.user.email;
-  if(S.atual.papel!=='colaborador')h+='<div class="insight warn"><b>Você está no login de '+esc(eu)+' ('+esc(PAPEL[S.atual.papel]||S.atual.papel)+').</b> Todo contato marcado aqui fica no nome de '+esc(eu)+'. Se você é da recepção, toque em <button class="link" data-act="sair">Sair</button> e entre com o seu login, para o contato contar para você.</div>';
-  else h+='<p class="small muted" style="margin:0">Os contatos ficam no nome de <b>'+esc(eu)+'</b>. Não é você? <button class="link" data-act="sair">Sair</button> e entre com o seu login.</p>';
+  if(S.atual.papel!=='colaborador')h+='<div class="insight warn"><b>Você está no login de '+esc(eu)+' ('+esc(PAPEL[S.atual.papel]||S.atual.papel)+').</b> Todo contato marcado aqui fica no nome de '+esc(eu)+'. Se não é você, troque antes de chamar os alunos, para o contato contar para a pessoa certa. <button class="btn sm" data-act="sair" style="margin-left:6px">Trocar de pessoa</button></div>';
+  else h+='<p class="small muted" style="margin:0">Os contatos ficam no nome de <b>'+esc(eu)+'</b>. Não é você? <button class="link" data-act="sair">Trocar de pessoa</button></p>';
   if(D===undefined)return h+'<p class="muted">Carregando…</p>';
   if(!D.aniversariantes)return h+semDadosEvo();
   var cont=function(l){return arrLista(l).length;};
@@ -1932,13 +1952,8 @@ document.addEventListener('click',function(ev){
   if(!b.closest('#tabs'))document.body.classList.remove('menu-open');
   if(d.auth){S.authModo=d.auth;S.authErro='';S.authMsg='';render();return;}
   if(d.tab==='placar'){location.href='placar.html';return;}
-  if(d.tab){S.tab=d.tab;S.sub='lista';S.confirma=null;
-    if(d.tab==='avaliacoes'){carregarRodadas();carregarModelos();}
-    if(d.tab==='equipe'){S.novoAcesso=null;carregarEquipe();}
-    if(d.tab==='integracoes'){S.evoTrocar=false;carregarEvo();}
-    if(d.tab==='financeiro'){carregarFin();}
-    if(d.tab==='painel'){carregarEvoDados();carregarContatos();carregarFin();carregarFunil();}
-    if(d.tab==='contatos'){S.mostrar=40;carregarEvoDados();carregarContatos();}
+  if(d.conta){var ie=view.querySelector('form[data-form=entrar] input[name=email]');if(ie){ie.value=d.conta;var is=view.querySelector('form[data-form=entrar] input[name=senha]');if(is)is.focus();}return;}
+  if(d.tab){S.tab=d.tab;S.sub='lista';S.confirma=null;carregarDaTab(d.tab);
     render();window.scrollTo(0,0);return;}
   if(S.tab==='financeiro'&&finClique(d,b))return;
   if(d.acad){try{localStorage.setItem('fs-acad',d.acad);}catch(e){}location.reload();return;}
