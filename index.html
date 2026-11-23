@@ -423,7 +423,12 @@ var FORMS={
     if(cod.length!==6){S.ocupado=false;S.authErro='Digite o código de 6 letras e números que o admin te mandou.';render();return;}
     sb.rpc('convite_valido',{p_email:email,p_codigo:cod}).then(function(r){
       if(r.error)return falhou(r.error);
-      if(!r.data){S.ocupado=false;S.authErro='E-mail ou código não conferem. Confira com o admin da academia como ele cadastrou você.';render();return;}
+      if(!r.data){
+        // Quem já tem conta às vezes usa "Primeiro acesso" de novo: tenta entrar com o e-mail e a senha digitados
+        sb.auth.signInWithPassword({email:email,password:d.senha}).then(function(x){
+          if(!x.error){S.ocupado=false;S.authModo='entrar';toast('Você já tinha acesso: entrou com sua senha. Da próxima vez, use a aba Entrar.');carregar();return;}
+          S.ocupado=false;S.authModo='entrar';S.authErro='Esse código já foi usado ou não é deste e-mail. Se você já criou sua senha, entre aqui na aba "Entrar". Esqueceu a senha? Toque em "Esqueci minha senha".';render();
+        },falhou);return;}
       criar();
     },falhou);
   },
