@@ -1716,7 +1716,7 @@ function finImpLer(files){
     return lista.reduce(function(p,arq,ix){return p.then(function(){
       return M.lerPdf(arq).then(function(res){
         res.forEach(function(r){var c=r.campos||{};var sg=finSugerir(c.recebedor,c.documento);
-          if(c.tipo==='folha'){var cf=finCentros().filter(function(x){return /folha|sal[aá]rio|pessoal|funcion/i.test(x);})[0];sg={centro:cf||'',cat:'folha',de:'pagamento de salário'};}
+          if(c.tipo==='folha'){var nc=finCentros().map(function(x){return Array.isArray(x)?x[0]:x;});var cf=nc.filter(function(x){return /^sal[aá]rios?$/i.test(x);})[0]||nc.filter(function(x){return /folha|sal[aá]rio|pessoal|funcion/i.test(x)&&!/13|f[ée]rias/i.test(x);})[0];sg={centro:cf||'',cat:'folha',de:'pagamento de salário'};}
           var chave=(c.codigo||c.linha||((c.data||'')+'|'+finSo(c.documento)+'|'+finNorm(c.recebedor)))+'|'+(c.valor!=null?c.valor.toFixed(2):'');
           I.itens.push({id:'i'+Date.now()+Math.random().toString(36).slice(2,6),arq:arq,nomeArq:arq.name,pagina:r.pagina,paginas:r.paginas,tipo:c.tipo,
             forn:c.recebedor||'',doc:c.documento||'',valor:c.valor!=null?String(c.valor.toFixed(2)).replace('.',','):'',data:c.data||'',centro:sg.centro,cat:sg.cat,de:sg.de,
@@ -1732,6 +1732,17 @@ function finImpHashes(){
     var parecido=function(x){var v=finNum(x.valor),fn=finNorm(x.forn),dc=finSo(x.doc);return (S.fin.contas||[]).filter(function(c){return c.pago_em===x.data&&Math.abs(Number(c.valor)-v)<0.005&&((dc.length>=11&&finSo(c.cnpj)===dc)||(fn&&finNorm(c.fornecedor)===fn));})[0];};
     I.itens.forEach(function(x){if(!x.hash)return;var p=exist[x.hash]||parecido(x);
       x.dup=p?'já lançado em '+dBR(p.pago_em||p.vencimento)+' ('+brl(Number(p.valor))+')':(vistos[x.hash]?'repetido nesta importação':'');vistos[x.hash]=1;if(x.dup)x.incluir=false;});
+    // Trava: comprovante que já está lançado em OUTRA unidade sua (escolheu os PDFs da academia errada)
+    var outras=(S.membros||[]).filter(function(m){return m.academia_id!==S.atual.academia_id&&(m.papel==='dono'||m.papel==='socio'||m.papel==='admin');});
+    var datas=I.itens.filter(function(x){return x.hash&&!x.dup&&x.data;}).map(function(x){return x.data;}).filter(function(d,i,a){return a.indexOf(d)===i;});
+    if(!outras.length||!datas.length)return;
+    var nomes={};outras.forEach(function(m){nomes[m.academia_id]=m.academias&&m.academias.nome||'outra unidade';});
+    return sb.from('fin_contas').select('academia_id,valor,pago_em,fornecedor,cnpj').in('academia_id',Object.keys(nomes)).in('pago_em',datas).then(function(r){
+      var lista=(r&&r.data)||[];
+      I.itens.forEach(function(x){if(!x.hash||x.dup)return;var v=finNum(x.valor),fn=finNorm(x.forn),dc=finSo(x.doc);
+        var o=lista.filter(function(c){return c.pago_em===x.data&&Math.abs(Number(c.valor)-v)<0.005&&((dc.length>=11&&finSo(c.cnpj)===dc)||(fn&&finNorm(c.fornecedor)===fn));})[0];
+        if(o){x.dup='este pagamento está lançado em '+nomes[o.academia_id]+'. Confira se escolheu os PDFs da unidade certa';x.incluir=false;}});
+    },function(){});
   });
 }
 function finImpLancar(){
