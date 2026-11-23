@@ -95,16 +95,20 @@ function telDe(m: any): string | null {
 const primeiro = (n: string) => n.split(" ")[0];
 // De onde vem o aluno: plano pago direto na academia ou agregador (Wellhub/Gympass, TotalPass, GuruPass)
 const AGREG = /wellhub|gympass|totalpass|total pass|gurupass|guru pass/i;
-const planosAtivos = (m: any) => (m?.memberships || []).filter((x: any) => !x.cancelDate && !/cancel/i.test(x.membershipStatus || ""));
+// Cortesia, VIP, free pass e transferência não são plano pago
+const CORTESIA = /\bvip\b|free ?pass|cortesia|transfer[eê]ncia de dias|funcion[aá]ri|experimental|permuta|bols/i;
+// Só contratos em vigor hoje (o EVO devolve também os antigos já vencidos)
+const planosAtivos = (m: any) => { const h = ymd(agoraBR());
+  return (m?.memberships || []).filter((x: any) => !x.cancelDate && !/cancel/i.test(x.membershipStatus || "") && (!soData(x.endDate) || (soData(x.endDate) as string) >= h)); };
 function origemDe(m: any): "direto" | "wellhub" | "totalpass" | "gurupass" | "outro" {
   const ms = planosAtivos(m), nomes = ms.map((x: any) => String(x.name || x.nameMembership || ""));
-  if (nomes.some((n: string) => n && !AGREG.test(n))) return "direto";
+  if (nomes.some((n: string) => n && !AGREG.test(n) && !CORTESIA.test(n))) return "direto";
   if (nomes.some((n: string) => /wellhub|gympass/i.test(n)) || m?.gympassId) return "wellhub";
   if (nomes.some((n: string) => /total ?pass/i.test(n)) || m?.codeTotalpass) return "totalpass";
   if (nomes.some((n: string) => /guru ?pass/i.test(n)) || m?.userIdGurupass) return "gurupass";
   return "outro";
 }
-const origemPlano = (nome: string) => /wellhub|gympass/i.test(nome) ? "wellhub" : /total ?pass/i.test(nome) ? "totalpass" : /guru ?pass/i.test(nome) ? "gurupass" : nome ? "direto" : "outro";
+const origemPlano = (nome: string) => /wellhub|gympass/i.test(nome) ? "wellhub" : /total ?pass/i.test(nome) ? "totalpass" : /guru ?pass/i.test(nome) ? "gurupass" : nome && !CORTESIA.test(nome) ? "direto" : "outro";
 const conta = (l: string[]) => l.reduce((o: Record<string, number>, k) => { o[k] = (o[k] || 0) + 1; return o; }, {});
 
 // ---------- a busca ----------

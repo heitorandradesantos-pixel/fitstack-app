@@ -911,10 +911,10 @@ function resumoSemana(r){
   L.push('');L.push('Números do EVO de '+dataHora(S.evoDados._resumo)+', pelo FitStack.');
   return L.join('\n');
 }
-var ORIG_N={direto:'Plano direto',wellhub:'Wellhub',totalpass:'TotalPass',gurupass:'GuruPass',outro:'Sem plano ativo'};
+var ORIG_N={direto:'Plano direto',wellhub:'Wellhub',totalpass:'TotalPass',gurupass:'GuruPass',outro:'Cortesia / VIP / sem plano'};
 var ORIG_ORD=['direto','wellhub','totalpass','gurupass','outro'];
 function origemLinha(r){var o=r&&r.origem&&r.origem.ativos;if(!o)return '';
-  return ORIG_ORD.filter(function(k){return o[k];}).map(function(k){return Number(o[k]).toLocaleString('pt-BR')+' '+(k==='direto'?'diretos':k==='outro'?'sem plano':ORIG_N[k]);}).join(' · ');}
+  return ORIG_ORD.filter(function(k){return o[k];}).map(function(k){return Number(o[k]).toLocaleString('pt-BR')+' '+(k==='direto'?'diretos':k==='outro'?'cortesia/VIP':ORIG_N[k]);}).join(' · ');}
 function painelOrigem(r){
   var O=r.origem;if(!O||!O.ativos)return '<section class="panel"><span class="lbl">Plano direto × Wellhub</span><p class="muted small" style="margin:0">A separação aparece depois da próxima busca no EVO (a de amanhã cedo, ou toque em Atualizar agora).</p></section>';
   var ks=ORIG_ORD.filter(function(k){return (O.ativos[k]||0)+((O.sumidos||{})[k]||0)+((O.matriculas||{})[k]||0)+((O.cancelados||{})[k]||0)>0;});
@@ -933,9 +933,9 @@ function painelOrigem(r){
   var md=v('matriculas','direto'),cd=v('cancelados','direto');
   if(md||cd)ins.push([md>=cd?'ok':'bad','<b>No plano direto, o mês está '+(md-cd>=0?'+':'')+(md-cd)+'</b> ('+md+' matrículas e '+cd+' cancelamentos). É o saldo que mexe na receita.']);
   if(ins.length)h+='<div style="display:grid;gap:10px;margin-top:14px">'+ins.map(function(x){return '<div class="insight '+x[0]+'">'+x[1]+'</div>';}).join('')+'</div>';
-  if(O.planos&&O.planos.length)h+='<details class="mais"><summary>Planos ativos no EVO ('+O.planos.length+')</summary><div class="scrollx" style="margin-top:8px"><table class="tbl"><thead><tr><th>Plano</th><th>Alunos</th><th>Conta como</th></tr></thead><tbody>'+
-    O.planos.map(function(p){var o=/wellhub|gympass/i.test(p[0])?'wellhub':/total ?pass/i.test(p[0])?'totalpass':/guru ?pass/i.test(p[0])?'gurupass':'direto';return '<tr><td>'+esc(p[0])+'</td><td>'+p[1]+'</td><td>'+ORIG_N[o]+'</td></tr>';}).join('')+
-    '</tbody></table></div><p class="small muted" style="margin:8px 0 0">Quem tem um plano pago na academia conta como plano direto, mesmo que também tenha Wellhub. Quem não tem plano pago e tem cadastro no Wellhub, TotalPass ou GuruPass conta no agregador. "Sem plano ativo" costuma ser cortesia, funcionário ou VIP.</p></details>';
+  if(O.planos&&O.planos.length)h+='<details class="mais"><summary>Planos em vigor no EVO ('+O.planos.length+')</summary><div class="scrollx" style="margin-top:8px"><table class="tbl"><thead><tr><th>Plano</th><th>Alunos</th><th>Conta como</th></tr></thead><tbody>'+
+    O.planos.map(function(p){var o=/wellhub|gympass/i.test(p[0])?'wellhub':/total ?pass/i.test(p[0])?'totalpass':/guru ?pass/i.test(p[0])?'gurupass':/\bvip\b|free ?pass|cortesia|transfer[eê]ncia de dias|funcion[aá]ri|experimental|permuta|bols/i.test(p[0])?'outro':'direto';return '<tr><td>'+esc(p[0])+'</td><td>'+p[1]+'</td><td>'+ORIG_N[o]+'</td></tr>';}).join('')+
+    '</tbody></table></div><p class="small muted" style="margin:8px 0 0">Quem tem um plano pago na academia conta como plano direto, mesmo que também tenha Wellhub. Quem não tem plano pago e tem cadastro no Wellhub, TotalPass ou GuruPass conta no agregador. VIP, free pass, cortesia e transferência de dias não contam como plano pago. A lista mostra os planos em vigor hoje.</p></details>';
   return h+'</section>';
 }
 function painelResumo(r){
