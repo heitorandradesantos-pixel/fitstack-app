@@ -509,7 +509,7 @@ don.append(('Funil de vendas (no Painel)', '''
     ['<b>Visitas agendadas e atendidas</b>', 'O que a recepção marca no Placar', 'Se ninguém marca, o funil fica furado. Cobre o preenchimento.'],
     ['<b>Por pessoa da recepção</b>', 'Placar', 'Quem agenda, quem atende e quem fecha. Conversão baixa pede treino de atendimento da visita.'],
     ['<b>De onde vêm os leads</b>', 'Canal do lead no EVO', 'Mostra qual canal traz lead que vira aluno. Coloque o dinheiro de marketing nele.'],
-]) + box('dica', 'Leads parados', 'Quando tem lead sem resposta, o funil mostra o botão <b>Chamar os leads agora</b>. Ele abre Contatos do dia → Leads, já com a mensagem pronta para cada caso.')))
+]) + box('dica', 'Plano direto × Wellhub', 'O quadro <b>Plano direto × Wellhub e outros agregadores</b> separa quem paga mensalidade na academia de quem treina pelo Wellhub, TotalPass ou GuruPass: ativos, sumidos, matrículas e cancelamentos de cada um. Quem tem plano pago conta como direto, mesmo que também tenha Wellhub. VIP, free pass e cortesia ficam à parte. Em Contatos do dia → Sumidos dá para filtrar só <b>Plano direto</b>, que são os que mais pesam no caixa.') + box('dica', 'Leads parados', 'Quando tem lead sem resposta, o funil mostra o botão <b>Chamar os leads agora</b>. Ele abre Contatos do dia → Leads, já com a mensagem pronta para cada caso.')))
 
 don.append(('Financeiro: contas a pagar e DRE', '''
 <p class="lead">A área <b>Financeiro</b> é só do dono e dos sócios. Ela faz duas coisas: confere boletos e Pix <b>antes</b> de pagar e monta a DRE do mês com o que entrou e saiu.</p>
