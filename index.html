@@ -619,6 +619,8 @@ function inicioComparativo(){
   var ms=S.membros.filter(function(m){return (m.papel==='admin'||m.papel==='socio')&&C[m.academia_id];});
   if(ms.length<2)return '';
   var L=[['Alunos ativos',function(r){return Number(r.ativos||0).toLocaleString('pt-BR');}],
+    ['Plano direto',function(r){var o=r.origem&&r.origem.ativos;return o?Number(o.direto||0).toLocaleString('pt-BR')+' <span class="muted small">('+pct(o.direto||0,r.ativos)+')</span>':'–';}],
+    ['Wellhub',function(r){var o=r.origem&&r.origem.ativos;return o?Number(o.wellhub||0).toLocaleString('pt-BR')+' <span class="muted small">('+pct(o.wellhub||0,r.ativos)+')</span>':'–';}],
     ['Saldo do mês',function(r){var s=(r.matriculasMes||0)-(r.canceladosMes||0);return '<span class="'+(s>=0?'t-ok':'t-bad')+'">'+(s>=0?'+':'')+s+'</span> <span class="muted small">('+(r.matriculasMes||0)+' − '+(r.canceladosMes||0)+')</span>';}],
     ['Sumidos 7+ dias',function(r){var s=(r.sumidos7||0)+(r.sumidos15||0)+(r.sumidos30||0);return s+' <span class="muted small">('+pct(s,r.ativos)+')</span>';}],
     ['Em atraso',function(r){return brl0(r.inadValor)+' <span class="muted small">('+(r.inadimplentes||0)+')</span>';}],
@@ -649,7 +651,7 @@ function telaInicio(){
     if(r){
       var sum=(r.sumidos7||0)+(r.sumidos15||0)+(r.sumidos30||0),saldo=(r.matriculasMes||0)-(r.canceladosMes||0);
       h+='<section style="display:grid;gap:10px"><div class="row between"><span class="lbl" style="margin:0">A academia agora</span><span class="small muted">EVO de '+dataHora(S.evoDados._resumo)+'</span></div><div class="hoje">'+
-        '<button class="kpi" data-tab="painel"><span class="lbl">Alunos ativos</span><div class="v">'+Number(r.ativos||0).toLocaleString('pt-BR')+'</div><div class="s">'+(saldo>=0?'+':'')+saldo+' no mês</div></button>'+
+        '<button class="kpi" data-tab="painel"><span class="lbl">Alunos ativos</span><div class="v">'+Number(r.ativos||0).toLocaleString('pt-BR')+'</div><div class="s">'+(r.origem&&r.origem.ativos?Number(r.origem.ativos.direto||0).toLocaleString('pt-BR')+' de plano direto · ':'')+(saldo>=0?'+':'')+saldo+' no mês</div></button>'+
         '<button class="kpi" data-tab="painel"><span class="lbl">Matrículas no mês</span><div class="v t-ok">'+(r.matriculasMes||0)+'</div><div class="s">'+(r.canceladosMes||0)+' cancelamentos</div></button>'+
         '<button class="kpi" data-tab="contatos"><span class="lbl">Em atraso</span><div class="v t-bad" style="font-size:23px">'+brl0(r.inadValor)+'</div><div class="s">'+(r.inadimplentes||0)+' pessoas para cobrar</div></button>'+
         '<button class="kpi" data-tab="contatos"><span class="lbl">Sumidos 7+ dias</span><div class="v t-bad">'+sum+'</div><div class="s">'+pct(sum,r.ativos)+' da base não está vindo</div></button>'+
@@ -694,11 +696,11 @@ function telaIntegracoes(){
   if(ev&&!trocando){
     h+='<h2 class="h2" style="margin-top:4px">✅ Chave do EVO salva</h2>'+
       '<p class="small" style="margin:8px 0 0">DNS: <b>'+esc(ev.dns)+'</b> · token terminando em <b>••••'+esc(ev.final||'')+'</b></p>'+
-      '<p class="small muted" style="margin:4px 0 0">Salva em '+dataHora(ev.atualizado_em)+'. '+(ev.ultima_sync?'Última busca no EVO: '+dataHora(ev.ultima_sync)+'. A busca automática roda 1 vez por dia, de madrugada; o financeiro, toda segunda.':'A primeira busca ainda não rodou.')+'</p>'+
+      '<p class="small muted" style="margin:4px 0 0">Salva em '+dataHora(ev.atualizado_em)+'. '+(ev.ultima_sync?'Última busca no EVO: '+dataHora(ev.ultima_sync)+'. A busca automática roda 1 vez por dia, entre 5h15 e 7h (cada unidade tem a sua vez); o financeiro, toda segunda de manhã.':'A primeira busca ainda não rodou.')+'</p>'+
       (ev.consultas_mes!=null?'<p class="small" style="margin:8px 0 0">Consultas à API do EVO (conta '+esc(ev.dns)+', todas as unidades): <b>'+ev.consultas_hoje+' hoje</b> · <b>'+ev.consultas_mes+' neste mês</b>.</p>':'')+
       (ev.ultimo_erro?'<div class="msg erro" style="margin-top:10px">'+esc(ev.ultimo_erro)+'</div>':'')+
       '<p class="small muted" style="margin:10px 0 0">Por segurança, ninguém consegue ver a chave inteira de novo, nem você. Só o servidor usa ela.</p>'+
-      '<div class="row" style="margin-top:14px"><button class="btn sm" data-act="evoAtualizar"'+(S.evoBuscando?' disabled':'')+'>'+(S.evoBuscando?'Buscando no EVO…':'Atualizar agora')+'</button><button class="btn ghost sm" data-act="evoTrocar">Trocar a chave</button>'+
+      '<div class="row" style="margin-top:14px"><button class="btn sm" data-act="evoAtualizar"'+(S.evoBuscando?' disabled':'')+'>'+(S.evoBuscando?'Buscando no EVO… pode levar até 2 min':'Atualizar agora')+'</button><button class="btn ghost sm" data-act="evoTrocar">Trocar a chave</button>'+
       '<button class="btn ghost sm" data-act="evoRemover">'+(S.confirma==='evo'?'Toque de novo para desligar':'Desligar integração')+'</button></div></section>';
     if(ev.webhook_key){var url='https://bmbcdqcjeignydehwmhg.supabase.co/functions/v1/evo-webhook?k='+ev.webhook_key;
       h+='<section class="panel"><span class="lbl">Alertas em tempo real</span><h2 class="h2" style="margin-top:4px">'+(ev.ultimo_alerta?'✅ Recebendo alertas':'Ligar os alertas do EVO')+'</h2>'+
@@ -788,7 +790,7 @@ function telaPainel(){
   var r=D.resumo,sum=r.sumidos7+r.sumidos15+r.sumidos30,saldo=r.matriculasMes-r.canceladosMes;
   var h=topo;
   h+='<div class="kpis">'+
-    '<div class="kpi"><span class="lbl">Alunos ativos</span><div class="v">'+r.ativos.toLocaleString('pt-BR')+'</div><div class="s">contando Wellhub e VIPs</div></div>'+
+    '<div class="kpi"><span class="lbl">Alunos ativos</span><div class="v">'+r.ativos.toLocaleString('pt-BR')+'</div><div class="s">'+(origemLinha(r)||'contando Wellhub e VIPs')+'</div></div>'+
     '<div class="kpi"><span class="lbl">Saldo do mês</span><div class="v '+(saldo>=0?'t-ok':'t-bad')+'">'+(saldo>=0?'+':'')+saldo+'</div><div class="s">'+r.matriculasMes+' matrículas · '+r.canceladosMes+' cancelamentos</div></div>'+
     '<div class="kpi"><span class="lbl">Sumidos 7+ dias</span><div class="v t-bad">'+sum+'</div><div class="s">'+pct(sum,r.ativos)+' da base não está vindo</div></div>'+
     '<div class="kpi"><span class="lbl">Em atraso</span><div class="v sm t-bad">'+brl0(r.inadValor)+'</div><div class="s">'+r.inadimplentes+' pessoas devendo</div></div>'+
@@ -798,6 +800,7 @@ function telaPainel(){
   '</div>';
   h+='<section class="panel"><span class="lbl">Onde está o gap</span><div style="display:grid;gap:10px">'+insights(r)+'</div>'+
     '<div class="row" style="margin-top:14px"><button class="btn" data-tab="contatos">Abrir contatos do dia</button></div></section>';
+  h+=painelOrigem(r);
   h+=painelResumo(r);
   h+=painelFunil(r);
   h+=painelResultados(r.resultados);
@@ -874,6 +877,9 @@ function resumoSemana(r){
   L.push(new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}));
   L.push('');L.push('*Alunos*');
   L.push('• Ativos: '+Number(r.ativos||0).toLocaleString('pt-BR')+dif(r.ativos,ant&&ant.ativos));
+  if(r.origem&&r.origem.ativos){var oa=r.origem.ativos,oant=ant&&ant.origem&&ant.origem.ativos;
+    L.push('   ↳ Plano direto: '+Number(oa.direto||0).toLocaleString('pt-BR')+dif(oa.direto||0,oant?oant.direto||0:null)+' · Wellhub: '+Number(oa.wellhub||0).toLocaleString('pt-BR')+(oa.totalpass?' · TotalPass: '+oa.totalpass:''));
+    var om=r.origem.matriculas||{},oc=r.origem.cancelados||{};L.push('   ↳ Plano direto no mês: '+(om.direto||0)+' matrículas, '+(oc.direto||0)+' cancelamentos');}
   L.push('• No mês: '+(r.matriculasMes||0)+' matrículas, '+(r.canceladosMes||0)+' cancelamentos (saldo '+(saldo>=0?'+':'')+saldo+')');
   if(S.metas&&S.metas.matriculas){var pm=ritmo(r.matriculasMes||0);L.push('• Meta de matrículas: '+(r.matriculasMes||0)+' de '+S.metas.matriculas+' (no ritmo atual, fecha em '+Math.round(pm.proj)+')');}
   L.push('• Sumidos há 7 dias ou mais: '+sum+' ('+pct(sum,r.ativos)+' da base)'+dif(sum,ant&&((ant.sumidos7||0)+(ant.sumidos15||0)+(ant.sumidos30||0))));
@@ -905,6 +911,33 @@ function resumoSemana(r){
   L.push('');L.push('Números do EVO de '+dataHora(S.evoDados._resumo)+', pelo FitStack.');
   return L.join('\n');
 }
+var ORIG_N={direto:'Plano direto',wellhub:'Wellhub',totalpass:'TotalPass',gurupass:'GuruPass',outro:'Sem plano ativo'};
+var ORIG_ORD=['direto','wellhub','totalpass','gurupass','outro'];
+function origemLinha(r){var o=r&&r.origem&&r.origem.ativos;if(!o)return '';
+  return ORIG_ORD.filter(function(k){return o[k];}).map(function(k){return Number(o[k]).toLocaleString('pt-BR')+' '+(k==='direto'?'diretos':k==='outro'?'sem plano':ORIG_N[k]);}).join(' · ');}
+function painelOrigem(r){
+  var O=r.origem;if(!O||!O.ativos)return '<section class="panel"><span class="lbl">Plano direto × Wellhub</span><p class="muted small" style="margin:0">A separação aparece depois da próxima busca no EVO (a de amanhã cedo, ou toque em Atualizar agora).</p></section>';
+  var ks=ORIG_ORD.filter(function(k){return (O.ativos[k]||0)+((O.sumidos||{})[k]||0)+((O.matriculas||{})[k]||0)+((O.cancelados||{})[k]||0)>0;});
+  var v=function(g,k){return Number(((O[g]||{})[k])||0);};
+  var tot=r.ativos||1,dir=v('ativos','direto'),agr=v('ativos','wellhub')+v('ativos','totalpass')+v('ativos','gurupass');
+  var h='<section class="panel"><span class="lbl">Plano direto × Wellhub e outros agregadores</span>'+
+    '<div class="kpis" style="margin:4px 0 14px">'+ks.map(function(k){return '<div class="kpi"><span class="lbl">'+ORIG_N[k]+'</span><div class="v">'+v('ativos',k).toLocaleString('pt-BR')+'</div><div class="s">'+pct(v('ativos',k),tot)+' dos ativos</div></div>';}).join('')+'</div>'+
+    '<div class="scrollx"><table class="tbl"><thead><tr><th>Origem</th><th>Ativos</th><th>Sumidos 7+ dias</th><th>% sumidos</th><th>Matrículas no mês</th><th>Cancelamentos no mês</th></tr></thead><tbody>'+
+    ks.map(function(k){var a=v('ativos',k),sm=v('sumidos',k);return '<tr><td><b>'+ORIG_N[k]+'</b></td><td>'+a.toLocaleString('pt-BR')+'</td><td>'+sm+'</td><td>'+(a?pct(sm,a):'–')+'</td><td>'+v('matriculas',k)+'</td><td>'+v('cancelados',k)+'</td></tr>';}).join('')+
+    '</tbody></table></div>';
+  var ins=[];
+  if(agr)ins.push(['warn','<b>'+pct(agr,tot)+' dos alunos ativos vêm de agregador</b> ('+agr.toLocaleString('pt-BR')+' pessoas). A receita deles chega pelo repasse do app, não pela mensalidade: o número que paga as contas é o de <b>'+dir.toLocaleString('pt-BR')+' alunos de plano direto</b>.']);
+  var sd=v('sumidos','direto'),sw=v('sumidos','wellhub');
+  if(dir&&sd)ins.push([sd/dir>.25?'bad':'warn','<b>'+sd+' alunos de plano direto não treinam há 7 dias ou mais ('+pct(sd,dir)+').</b> Esses são os que mais pesam no caixa se cancelarem: comece por eles em Contatos do dia → Sumidos → Plano direto.']);
+  if(v('ativos','wellhub')&&sw)ins.push(['ok','<b>'+sw+' alunos do Wellhub estão sumidos.</b> Vale um convite para voltar: quem treina pelo app pode virar plano direto.']);
+  var md=v('matriculas','direto'),cd=v('cancelados','direto');
+  if(md||cd)ins.push([md>=cd?'ok':'bad','<b>No plano direto, o mês está '+(md-cd>=0?'+':'')+(md-cd)+'</b> ('+md+' matrículas e '+cd+' cancelamentos). É o saldo que mexe na receita.']);
+  if(ins.length)h+='<div style="display:grid;gap:10px;margin-top:14px">'+ins.map(function(x){return '<div class="insight '+x[0]+'">'+x[1]+'</div>';}).join('')+'</div>';
+  if(O.planos&&O.planos.length)h+='<details class="mais"><summary>Planos ativos no EVO ('+O.planos.length+')</summary><div class="scrollx" style="margin-top:8px"><table class="tbl"><thead><tr><th>Plano</th><th>Alunos</th><th>Conta como</th></tr></thead><tbody>'+
+    O.planos.map(function(p){var o=/wellhub|gympass/i.test(p[0])?'wellhub':/total ?pass/i.test(p[0])?'totalpass':/guru ?pass/i.test(p[0])?'gurupass':'direto';return '<tr><td>'+esc(p[0])+'</td><td>'+p[1]+'</td><td>'+ORIG_N[o]+'</td></tr>';}).join('')+
+    '</tbody></table></div><p class="small muted" style="margin:8px 0 0">Quem tem um plano pago na academia conta como plano direto, mesmo que também tenha Wellhub. Quem não tem plano pago e tem cadastro no Wellhub, TotalPass ou GuruPass conta no agregador. "Sem plano ativo" costuma ser cortesia, funcionário ou VIP.</p></details>';
+  return h+'</section>';
+}
 function painelResumo(r){
   var t=resumoSemana(r),F=S.fin,semFin=!(F&&F.contas&&F.receitas&&F.mapa&&F.evo!==undefined);
   return '<section class="panel"><div class="row between" style="align-items:flex-start"><div><span class="lbl">Resumo da semana para os sócios</span>'+
@@ -934,6 +967,7 @@ function itensDe(lista){
   if(lista==='alerta')return S.evoEventos||[];
   if(lista==='aniversario')return ((D.aniversariantes||{}).itens||[]).filter(function(x){return f==='semana'?x.em>0:x.em===0;});
   if(lista==='sumido')return ((D.sumidos||{}).itens||[]).filter(function(x){
+    if(S.orig&&x.org&&(S.orig==='direto'?x.org!=='direto':x.org==='direto'))return false;
     if(f==='15')return x.dias>=15&&x.dias<30; if(f==='30')return x.dias>=30; if(f==='nunca')return x.nunca; return x.dias>=7&&x.dias<15;});
   if(lista==='inad')return ((D.inadimplentes||{}).itens||[]).filter(function(x){return f==='ex'?!x.ativo:x.ativo;});
   if(lista==='renovacao')return (D.vencendo||{}).itens||[];
@@ -953,7 +987,7 @@ function detalhe(lista,x){
   if(lista==='risco')return 'Risco '+x.score+' · '+(x.motivos||[]).join(' · ');
   if(lista==='alerta')return rotuloAlerta(x.tipo)+(x.valor?' · '+brl(x.valor):'')+' · '+new Date(x.quando).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
   if(lista==='aniversario')return x.em===0?'Faz '+x.idade+' anos hoje 🎉':'Aniversário em '+x.em+' dia'+(x.em>1?'s':'')+' · faz '+x.idade;
-  if(lista==='sumido')return x.nunca?'Matriculado em '+dBR(x.desde)+' e nunca treinou':'Não vem há '+x.dias+' dias · último treino '+dBR(x.ultima);
+  if(lista==='sumido')return (x.org&&x.org!=='direto'?(ORIG_N[x.org]||'')+' · ':'')+(x.nunca?'Matriculado em '+dBR(x.desde)+' e nunca treinou':'Não vem há '+x.dias+' dias · último treino '+dBR(x.ultima));
   if(lista==='inad')return brl(x.valor)+' · '+x.parcelas+' parcela'+(x.parcelas>1?'s':'')+' · atrasado há '+x.dias+' dia'+(x.dias>1?'s':'');
   if(lista==='renovacao')return (x.dias===0?'Vence hoje':'Vence em '+x.dias+' dia'+(x.dias>1?'s':'')+' ('+dBR(x.fim)+')')+(x.plano?' · '+x.plano:'');
   if(lista==='lead'){var nd=diasDesde(x.dia);return (x.convertido?'✓ Já matriculou · ':'')+'Cadastro '+(nd===0?'hoje':nd===1?'ontem':'há '+nd+' dias')+(x.canal?' · '+x.canal:'')+(x.etapa?' · '+x.etapa:'')+(x.por?' · por '+x.por:'');}
@@ -1003,6 +1037,8 @@ function telaContatos(){
   if(!D.aniversariantes)return h+semDadosEvo();
   var cont=function(l){return arrLista(l).length;};
   h+='<div class="pills">'+Object.keys(LISTAS).map(function(k){return '<button data-lista="'+k+'" aria-pressed="'+(L===k)+'">'+LISTAS[k]+' <b>'+cont(k)+'</b></button>';}).join('')+'</div>';
+  if(L==='sumido'&&((S.evoDados||{}).sumidos||{}).itens&&S.evoDados.sumidos.itens.some(function(x){return x.org;}))h+='<div class="pills" style="margin-bottom:-4px">'+[['','Todos'],['direto','Plano direto'],['agreg','Wellhub e outros']].map(function(o){
+    return '<button data-orig="'+o[0]+'" aria-pressed="'+((S.orig||'')===o[0])+'">'+o[1]+'</button>';}).join('')+'</div>';
   if(FILTROS[L])h+='<div class="pills">'+FILTROS[L].map(function(f){var f0=S.filtro;S.filtro=f[0];var n=itensDe(L).length;S.filtro=f0;
     return '<button data-filtro="'+f[0]+'" aria-pressed="'+((S.filtro||'')===f[0])+'">'+f[1]+' <b>'+n+'</b></button>';}).join('')+'</div>';
   var itens=itensDe(L),C=S.evoCont||{};
@@ -1986,6 +2022,7 @@ document.addEventListener('click',function(ev){
   if(d.delc){sb.from('convites').delete().eq('id',d.delc).then(function(){carregarEquipe();});return;}
   if(d.lista){S.lista=d.lista;S.filtro='';S.mostrar=40;render();return;}
   if(d.filtro!==undefined){S.filtro=d.filtro;S.mostrar=40;render();return;}
+  if(d.orig!==undefined){S.orig=d.orig;S.mostrar=40;render();return;}
   if(d.zap){var a=achar(d.zap);if(a.x&&a.x.tel){window.open('https://wa.me/'+a.x.tel+'?text='+encodeURIComponent(mensagem(a.L,a.x)),'_blank','noopener');marcar(d.zap);}return;}
   if(d.chamei){marcar(d.chamei);return;}
   if(d.copiar){try{navigator.clipboard.writeText(d.copiar).then(function(){toast('Endereço copiado.');},function(){toast('Selecione o endereço e copie.');});}catch(e){toast('Selecione o endereço e copie.');}return;}

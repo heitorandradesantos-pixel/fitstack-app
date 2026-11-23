@@ -93,6 +93,19 @@ function telDe(m: any): string | null {
   return null;
 }
 const primeiro = (n: string) => n.split(" ")[0];
+// De onde vem o aluno: plano pago direto na academia ou agregador (Wellhub/Gympass, TotalPass, GuruPass)
+const AGREG = /wellhub|gympass|totalpass|total pass|gurupass|guru pass/i;
+const planosAtivos = (m: any) => (m?.memberships || []).filter((x: any) => !x.cancelDate && !/cancel/i.test(x.membershipStatus || ""));
+function origemDe(m: any): "direto" | "wellhub" | "totalpass" | "gurupass" | "outro" {
+  const ms = planosAtivos(m), nomes = ms.map((x: any) => String(x.name || x.nameMembership || ""));
+  if (nomes.some((n: string) => n && !AGREG.test(n))) return "direto";
+  if (nomes.some((n: string) => /wellhub|gympass/i.test(n)) || m?.gympassId) return "wellhub";
+  if (nomes.some((n: string) => /total ?pass/i.test(n)) || m?.codeTotalpass) return "totalpass";
+  if (nomes.some((n: string) => /guru ?pass/i.test(n)) || m?.userIdGurupass) return "gurupass";
+  return "outro";
+}
+const origemPlano = (nome: string) => /wellhub|gympass/i.test(nome) ? "wellhub" : /total ?pass/i.test(nome) ? "totalpass" : /guru ?pass/i.test(nome) ? "gurupass" : nome ? "direto" : "outro";
+const conta = (l: string[]) => l.reduce((o: Record<string, number>, k) => { o[k] = (o[k] || 0) + 1; return o; }, {});
 
 // ---------- a busca ----------
 async function sincronizar(cfg: Cfg) {
@@ -116,21 +129,22 @@ async function sincronizar(cfg: Cfg) {
   let bloqueados = 0, nuncaVieram = 0;
 
   for (const m of ativos) {
-    const nome = nomeDe(m), tel = telDe(m);
+    const nome = nomeDe(m), tel = telDe(m), org = origemDe(m);
+    m._org = org;
     if (m.accessBlocked) bloqueados++;
     const nasc = soData(m.birthDate);
     if (nasc) {
       const i = proximos7.indexOf(md(nasc));
-      if (i >= 0) aniversariantes.push({ id: m.idMember, nome, tel, em: i, idade: Number(hoje.slice(0, 4)) - Number(nasc.slice(0, 4)) });
+      if (i >= 0) aniversariantes.push({ id: m.idMember, nome, tel, em: i, idade: Number(hoje.slice(0, 4)) - Number(nasc.slice(0, 4)), org });
     }
     const ult = soData(m.lastAccessDate);
     const desde = soData(m.registerDate);
     if (ult) {
       const d = diasEntre(ult, hoje);
-      if (d >= 7) sumidos.push({ id: m.idMember, nome, tel, dias: d, ultima: ult });
+      if (d >= 7) sumidos.push({ id: m.idMember, nome, tel, dias: d, ultima: ult, org });
     } else if (desde && diasEntre(desde, hoje) >= 7) {
       nuncaVieram++;
-      sumidos.push({ id: m.idMember, nome, tel, dias: null, nunca: true, desde });
+      sumidos.push({ id: m.idMember, nome, tel, dias: null, nunca: true, desde, org });
     }
     const ms: any[] = (m.memberships || []).filter((x: any) => !x.cancelDate && !/cancel/i.test(x.membershipStatus || ""));
     const fimMax = ms.map((x) => soData(x.endDate)).filter(Boolean).sort().pop() as string | undefined;
@@ -232,6 +246,14 @@ async function sincronizar(cfg: Cfg) {
     canais: Object.entries(leads.reduce((o: Record<string, number>, l) => { const k = l.canal || "Não informado"; o[k] = (o[k] || 0) + 1; return o; }, {}))
       .sort((a, b) => b[1] - a[1]).slice(0, 8),
     leadsMes: leads.length,
+    origem: {
+      ativos: conta(ativos.map((m: any) => m._org)),
+      sumidos: conta(sumidos.filter((x) => x.dias !== null).map((x) => x.org)),
+      matriculas: conta(novos.itens.map((m: any) => porId.get(m.idMember)?._org || origemDe(m))),
+      cancelados: conta(cancelados.map((c) => origemPlano(c.plano))),
+      planos: Object.entries(conta(ativos.flatMap((m: any) => planosAtivos(m).map((x: any) => String(x.name || x.nameMembership || "Sem nome")))))
+        .sort((a, b) => b[1] - a[1]).slice(0, 20),
+    },
   };
   return { hoje, resumo, aniversariantes, sumidos, vencendo, inadimplentes, cancelados, leads, risco: rr.risco, avisos };
 }
@@ -510,6 +532,10 @@ Deno.serve(async (req) => {
       const cand = (lista || []).filter((x: any) => (fin ? velho(finEm[x.academia_id], 12) : velho(x.ultima_sync, 12)) &&
           velho(fin ? x.ultima_tentativa_fin : x.ultima_tentativa, 10 / 60))
         .sort((a: any, b: any) => String((fin ? finEm[a.academia_id] : a.ultima_sync) || "").localeCompare(String((fin ? finEm[b.academia_id] : b.ultima_sync) || "")));
+      // Uma busca por vez: se outra unidade começou há menos de 3 minutos e ainda não terminou, espera a próxima chamada (2 min depois)
+      const rodando = (lista || []).some((x: any) => { const t = fin ? x.ultima_tentativa_fin : x.ultima_tentativa;
+        return t && !velho(t, 3 / 60) && (fin ? velho(finEm[x.academia_id], 3 / 60) : (!x.ultima_sync || Date.parse(x.ultima_sync) < Date.parse(t))); });
+      if (rodando) return resp({ resultado: [], ocupado: true });
       if (!cand.length) return resp({ resultado: [], nada: true });
       alvos = [cand[0].academia_id];
       await db.from("integracoes_evo").update(fin ? { ultima_tentativa_fin: new Date().toISOString() } : { ultima_tentativa: new Date().toISOString() }).eq("academia_id", alvos[0]);
