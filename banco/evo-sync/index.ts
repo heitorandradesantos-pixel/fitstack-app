@@ -73,6 +73,40 @@ async function todas(cfg: Cfg, path: string, params: Record<string, unknown>, ma
   return { itens: out, truncado };
 }
 
+// ---------- alunos ativos em partes (academia grande não cabe no tempo de uma chamada) ----------
+// Cada página é guardada em evo_cache. Se o tempo acabar, a busca para e a próxima chamada continua de onde parou.
+class Parcial extends Error { constructor(public paginas: number) { super("parcial"); } }
+const T0 = { v: 0 };
+const decorrido = () => (Date.now() - T0.v) / 1000;
+function enxuto(m: any, hoje: string) {
+  const lim = ymd(new Date(Date.parse(hoje) - 400 * DIA));
+  return {
+    idMember: m.idMember, firstName: m.firstName, lastName: m.lastName, name: m.name,
+    contacts: (m.contacts || []).map((c: any) => ({ contactType: c.contactType, description: c.description })),
+    birthDate: m.birthDate, lastAccessDate: m.lastAccessDate, registerDate: m.registerDate, accessBlocked: m.accessBlocked,
+    gympassId: m.gympassId || null, codeTotalpass: m.codeTotalpass || null, userIdGurupass: m.userIdGurupass || null,
+    memberships: (m.memberships || []).filter((x: any) => !soData(x.endDate) || (soData(x.endDate) as string) >= lim).map((x: any) => ({
+      name: x.name ?? x.nameMembership, endDate: x.endDate, cancelDate: x.cancelDate, membershipStatus: x.membershipStatus,
+      idMemberMembershipRenewed: x.idMemberMembershipRenewed, flRenewed: x.flRenewed })),
+  };
+}
+async function membrosAtivos(cfg: Cfg, hoje: string, limiteSeg: number) {
+  const { data: cache } = await db.from("evo_cache").select("pagina, itens").eq("academia_id", cfg.academia_id).eq("dia", hoje).order("pagina");
+  const pags: any[][] = (cache || []).map((x: any) => x.itens || []);
+  const TAM = 100, MAX = 40;
+  let fim = pags.length > 0 && pags[pags.length - 1].length < TAM;
+  while (!fim && pags.length < MAX) {
+    if (decorrido() > limiteSeg) throw new Parcial(pags.length);
+    const pag = await evo(cfg, "/api/v2/members", { status: 1, showMemberships: true, take: TAM, skip: pags.length * TAM });
+    const l = Array.isArray(pag) ? pag.map((m: any) => enxuto(m, hoje)) : [];
+    await db.from("evo_cache").upsert({ academia_id: cfg.academia_id, dia: hoje, pagina: pags.length, itens: l });
+    pags.push(l);
+    if (l.length < TAM) fim = true;
+  }
+  return { itens: pags.flat(), truncado: !fim };
+}
+async function limparCache(a: string) { await db.from("evo_cache").delete().eq("academia_id", a); }
+
 // ---------- utilidades de aluno ----------
 const nomeDe = (m: any) => [m.firstName, m.lastName].filter(Boolean).join(" ").trim() || m.name || "Sem nome";
 function telDe(m: any): string | null {
@@ -120,7 +154,9 @@ async function sincronizar(cfg: Cfg) {
   const avisos: string[] = [];
 
   // 1) Todos os alunos ativos (aniversário, última presença, telefone, contrato)
-  const at = await todas(cfg, "/api/v2/members", { status: 1, showMemberships: true }, 40, 100);
+  const at = await membrosAtivos(cfg, hoje, 85);
+  // O resto da busca leva perto de 1 minuto: se já passou muito tempo, termina na próxima chamada
+  if (decorrido() > 80) throw new Parcial(-1);
   if (at.truncado) avisos.push("Mais de 4.000 alunos ativos: lista cortada.");
   const ativos = at.itens;
   const porId = new Map<number, any>();
@@ -530,12 +566,15 @@ Deno.serve(async (req) => {
       // O agendamento chama várias vezes de madrugada; cada vez pega quem está há mais tempo sem atualizar.
       const fin = body.modo === "fin";
       const { data: lista } = await db.from("integracoes_evo").select("academia_id, ultima_sync, ultima_tentativa, ultima_tentativa_fin");
+      const { data: meio } = fin ? { data: [] as any[] } : await db.from("evo_cache").select("academia_id").eq("dia", ymd(agoraBR()));
+      const pela = new Set((meio || []).map((x: any) => x.academia_id));
       const { data: fins } = fin ? await db.from("evo_dados").select("academia_id, atualizado_em").eq("chave", "financeiro") : { data: [] as any[] };
       const finEm: Record<string, string> = {}; (fins || []).forEach((x: any) => { finEm[x.academia_id] = x.atualizado_em; });
       const velho = (d: string | null | undefined, h: number) => !d || Date.now() - Date.parse(d) > h * 3600000;
       const cand = (lista || []).filter((x: any) => (fin ? velho(finEm[x.academia_id], 12) : velho(x.ultima_sync, 12)) &&
           velho(fin ? x.ultima_tentativa_fin : x.ultima_tentativa, 10 / 60))
-        .sort((a: any, b: any) => String((fin ? finEm[a.academia_id] : a.ultima_sync) || "").localeCompare(String((fin ? finEm[b.academia_id] : b.ultima_sync) || "")));
+        .sort((a: any, b: any) => (pela.has(b.academia_id) ? 1 : 0) - (pela.has(a.academia_id) ? 1 : 0) ||
+          String((fin ? finEm[a.academia_id] : a.ultima_sync) || "").localeCompare(String((fin ? finEm[b.academia_id] : b.ultima_sync) || "")));
       // Uma busca por vez: se outra unidade começou há menos de 3 minutos e ainda não terminou, espera a próxima chamada (2 min depois)
       const rodando = (lista || []).some((x: any) => { const t = fin ? x.ultima_tentativa_fin : x.ultima_tentativa;
         return t && !velho(t, 3 / 60) && (fin ? velho(finEm[x.academia_id], 3 / 60) : (!x.ultima_sync || Date.parse(x.ultima_sync) < Date.parse(t))); });
@@ -563,8 +602,17 @@ Deno.serve(async (req) => {
         if (body.modo === "diag") { saida.push({ academia_id: a, diag: await diagnostico(cfg) }); continue; }
         if (body.modo === "diag-fin") { saida.push({ academia_id: a, diag: await sondar(cfg, body.sonda) }); continue; }
         if (body.modo === "fin") { const f = await sincronizarFinanceiro(cfg); saida.push({ academia_id: a, ok: true, financeiro: f, consultas: cfg.calls }); continue; }
-        const r = await sincronizar(cfg);
+        T0.v = Date.now();
+        let r;
+        try { r = await sincronizar(cfg); }
+        catch (e) {
+          if (!(e instanceof Parcial)) throw e;
+          // Libera a fila para a próxima chamada continuar esta mesma academia
+          if (cron) await db.from("integracoes_evo").update({ ultima_tentativa: null }).eq("academia_id", a);
+          saida.push({ academia_id: a, parcial: true, consultas: cfg.calls }); continue;
+        }
         await gravar(cfg, r);
+        await limparCache(a);
         saida.push({ academia_id: a, ok: true, resumo: r.resumo, avisos: r.avisos, consultas: cfg.calls });
       } catch (e) {
         const msg = (e as Error).message || "Erro desconhecido.";

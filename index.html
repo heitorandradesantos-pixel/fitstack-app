@@ -748,13 +748,16 @@ function carregarContatos(){
     var m={};(r.data||[]).forEach(function(x){m[String((x.info&&x.info.membro)||x.id_aluno)]=x;});S.evoRes=m;if(S.tab==='contatos')render();});
 }
 function evoAtualizar(){
-  S.evoBuscando=true;render();
-  sb.functions.invoke('evo-sync',{body:{academia_id:S.atual.academia_id}}).then(function(r){S.evoBuscando=false;
+  S.evoBuscando=true;S.evoParte=(S.evoParte||0);render();
+  sb.functions.invoke('evo-sync',{body:{academia_id:S.atual.academia_id}}).then(function(r){
     var x=r.data&&r.data.resultado&&r.data.resultado[0];
+    if(x&&x.parcial&&S.evoParte<6){S.evoParte++;toast('A academia é grande: o EVO está mandando os alunos em partes. Continuando…');setTimeout(evoAtualizar,1500);return;}
+    S.evoBuscando=false;S.evoParte=0;
+    if(x&&x.parcial){toast('A busca ficou pela metade. Ela termina sozinha nos próximos minutos.');render();return;}
     if(r.error||!x){toast('Não deu para falar com o EVO agora. Tente de novo em instantes.');render();return;}
     if(x.erro){toast(x.erro);render();return;}
     toast('Dados do EVO atualizados.');carregarEvoDados();if(S.tab==='integracoes')carregarEvo();else render();
-  },function(){S.evoBuscando=false;toast('Não deu para falar com o EVO agora. Tente de novo em instantes.');render();});
+  },function(){S.evoBuscando=false;S.evoParte=0;toast('Não deu para falar com o EVO agora. Tente de novo em instantes.');render();});
 }
 function semDadosEvo(){
   return '<section class="panel"><span class="lbl">EVO</span><h2 class="h2">Ainda não temos dados do EVO</h2>'+
