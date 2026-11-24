@@ -76,7 +76,7 @@ h1,.h1{font-family:var(--display);font-weight:800;font-size:clamp(24px,5vw,34px)
 .lead{margin:6px 0 0;color:var(--muted);max-width:68ch}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .between{justify-content:space-between}
-.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr))}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:8px;align-content:start;text-align:left;color:var(--fg);font:inherit;cursor:pointer;min-width:0}
 .card:hover{border-color:var(--muted)}
 .card .t{font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:-.01em;line-height:1.1}
@@ -86,7 +86,7 @@ textarea{resize:vertical;line-height:1.45}
 label.f{display:grid;gap:4px;min-width:0}
 label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .form{display:grid;gap:12px;max-width:440px}
-.form2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.form2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
 .btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:-.01em;padding:8px 16px;border-radius:8px;cursor:pointer;min-height:42px;white-space:nowrap}
 .btn:hover{filter:brightness(1.08)}
 .btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
@@ -118,7 +118,7 @@ label.f>span{font-size:13px;color:var(--muted);font-weight:600}
 .checks{display:grid;gap:8px}
 .check{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
 .check input{width:20px;height:20px;min-height:0;margin:1px 0 0;accent-color:var(--accent);flex:none}
-.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr))}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .kpi .v{font-family:var(--display);font-weight:800;font-size:30px;line-height:1}
 .kpi .s{font-size:13px;color:var(--muted);margin-top:4px}
@@ -214,7 +214,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent);box
 .hoje .kpi{cursor:pointer;text-align:left;font:inherit;color:inherit;appearance:none;border:1px solid var(--line);background:var(--surface)}
 .hoje .kpi:hover{border-color:var(--accent)}
 .hoje .kpi .v{font-size:28px}
-.grid{gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.grid{gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))}
 .card{grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:18px;transition:border-color .12s,transform .12s,box-shadow .12s}
 .card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 2px 4px rgba(11,20,38,.05),0 10px 26px rgba(11,58,140,.10)}
 .card .ib{grid-row:1/3;width:46px;height:46px;border-radius:12px;background:rgba(11,58,140,.08);color:var(--accent);display:grid;place-items:center}
@@ -260,6 +260,25 @@ body:has(.auth){background:linear-gradient(180deg,var(--navy) 0,var(--navy) 250p
 /* Celular: campo com letra menor que 16px faz o iPhone dar zoom ao tocar e a tela fica "torta". */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (max-width:959px){input,select,textarea,.unid{font-size:16px!important}html,body{overflow-x:hidden}}
+
+/* Trava a largura no celular: nada pode passar da tela (tabelas largas rolam só dentro do quadro delas). */
+@media (max-width:959px){
+  html,body{overflow-x:hidden;max-width:100%}
+  body{position:relative}
+  #shell,main,#view{overflow-x:clip;max-width:100vw}
+  main,#view{grid-template-columns:minmax(0,1fr)}
+  main>*,.panel,section,.card{min-width:0;max-width:100%}
+  .scrollx{max-width:100%;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+  main p,main h1,main h2,main h3,main td,main li,main span,main b{overflow-wrap:anywhere}
+  img,video,canvas,svg,iframe{max-width:100%}
+}
+
+@media (max-width:959px){
+  .compu{width:100%;table-layout:fixed;font-size:13px}
+  .compu th,.compu td{padding:8px 4px;white-space:normal;overflow-wrap:anywhere;vertical-align:top}
+  .compu th:first-child,.compu td:first-child{width:34%}
+  .compu .muted.small{display:block;font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -641,7 +660,7 @@ function inicioComparativo(){
     ['Em atraso',function(r){return brl0(r.inadValor)+' <span class="muted small">('+(r.inadimplentes||0)+')</span>';}],
     ['Risco alto de cancelar',function(r){return r.riscoAlto==null?'–':r.riscoAlto;}],
     ['Leads no mês',function(r){return r.leadsMes||0;}]];
-  return '<section class="panel"><span class="lbl">Unidades lado a lado</span><div class="scrollx"><table class="tbl"><thead><tr><th></th>'+
+  return '<section class="panel"><span class="lbl">Unidades lado a lado</span><div class="scrollx"><table class="tbl compu"><thead><tr><th></th>'+
     ms.map(function(m){return '<th>'+esc(m.academias.nome)+'</th>';}).join('')+'</tr></thead><tbody>'+
     L.map(function(l){return '<tr><td>'+l[0]+'</td>'+ms.map(function(m){return '<td>'+l[1](C[m.academia_id].dados||{})+'</td>';}).join('')+'</tr>';}).join('')+
     '</tbody></table></div><p class="small muted" style="margin:10px 0 0">Números da última busca no EVO de cada unidade.</p></section>';
@@ -822,7 +841,7 @@ function telaPainel(){
   h+=painelResumo(r);
   h+=painelFunil(r);
   h+=painelResultados(r.resultados);
-  h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">';
+  h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))">';
   h+='<section class="panel"><span class="lbl">Alunos sumidos (ativos sem treinar)</span>'+barras([['7 a 14 dias',r.sumidos7],['15 a 29 dias',r.sumidos15],['30 dias ou mais',r.sumidos30],['Nunca treinaram',r.nuncaVieram||0]],r.ativos,'g-bad')+'</section>';
   h+='<section class="panel"><span class="lbl">Motivos de cancelamento no mês · '+brl0(r.canceladosValor)+' em contratos</span>'+(r.motivos&&r.motivos.length?barras(r.motivos,r.canceladosMes,'g-warn'):'<p class="muted small">Nenhum cancelamento no mês.</p>')+'</section>';
   h+='<section class="panel"><span class="lbl">De onde vieram os leads do mês</span>'+(r.canais&&r.canais.length?barras(r.canais,r.leadsMes,'g-ok'):'<p class="muted small">Nenhum lead no mês.</p>')+'</section>';
@@ -1635,7 +1654,7 @@ function telaContas(){
     '<label class="f"><span>PDF ou foto do boleto</span><input type="file" id="finArq" accept="application/pdf,image/*"'+(F.lendo?' disabled':'')+'></label>'+
     (F.lendo?'<p class="small muted" style="margin:0">Lendo o arquivo…</p>':'')+
     '<label class="f"><span>Código do boleto (linha digitável) ou Pix copia e cola</span><textarea data-fd="codigo" rows="2" spellcheck="false" style="font-family:ui-monospace,monospace">'+esc(d.codigo)+'</textarea></label>'+
-    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">'+
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px">'+
     '<label class="f"><span>Fornecedor (quem você espera que receba)</span><input data-fd="forn" value="'+esc(d.forn)+'" placeholder="Ex.: Kikos"></label>'+
     '<label class="f"><span>Valor impresso</span><input data-fd="valor" inputmode="decimal" value="'+esc(d.valor)+'" placeholder="0,00"></label>'+
     '<label class="f"><span>Vencimento impresso</span><input type="date" data-fd="venc" value="'+esc(d.venc)+'"></label>'+
@@ -1678,7 +1697,7 @@ function telaContas(){
       (c.comprovante?'<button class="btn ghost sm" data-fincomp="'+c.id+'">Comprovante</button>':'')+
       '<button class="btn ghost sm" data-finedit="'+c.id+'">'+(ed?'Fechar':'Editar')+'</button>'+
       '<button class="btn '+(conf?'danger':'ghost')+' sm" data-findel="'+c.id+'">'+(conf?'Confirmar exclusão':'Excluir')+'</button></div>';
-    if(ed)linha+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;width:100%;margin-top:10px">'+
+    if(ed)linha+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:10px;width:100%;margin-top:10px">'+
       '<label class="f"><span>Fornecedor / quem recebeu</span><input data-fe="fornecedor" value="'+esc(E.fornecedor)+'"></label>'+
       '<label class="f"><span>Valor</span><input data-fe="valor" inputmode="decimal" value="'+esc(E.valor)+'"></label>'+
       '<label class="f"><span>Vencimento</span><input type="date" data-fe="vencimento" value="'+esc(E.vencimento)+'"></label>'+
@@ -1794,7 +1813,7 @@ function telaComprovantes(){
       var alerta=x.dup?'<div class="small t-bad">Já existe: '+esc(x.dup)+'. Não vai ser lançado de novo.</div>':(!x.legivel?'<div class="small t-bad">Não achamos valor nem data neste PDF. Preencha à mão.</div>':'');
       return '<div class="panel" style="margin:0;padding:12px;'+(x.incluir?'':'opacity:.65')+'">'+
         '<label class="row small fincheck" style="gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:8px"><input type="checkbox" data-imp="'+x.id+'" data-k="incluir"'+(x.incluir?' checked':'')+(x.dup?' disabled':'')+'> <b style="overflow-wrap:anywhere">'+esc(x.nomeArq)+(x.paginas>1?' · pág. '+x.pagina:'')+'</b> <span class="chip">'+esc({pix:'Pix',boleto:'Boleto',transferencia:'Transferência',conta:'Conta/tributo'}[x.tipo]||'Pagamento')+'</span></label>'+alerta+
-        '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">'+
+        '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:10px">'+
         '<label class="f"><span>Quem recebeu</span><input data-imp="'+x.id+'" data-k="forn" value="'+esc(x.forn)+'"></label>'+
         '<label class="f"><span>Valor</span><input data-imp="'+x.id+'" data-k="valor" inputmode="decimal" value="'+esc(x.valor)+'"></label>'+
         '<label class="f"><span>Data do pagamento</span><input type="date" data-imp="'+x.id+'" data-k="data" value="'+esc(x.data)+'"></label>'+
@@ -1893,7 +1912,7 @@ function telaDre(){
     if((D.ev.receita.formas||[]).length)h+=barras(D.ev.receita.formas.map(function(x){return [finForma(x[0]),Math.round(x[1])];}),D.recEvo,'g-ok');}
   else h+='<p class="small muted" style="margin:0 0 6px">Sem dados do EVO para este mês.</p>';
   h+='<div class="lst" style="margin-top:8px">'+D.recMan.map(function(r){var conf=S.confirma==='rdel-'+r.id;return '<div class="it"><div><div class="n">'+esc(r.descricao)+' · '+brl(r.valor)+'</div><div class="dt">'+esc((FIN_REC.filter(function(x){return x[0]===r.categoria;})[0]||['','Outras entradas'])[1])+'</div></div><div class="acts"><button class="btn '+(conf?'danger':'ghost')+' sm" data-finrdel="'+r.id+'">'+(conf?'Confirmar':'Excluir')+'</button></div></div>';}).join('')+'</div>';
-  h+='<form class="form" data-form="finReceita" style="margin-top:10px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">'+
+  h+='<form class="form" data-form="finReceita" style="margin-top:10px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));gap:10px">'+
     '<label class="f"><span>Entrada fora do EVO</span><input name="desc" required placeholder="Ex.: repasse Wellhub"></label>'+
     '<label class="f"><span>Tipo</span><select name="cat">'+FIN_REC.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>';}).join('')+'</select></label>'+
     '<label class="f"><span>Valor</span><input name="valor" required inputmode="decimal" placeholder="0,00"></label></div>'+
@@ -1907,7 +1926,7 @@ function telaDre(){
   var cs=finCentros();
   h+='<section class="panel" id="finCentros"><span class="lbl">Centros de custo</span><p class="small muted" style="margin:0 0 8px">Cada centro de custo cai numa linha da DRE. Os do EVO vêm sozinhos; você também pode criar os seus para lançar contas aqui (ex.: Kikos, Royalties, Limpeza). Trocar a linha vale para todos os meses.</p>'+
     '<div style="display:grid;gap:8px">'+(cs.length?cs.map(function(c){var conf=S.confirma==='cdel-'+c[0];return '<div class="row small" style="justify-content:space-between;gap:10px;align-items:center;flex-wrap:nowrap"><span style="min-width:0;overflow-wrap:anywhere">'+esc(c[0])+' <span class="chip">'+(c[1]==='evo'?'EVO':'criado aqui')+'</span></span><span class="row" style="gap:6px;flex-wrap:nowrap">'+finCatSelect('data-finmapa="'+esc(c[0])+'" style="max-width:230px"',finCentroCat(c[0]))+(c[1]==='proprio'?'<button class="btn '+(conf?'danger':'ghost')+' sm" data-fincdel="'+esc(c[0])+'">'+(conf?'Confirmar':'Excluir')+'</button>':'')+'</span></div>';}).join(''):'<p class="muted small" style="margin:0">Nenhum centro de custo ainda.</p>')+'</div>'+
-    '<form class="form" data-form="finCentro" style="margin-top:12px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">'+
+    '<form class="form" data-form="finCentro" style="margin-top:12px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px">'+
     '<label class="f"><span>Novo centro de custo</span><input name="nome" required maxlength="60" placeholder="Ex.: Kikos (equipamentos)"></label>'+
     '<label class="f"><span>Vai para a linha da DRE</span>'+finCatSelect('name="cat"','outros')+'</label></div>'+
     '<div class="row"><button class="btn sm"'+(S.ocupado?' disabled':'')+'>Adicionar centro de custo</button></div></form></section>';
