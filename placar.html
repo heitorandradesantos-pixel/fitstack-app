@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#0b2350">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icones/icone-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FitStack">
 <title>Placar de Turnos · FitStack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -285,7 +291,11 @@ details.fold[open]>summary::after{content:"−"}
 .dupla{display:flex;gap:10px;align-items:flex-start;margin:12px 0;padding:12px;border:1px solid var(--line,#ddd);border-radius:12px;font-size:14px;line-height:1.4}
 .dupla input{width:20px;height:20px;flex:none;margin-top:1px}
 </style>
-<style>html,body{margin:0}[hidden]{display:none!important}.voltar{color:var(--muted);font-size:13px;text-decoration:none;font-weight:600}.voltar:hover{color:var(--fg)}</style>
+<style>html,body{margin:0}[hidden]{display:none!important}.voltar{color:var(--muted);font-size:13px;text-decoration:none;font-weight:600}.voltar:hover{color:var(--fg)}
+/* Celular: campo com letra menor que 16px faz o iPhone dar zoom ao tocar e a tela fica "torta". */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:959px){input,select,textarea,.unid{font-size:16px!important}html,body{overflow-x:hidden}}
+</style>
 </head>
 <body>
 <aside id="fsnav">
@@ -314,7 +324,7 @@ details.fold[open]>summary::after{content:"−"}
 /* ---------- FitStack: login, permissões e banco (substitui o window.claude) ---------- */
 const SB_URL='https://bmbcdqcjeignydehwmhg.supabase.co';
 const SB_KEY='sb_publishable_4pSkdBQF_-Q16yeAVQoFHA_SjhoaXjf';
-const sb=supabase.createClient(SB_URL,SB_KEY);
+const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const FS={acad:null,papel:null,perms:[],membros:[],nomeMembro:''};
 function pode(p){return FS.papel==='admin'||FS.papel==='socio'||FS.perms.indexOf(p)>=0;}
 const ICO={inicio:'M3 11l9-8 9 8M5 10v10h14V10',painel:'M4 20V10M10 20V4M16 20v-7M2 20h20',contatos:'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z',
