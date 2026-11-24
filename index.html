@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#0b2350">
 <link rel="manifest" href="manifest.webmanifest">
@@ -279,7 +279,17 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .compu th:first-child,.compu td:first-child{width:34%}
   .compu .muted.small{display:block;font-size:11px}
 }
+
+/* Tela travada como app: sem pinça de zoom nem toque duplo dando zoom. */
+html{touch-action:pan-x pan-y;overscroll-behavior-x:none}
 </style>
+<script>
+/* iPhone ignora user-scalable=no: bloqueia o gesto de pinça e o zoom por toque duplo. */
+(function(){var n=function(e){e.preventDefault();};
+document.addEventListener('gesturestart',n,{passive:false});document.addEventListener('gesturechange',n,{passive:false});
+document.addEventListener('touchmove',function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});
+var ult=0;document.addEventListener('touchend',function(e){var t=Date.now();if(t-ult<300&&!e.target.closest('input,select,textarea,button,a,label'))e.preventDefault();ult=t;},{passive:false});})();
+</script>
 </head>
 <body>
 <header id="hdr" hidden>
