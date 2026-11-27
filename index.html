@@ -1922,6 +1922,12 @@ function telaDre(){
     if((D.ev.receita.formas||[]).length)h+=barras(D.ev.receita.formas.map(function(x){return [finForma(x[0]),Math.round(x[1])];}),D.recEvo,'g-ok');}
   else h+='<p class="small muted" style="margin:0 0 6px">Sem dados do EVO para este mês.</p>';
   h+='<div class="lst" style="margin-top:8px">'+D.recMan.map(function(r){var conf=S.confirma==='rdel-'+r.id;return '<div class="it"><div><div class="n">'+esc(r.descricao)+' · '+brl(r.valor)+'</div><div class="dt">'+esc((FIN_REC.filter(function(x){return x[0]===r.categoria;})[0]||['','Outras entradas'])[1])+'</div></div><div class="acts"><button class="btn '+(conf?'danger':'ghost')+' sm" data-finrdel="'+r.id+'">'+(conf?'Confirmar':'Excluir')+'</button></div></div>';}).join('')+'</div>';
+  // Aviso de contagem dupla: repasse (Wellhub, Totalpass) que a recepção já registrou no EVO como "depósito"
+  var depEvo=0;((D.ev&&D.ev.receita.formas)||[]).forEach(function(x){if(/deposit|dep[oó]sito/i.test(x[0]))depEvo+=Number(x[1])||0;});
+  var manRep=D.recMan.filter(function(r){return r.categoria==='wellhub'||r.categoria==='totalpass';});
+  if(manRep.length&&depEvo>0){var big=manRep.filter(function(r){return Number(r.valor)<=depEvo;});
+    if(big.length)h+='<div class="insight warn" style="margin-top:10px"><b>Confira se não está contando duas vezes.</b> O EVO já tem '+brl(depEvo)+' em "depósito" neste mês. Se o repasse do '+esc(big.map(function(r){return r.descricao;}).join(', '))+' foi registrado no EVO (é comum aparecer como depósito num dia só), apague a entrada daqui.</div>';}
+  h+='<p class="small muted" style="margin:10px 0 0">Só lance aqui o que <b>não</b> está no EVO. Antes de lançar o Wellhub, veja no dashboard do EVO (aba Financeiro) se já tem um recebimento grande no dia do repasse.</p>';
   h+='<form class="form" data-form="finReceita" style="margin-top:10px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));gap:10px">'+
     '<label class="f"><span>Entrada fora do EVO</span><input name="desc" required placeholder="Ex.: repasse Wellhub"></label>'+
     '<label class="f"><span>Tipo</span><select name="cat">'+FIN_REC.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>';}).join('')+'</select></label>'+
