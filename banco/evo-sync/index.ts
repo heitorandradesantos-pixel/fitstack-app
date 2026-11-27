@@ -230,7 +230,12 @@ async function sincronizar(cfg: Cfg) {
   // 3) Movimento do mês: matrículas (convertidos) e cancelamentos
   let novos: { itens: any[]; truncado: boolean } = { itens: [], truncado: false };
   try { novos = await todas(cfg, "/api/v2/members", { conversionDateStart: iniMes, conversionDateEnd: hoje }, 10); }
-  catch (e) { avisos.push("Não deu para contar as matrículas do mês: " + (e as Error).message); }
+  catch (e) {
+    // Limite de consultas do EVO: em vez de gravar "0 matrículas", para aqui e continua daqui a pouco
+    // (os alunos já ficaram guardados no evo_cache, então a próxima rodada é rápida).
+    if (/limite de consultas/i.test((e as Error).message)) throw new Parcial(-1);
+    avisos.push("Não deu para contar as matrículas do mês: " + (e as Error).message);
+  }
   const canc: any[] = [];
   for (let p = 0; p < 12; p++) {
     const pag = await evo(cfg, "/api/v2/membermembership", { cancelDateStart: iniMes, cancelDateEnd: hoje, take: 25, skip: p * 25 });
