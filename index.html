@@ -485,11 +485,11 @@ var FORMS={
       S.evoTrocar=false;toast('Chave do EVO salva.');carregarEvo();},function(e){S.ocupado=false;toast(erroMsg(e));render();});
   },
   metas:function(d){
-    var row={academia_id:S.atual.academia_id,matriculas:d.matriculas?Math.round(finNum(d.matriculas)||0)||null:null,receita:d.receita?finNum(d.receita)||null:null,atualizado_em:new Date().toISOString()};
+    var row={academia_id:S.atual.academia_id,matriculas:d.matriculas?Math.round(finNum(d.matriculas)||0)||null:null,receita:d.receita?finNum(d.receita)||null:null,equilibrio:d.equilibrio?Math.round(finNum(d.equilibrio)||0)||null:null,atualizado_em:new Date().toISOString()};
     S.ocupado=true;render();
     sb.from('metas').upsert(row).then(function(r){S.ocupado=false;
       if(r.error){toast(erroMsg(r.error));render();return;}
-      S.metas={matriculas:row.matriculas,receita:row.receita};S.metaEdit=false;toast('Metas salvas.');render();},function(e){S.ocupado=false;toast(erroMsg(e));render();});
+      S.metas={matriculas:row.matriculas,receita:row.receita,equilibrio:row.equilibrio};S.metaEdit=false;toast('Metas salvas.');render();},function(e){S.ocupado=false;toast(erroMsg(e));render();});
   },
   novaUnidade:function(d){
     S.ocupado=true;render();
@@ -615,7 +615,7 @@ function telaSemAcademia(){
 // ---- Início: metas do mês, contas a vencer e comparativo de unidades ----
 function finPronto(){var F=S.fin;return !!(F&&F.acad===S.atual.academia_id&&F.contas&&F.receitas&&F.mapa&&F.evo!==undefined);}
 function carregarMetas(){
-  sb.from('metas').select('matriculas,receita').eq('academia_id',S.atual.academia_id).maybeSingle().then(function(r){
+  sb.from('metas').select('*').eq('academia_id',S.atual.academia_id).maybeSingle().then(function(r){
     S.metas=r.error?{erro:true}:(r.data||{});if(S.tab==='inicio')render();});
 }
 function carregarComparativo(){
@@ -635,14 +635,21 @@ function metaLinha(nome,v,meta,fmt){
 }
 function inicioMetas(r){
   var M=S.metas;if(M===undefined||M.erro)return '';
-  var tem=M.matriculas||M.receita,h='<section class="panel"><div class="row between"><span class="lbl" style="margin:0">Meta do mês</span>'+
+  var tem=M.matriculas||M.receita||M.equilibrio,h='<section class="panel"><div class="row between"><span class="lbl" style="margin:0">Meta do mês</span>'+
     (S.metaEdit?'':'<button class="btn ghost sm" data-act="metaEditar">'+(tem?'Mudar metas':'Definir metas')+'</button>')+'</div>';
   if(S.metaEdit)return h+'<form class="form2" data-form="metas" style="margin-top:12px;align-items:end">'+
     '<label class="f"><span>Matrículas no mês</span><input name="matriculas" inputmode="numeric" value="'+esc(M.matriculas||'')+'" placeholder="Ex.: 60"></label>'+
     '<label class="f"><span>Receita do mês (R$)</span><input name="receita" inputmode="decimal" value="'+(M.receita?esc(Number(M.receita).toLocaleString('pt-BR')):'')+'" placeholder="Ex.: 120.000"></label>'+
+    '<label class="f"><span>Ponto de equilíbrio (alunos de plano direto)</span><input name="equilibrio" inputmode="numeric" value="'+esc(M.equilibrio||'')+'" placeholder="Ex.: 850"></label>'+
     '<div class="row"><button class="btn"'+(S.ocupado?' disabled':'')+'>Salvar metas</button><button type="button" class="btn ghost" data-act="metaCancelar">Cancelar</button></div></form></section>';
   if(!tem)return h+'<p class="muted small" style="margin:10px 0 0">Defina quantas matrículas e quanto de receita você quer no mês. O FitStack mostra todo dia se o ritmo atual chega lá.</p></section>';
   h+='<div style="display:grid;gap:16px;margin-top:14px">';
+  if(M.equilibrio&&r.origem&&r.origem.ativos){var adi=r.origem.adimplentes,dir=Number((adi||r.origem.ativos).direto||0),eq=Number(M.equilibrio),fal=eq-dir,pc=Math.min(100,Math.round(dir*100/eq));
+    var saldo=((r.origem.matriculas||{}).direto||0)-((r.origem.cancelados||{}).direto||0);
+    h+='<div class="metal"><div class="row between"><b>Ponto de equilíbrio ('+(adi?'plano direto em dia':'plano direto')+')</b><span class="num">'+dir.toLocaleString('pt-BR')+' de '+eq.toLocaleString('pt-BR')+'</span></div>'+
+      '<div class="track"><div class="fill '+(fal<=0?'g-ok':fal<=eq*.05?'g-warn':'g-bad')+'" style="width:'+pc+'%"></div></div>'+
+      '<p class="small '+(fal<=0?'t-ok':'t-bad')+'" style="margin:0">'+(fal<=0?'Acima do equilíbrio: <b>'+(-fal)+' alunos</b> de folga. Cada aluno direto a mais vira lucro.':'Faltam <b>'+fal+' alunos de plano direto'+(adi?' em dia':'')+'</b> para a academia se pagar.'+(adi?' ('+Number(r.origem.ativos.direto||0).toLocaleString('pt-BR')+' ativos no plano direto, '+(Number(r.origem.ativos.direto||0)-dir)+' com mensalidade atrasada.)':''))+
+      ' No mês, o plano direto está <b>'+(saldo>=0?'+':'')+saldo+'</b> (matrículas menos cancelamentos).</p></div>';}
   if(M.matriculas)h+=metaLinha('Matrículas',r.matriculasMes||0,M.matriculas,function(x){return String(x);});
   if(M.receita){
     if(finPronto()){var D=finDre(hojeBR().slice(0,7));h+=metaLinha('Receita',D.bruta,Number(M.receita),brl0);}
@@ -664,7 +671,9 @@ function inicioComparativo(){
   if(ms.length<2)return '';
   var L=[['Alunos ativos',function(r){return Number(r.ativos||0).toLocaleString('pt-BR');}],
     ['Plano direto',function(r){var o=r.origem&&r.origem.ativos;return o?Number(o.direto||0).toLocaleString('pt-BR')+' <span class="muted small">('+pct(o.direto||0,r.ativos)+')</span>':'–';}],
-    ['Wellhub',function(r){var o=r.origem&&r.origem.ativos;return o?Number(o.wellhub||0).toLocaleString('pt-BR')+' <span class="muted small">('+pct(o.wellhub||0,r.ativos)+')</span>':'–';}],
+    ['Plano direto em dia',function(r){var a=r.origem&&r.origem.adimplentes;return a?Number(a.direto||0).toLocaleString('pt-BR'):'<span class="muted small">amanhã</span>';}],
+    ['Wellhub',function(r){var o=r.origem&&r.origem.ativos,fq=r.origem&&r.origem.frequentes;if(!o)return '–';
+      return fq?Number(fq.wellhub||0).toLocaleString('pt-BR')+' <span class="muted small">vieram em 30 dias (de '+Number(o.wellhub||0).toLocaleString('pt-BR')+' cadastrados)</span>':Number(o.wellhub||0).toLocaleString('pt-BR')+' <span class="muted small">('+pct(o.wellhub||0,r.ativos)+')</span>';}],
     ['Saldo do mês',function(r){var s=(r.matriculasMes||0)-(r.canceladosMes||0);return '<span class="'+(s>=0?'t-ok':'t-bad')+'">'+(s>=0?'+':'')+s+'</span> <span class="muted small">('+(r.matriculasMes||0)+' − '+(r.canceladosMes||0)+')</span>';}],
     ['Sumidos 7+ dias',function(r){var s=(r.sumidos7||0)+(r.sumidos15||0)+(r.sumidos30||0);return s+' <span class="muted small">('+pct(s,r.ativos)+')</span>';}],
     ['Em atraso',function(r){return brl0(r.inadValor)+' <span class="muted small">('+(r.inadimplentes||0)+')</span>';}],
@@ -968,12 +977,15 @@ function painelOrigem(r){
   var v=function(g,k){return Number(((O[g]||{})[k])||0);};
   var tot=r.ativos||1,dir=v('ativos','direto'),agr=v('ativos','wellhub')+v('ativos','totalpass')+v('ativos','gurupass');
   var h='<section class="panel"><span class="lbl">Plano direto × Wellhub e outros agregadores</span>'+
-    '<div class="kpis" style="margin:4px 0 14px">'+ks.map(function(k){return '<div class="kpi"><span class="lbl">'+ORIG_N[k]+'</span><div class="v">'+v('ativos',k).toLocaleString('pt-BR')+'</div><div class="s">'+pct(v('ativos',k),tot)+' dos ativos</div></div>';}).join('')+'</div>'+
-    '<div class="scrollx"><table class="tbl"><thead><tr><th>Origem</th><th>Ativos</th><th>Sumidos 7+ dias</th><th>% sumidos</th><th>Matrículas no mês</th><th>Cancelamentos no mês</th></tr></thead><tbody>'+
-    ks.map(function(k){var a=v('ativos',k),sm=v('sumidos',k);return '<tr><td><b>'+ORIG_N[k]+'</b></td><td>'+a.toLocaleString('pt-BR')+'</td><td>'+sm+'</td><td>'+(a?pct(sm,a):'–')+'</td><td>'+v('matriculas',k)+'</td><td>'+v('cancelados',k)+'</td></tr>';}).join('')+
+    '<div class="kpis" style="margin:4px 0 14px">'+ks.map(function(k){var ag=k!=='direto'&&k!=='outro'&&O.frequentes;
+      return '<div class="kpi"><span class="lbl">'+ORIG_N[k]+'</span><div class="v">'+(ag?v('frequentes',k):v('ativos',k)).toLocaleString('pt-BR')+'</div><div class="s">'+(ag?'vieram nos últimos 30 dias · '+v('ativos',k).toLocaleString('pt-BR')+' cadastrados no EVO':pct(v('ativos',k),tot)+' dos ativos')+'</div></div>';}).join('')+'</div>'+
+    '<div class="scrollx"><table class="tbl"><thead><tr><th>Origem</th><th>Ativos no EVO</th>'+(O.frequentes?'<th>Vieram em 30 dias</th>':'')+'<th>Sumidos 7+ dias</th><th>% sumidos</th><th>Matrículas no mês</th><th>Cancelamentos no mês</th></tr></thead><tbody>'+
+    ks.map(function(k){var a=v('ativos',k),sm=v('sumidos',k);return '<tr><td><b>'+ORIG_N[k]+'</b></td><td>'+a.toLocaleString('pt-BR')+'</td>'+(O.frequentes?'<td>'+v('frequentes',k).toLocaleString('pt-BR')+'</td>':'')+'<td>'+sm+'</td><td>'+(a?pct(sm,a):'–')+'</td><td>'+v('matriculas',k)+'</td><td>'+v('cancelados',k)+'</td></tr>';}).join('')+
     '</tbody></table></div>';
   var ins=[];
-  if(agr)ins.push(['warn','<b>'+pct(agr,tot)+' dos alunos ativos vêm de agregador</b> ('+agr.toLocaleString('pt-BR')+' pessoas). A receita deles chega pelo repasse do app, não pela mensalidade: o número que paga as contas é o de <b>'+dir.toLocaleString('pt-BR')+' alunos de plano direto</b>.']);
+  var agrF=v('frequentes','wellhub')+v('frequentes','totalpass')+v('frequentes','gurupass');
+  if(agr&&O.frequentes)ins.push(['warn','<b>Dos '+agr.toLocaleString('pt-BR')+' cadastrados por agregador no EVO, só '+agrF.toLocaleString('pt-BR')+' vieram treinar nos últimos 30 dias.</b> O resto é cadastro parado: o app não paga por quem não vem. O número que paga as contas é o de <b>'+dir.toLocaleString('pt-BR')+' alunos de plano direto</b>.']);
+  else if(agr)ins.push(['warn','<b>'+pct(agr,tot)+' dos alunos ativos vêm de agregador</b> ('+agr.toLocaleString('pt-BR')+' pessoas). A receita deles chega pelo repasse do app, não pela mensalidade: o número que paga as contas é o de <b>'+dir.toLocaleString('pt-BR')+' alunos de plano direto</b>.']);
   var sd=v('sumidos','direto'),sw=v('sumidos','wellhub');
   if(dir&&sd)ins.push([sd/dir>.25?'bad':'warn','<b>'+sd+' alunos de plano direto não treinam há 7 dias ou mais ('+pct(sd,dir)+').</b> Esses são os que mais pesam no caixa se cancelarem: comece por eles em Contatos do dia → Sumidos → Plano direto.']);
   if(v('ativos','wellhub')&&sw)ins.push(['ok','<b>'+sw+' alunos do Wellhub estão sumidos.</b> Vale um convite para voltar: quem treina pelo app pode virar plano direto.']);

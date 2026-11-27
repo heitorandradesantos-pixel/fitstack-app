@@ -294,6 +294,10 @@ async function sincronizar(cfg: Cfg) {
     origem: {
       ativos: conta(ativos.map((m: any) => m._org)),
       sumidos: conta(sumidos.filter((x) => x.dias !== null).map((x) => x.org)),
+      // Em dia: ativos sem nenhuma mensalidade vencida em aberto (é o número que paga as contas)
+      adimplentes: conta(ativos.filter((m: any) => !inadimplentes.some((x) => x.id === m.idMember)).map((m: any) => m._org)),
+      // Quem de fato veio treinar nos últimos 30 dias (Wellhub/TotalPass ficam "ativos" no EVO mesmo sem vir)
+      frequentes: conta(ativos.filter((m: any) => { const d = soData(m.lastAccessDate); return !!d && d >= ymd(new Date(Date.parse(hoje) - 30 * DIA)); }).map((m: any) => m._org)),
       matriculas: conta(novos.itens.map((m: any) => porId.get(m.idMember)?._org || origemDe(m))),
       cancelados: conta(cancelados.map((c) => origemPlano(c.plano))),
       planos: Object.entries(conta(ativos.flatMap((m: any) => planosAtivos(m).map((x: any) => String(x.name || x.nameMembership || "Sem nome")))))

@@ -1163,3 +1163,5 @@ grant select, insert, update, delete on public.evo_cache to service_role;
 select cron.unschedule(jobid) from cron.job where jobname = 'evo-cache-limpar';
 select cron.schedule('evo-cache-limpar', '0 6 * * *', $job$ delete from public.evo_cache where dia < (now() at time zone 'America/Sao_Paulo')::date $job$);
 select 'ok' as pronto;
+-- Meta de ponto de equilíbrio (quantos alunos de plano direto a academia precisa para se pagar)
+alter table public.metas add column if not exists equilibrio integer;
